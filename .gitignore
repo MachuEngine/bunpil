@@ -1,0 +1,30 @@
+# 환경 변수 (시크릿 커밋 금지)
+.env
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# ChromaDB 데이터 (로컬 전용)
+chroma_db/
+*.sqlite3
+
+# 로그
+*.log
+logs/
