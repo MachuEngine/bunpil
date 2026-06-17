@@ -14,3 +14,8 @@ numpy<2.0
 
 # Phase 2 — LLM 추상화 레이어
 httpx>=0.27.0
+
+# Phase 3 — 출제 모듈 (ReAct Agent)
+langgraph>=0.2.60
+langchain-core>=0.3.0
+langchain-ollama>=0.2.0
