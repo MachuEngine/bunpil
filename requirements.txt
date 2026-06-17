@@ -3,3 +3,11 @@ uvicorn[standard]==0.32.1
 python-dotenv==1.0.1
 pydantic==2.10.2
 pydantic-settings==2.6.1
+
+# Phase 1 — RAG 인프라
+pymupdf==1.24.14
+chromadb==0.5.23
+FlagEmbedding==1.2.11
+peft>=0.11.0
+torch>=2.1.0
+numpy<2.0
