@@ -1,9 +1,19 @@
 services:
   app:
     build: .
+    restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "7860:7860"
     env_file:
       - .env
     volumes:
-      - ./app:/app/app
+      # EBS 마운트 포인트 (/data) → ChromaDB 영구 저장
+      - chroma_data:/data/chroma_db
+      # BGE 모델 캐시 재사용 (콜드스타트 단축)
+      - hf_cache:/root/.cache/huggingface
+    environment:
+      - LLM_BACKEND=${LLM_BACKEND:-local}
+
+volumes:
+  chroma_data:
+  hf_cache:

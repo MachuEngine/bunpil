@@ -1,29 +1,79 @@
+"""RunPod 서버리스 vLLM 백엔드.
+
+handler.py의 응답 형식: {"output": {"response": "..."}}
+runsync가 타임아웃(30s)되면 비동기 run → status 폴링으로 전환.
+"""
+import asyncio
 import os
 
 import httpx
 
 from ..base import LLMBackend
 
+_BASE = "https://api.runpod.ai/v2"
+_POLL_INTERVAL = 3   # seconds
+_MAX_POLL      = 60  # 최대 3분 대기
+
 
 class RunPodBackend(LLMBackend):
-    """RunPod 서버리스 vLLM 엔드포인트 백엔드. Phase 8에서 연결."""
-
     def __init__(self):
-        self.api_key = os.getenv("RUNPOD_API_KEY", "")
+        self.api_key     = os.getenv("RUNPOD_API_KEY", "")
         self.endpoint_id = os.getenv("RUNPOD_ENDPOINT_ID", "")
-        self.model = os.getenv("RUNPOD_MODEL", "qwen2.5-7b")
+        if not self.api_key or not self.endpoint_id:
+            raise RuntimeError(
+                "RUNPOD_API_KEY / RUNPOD_ENDPOINT_ID 환경변수가 설정되지 않았습니다."
+            )
+
+    def _headers(self) -> dict:
+        return {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
+
+    def _payload(self, messages: list, **kwargs) -> dict:
+        return {
+            "input": {
+                "messages": messages,
+                "max_tokens": kwargs.get("max_tokens", 512),
+                "temperature": kwargs.get("temperature", 0.7),
+            }
+        }
 
     async def generate(self, messages: list[dict], **kwargs) -> str:
-        if not self.api_key or not self.endpoint_id:
-            raise RuntimeError("RUNPOD_API_KEY / RUNPOD_ENDPOINT_ID 환경변수가 설정되지 않았습니다.")
-        url = f"https://api.runpod.ai/v2/{self.endpoint_id}/runsync"
-        payload = {"input": {"messages": messages, "model": self.model, **kwargs}}
-        async with httpx.AsyncClient(timeout=300) as client:
-            resp = await client.post(
-                url,
-                json=payload,
-                headers={"Authorization": f"Bearer {self.api_key}"},
-            )
-            resp.raise_for_status()
-            # vLLM OpenAI-compatible 응답 형식
-            return resp.json()["output"]["choices"][0]["message"]["content"]
+        async with httpx.AsyncClient(timeout=httpx.Timeout(35, read=35)) as client:
+            # 1. runsync 시도 (35초 이내 완료 시 즉시 반환)
+            try:
+                resp = await client.post(
+                    f"{_BASE}/{self.endpoint_id}/runsync",
+                    headers=self._headers(),
+                    json=self._payload(messages, **kwargs),
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                if data.get("status") == "COMPLETED":
+                    return data["output"]["response"]
+                # 타임아웃으로 IN_QUEUE / IN_PROGRESS — 폴링으로 전환
+                job_id = data.get("id")
+            except (httpx.ReadTimeout, httpx.TimeoutException):
+                # runsync 타임아웃 → 비동기 run으로 재시도
+                resp2 = await client.post(
+                    f"{_BASE}/{self.endpoint_id}/run",
+                    headers=self._headers(),
+                    json=self._payload(messages, **kwargs),
+                )
+                resp2.raise_for_status()
+                job_id = resp2.json()["id"]
+
+        # 2. 폴링 (별도 클라이언트로 재연결)
+        for _ in range(_MAX_POLL):
+            await asyncio.sleep(_POLL_INTERVAL)
+            async with httpx.AsyncClient(timeout=10) as poll:
+                r = await poll.get(
+                    f"{_BASE}/{self.endpoint_id}/status/{job_id}",
+                    headers=self._headers(),
+                )
+                r.raise_for_status()
+                d = r.json()
+                if d.get("status") == "COMPLETED":
+                    return d["output"]["response"]
+                if d.get("status") in ("FAILED", "CANCELLED"):
+                    raise RuntimeError(f"RunPod job {job_id} 실패: {d}")
+
+        raise TimeoutError(f"RunPod job {job_id} 응답 초과 ({_MAX_POLL * _POLL_INTERVAL}s)")
