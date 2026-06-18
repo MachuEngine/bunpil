@@ -42,6 +42,26 @@ WARNING = (
     "최종 기재 여부와 내용의 정확성은 담당 교사가 반드시 확인·책임져야 합니다."
 )
 
+# ── 규칙 기반 위반 탐지 (LLM 보완 — 명백한 패턴 결정론적 처리) ──
+_RULE_NEGATIVE = ["불성실", "부족", "낮은 편", "어려움이 있음", "개선이 필요", "주의가 필요", "발전이 필요", "보충이 필요"]
+_RULE_COMPARE  = ["에 비해", "보다 낮", "보다 부족", "하위권", "상위권", "서열"]
+_RULE_GUESS    = ["것 같", "로 보임", "것으로 추측", "말에 따르면"]
+
+
+def _rule_violations(text: str) -> List[str]:
+    """결정론적 키워드 기반 1차 위반 탐지."""
+    found: List[str] = []
+    if any(kw in text for kw in _RULE_NEGATIVE):
+        found.append("VIOLATION: 부정적·비하적 표현 포함")
+    if any(kw in text for kw in _RULE_COMPARE):
+        found.append("VIOLATION: 비교·서열화 표현 포함")
+    if any(kw in text for kw in _RULE_GUESS):
+        found.append("VIOLATION: 추측·미확인 표현 포함")
+    _, pii = mask_pii(text)
+    if pii:
+        found.append(f"VIOLATION: 개인정보({', '.join(pii)}) 포함")
+    return found
+
 
 def _run_async(coro):
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
@@ -110,7 +130,11 @@ class RecordChain:
         return {**state, "polished": polished}
 
     def _step_validate(self, state: RecordState) -> RecordState:
-        """③ 규정 RAG 검증 — 위반 플래그 추출."""
+        """③ 규정 RAG 검증 — 하이브리드(규칙+LLM) 위반 플래그 추출."""
+        # 1단계: 결정론적 규칙 기반 (빠르고 확실한 패턴)
+        violations: List[str] = _rule_violations(state["polished"])
+
+        # 2단계: LLM 기반 (뉘앙스·복합 위반)
         try:
             results = self._retriever.retrieve(
                 state["polished"], REGULATION_COLLECTION, top_k=3, n_candidates=10
@@ -122,10 +146,8 @@ class RecordChain:
         prompt = f"[규정]\n{reg_text}\n\n[문장]\n{state['polished']}"
         messages = VALIDATE_TPL.build(prompt)
         raw = _run_async(self._llm.generate(messages)).strip()
-
-        violations: List[str] = []
         if not raw.upper().startswith("OK"):
-            violations = [raw]
+            violations.append(raw)
 
         return {**state, "violations": violations}
 
