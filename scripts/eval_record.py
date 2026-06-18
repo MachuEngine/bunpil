@@ -259,7 +259,7 @@ def check(ok: bool) -> str:
 
 def print_report(mask: dict, halluc: dict, viol: dict):
     print("\n" + "=" * 55)
-    print("  쌤조 생기부 모듈 평가 리포트")
+    print("  분필 생기부 모듈 평가 리포트")
     print("=" * 55)
 
     fn_rate = mask["fn_rate"]

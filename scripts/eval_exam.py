@@ -348,7 +348,7 @@ def check(ok: bool) -> str:
 
 def print_report(retrieval: dict, quality: dict, constraints: dict, reliability: dict):
     print("\n" + "=" * 55)
-    print("  쌤조 출제 모듈 평가 리포트")
+    print("  분필 출제 모듈 평가 리포트")
     print("=" * 55)
 
     print(f"\n[1] 검색 성능 (n={retrieval['n']})")

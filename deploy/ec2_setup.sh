@@ -19,7 +19,7 @@ echo "=== [1/5] 보안 그룹 생성 ==="
 # Caddy를 올리면 80/443도 추가로 허용.
 SG_ID=$(aws ec2 create-security-group \
     --group-name bunpil-sg \
-    --description "쌤조 앱 보안 그룹" \
+    --description "분필 앱 보안 그룹" \
     --region "$REGION" \
     --query 'GroupId' --output text)
 

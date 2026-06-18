@@ -1,4 +1,4 @@
-"""쌤조 Gradio UI — 출제 모드 + 생기부 윤문 모드."""
+"""분필 Gradio UI — 출제 모드 + 생기부 윤문 모드."""
 import os
 import sys
 import traceback
@@ -153,9 +153,9 @@ def run_record(memo: str):
 # ── UI 구성 ───────────────────────────────────────────────────────────
 
 def build_ui() -> gr.Blocks:
-    with gr.Blocks(title="쌤조", theme=gr.themes.Soft()) as demo:
+    with gr.Blocks(title="분필", theme=gr.themes.Soft()) as demo:
         gr.Markdown(
-            "# 🏫 쌤조 — 고등학교 사회 교사용 AI 어시스턴트\n"
+            "# 🏫 분필 — 고등학교 사회 교사용 AI 어시스턴트\n"
             "> **출제 모드**: 지문 업로드 → 문항 세트 자동 출제  |  "
             "**생기부 모드**: 관찰 메모 → 생기부 문체 윤문"
         )

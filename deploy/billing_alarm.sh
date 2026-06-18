@@ -30,7 +30,7 @@ echo "=== [2/3] CloudWatch 빌링 알람 생성 ==="
 # 왜 us-east-1? AWS 빌링 메트릭은 글로벌이지만 us-east-1에서만 조회 가능.
 aws cloudwatch put-metric-alarm \
     --alarm-name "BunpilMonthlyCost" \
-    --alarm-description "쌤조 월 요금 \$${THRESHOLD_USD} 초과" \
+    --alarm-description "분필 월 요금 \$${THRESHOLD_USD} 초과" \
     --namespace "AWS/Billing" \
     --metric-name "EstimatedCharges" \
     --dimensions Name=Currency,Value=USD \

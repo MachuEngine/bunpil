@@ -26,6 +26,6 @@ sudo systemctl reload caddy
 
 echo ""
 echo "=== 완료 ==="
-echo "  https://$DOMAIN 접속해 쌤조 UI를 확인하세요."
+echo "  https://$DOMAIN 접속해 분필 UI를 확인하세요."
 echo "  인증서 상태: sudo caddy certificates"
 echo "  로그 확인:   sudo journalctl -u caddy -f"
