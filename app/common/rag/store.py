@@ -46,6 +46,13 @@ class RAGStore:
             ids=ids,
         )
 
+    def count(self, collection_name: str) -> int:
+        """컬렉션의 문서 수를 반환한다. 컬렉션이 없거나 오류 시 0."""
+        try:
+            return self._collection(collection_name).count()
+        except Exception:
+            return 0
+
     def query(
         self,
         collection_name: str,

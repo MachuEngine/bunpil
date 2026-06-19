@@ -1,9 +1,12 @@
 import asyncio
 import concurrent.futures
 import json
+import logging
 import uuid
 
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from langchain_core.tools import tool
 
@@ -119,7 +122,19 @@ def search_passages(query: str) -> str:
     if not col:
         return "컬렉션이 설정되지 않았습니다."
     retriever = RAGRetriever(_get_store(), _get_embedder(), _get_reranker())
+
+    # 업로드 임시 컬렉션 검색
     results = retriever.retrieve(query, col, top_k=3)
+
+    # standards 영구 컬렉션이 있으면 함께 검색하고 재랭킹
+    if _get_store().count("standards") > 0:
+        std_results = retriever.retrieve(query, "standards", top_k=3)
+        if std_results:
+            all_results = results + std_results
+            all_texts = [r["text"] for r in all_results]
+            ranked = _get_reranker().rerank(query, all_texts, top_k=3)
+            results = [{"text": all_texts[r["index"]], "score": r["score"]} for r in ranked]
+
     if not results:
         return "관련 지문 없음"
     combined = "\n\n".join(f"[{i+1}] {r['text'][:400]}" for i, r in enumerate(results))
@@ -186,8 +201,17 @@ def judge_item(question_json: Any) -> str:
 def check_duplicate(question: str) -> str:
     """기출 문제와 중복 여부를 확인합니다. 중복이면 True, 아니면 False 반환."""
     try:
+        count = _get_store().count("past_exams")
+        if count == 0:
+            logger.warning(
+                "past_exams 컬렉션이 비어있습니다. "
+                "scripts/index_past_exams.py를 실행한 뒤 다시 시도하세요."
+            )
+            if _ctx["last_id"]:
+                _ctx["duplicates"][_ctx["last_id"]] = False
+            return "False"
         q_vec = _get_embedder().embed([question])[0]
-        results = _get_store().query("past_exams", q_vec, n_results=3)
+        results = _get_store().query("past_exams", q_vec, n_results=min(3, count))
         if not results:
             if _ctx["last_id"]:
                 _ctx["duplicates"][_ctx["last_id"]] = False
