@@ -28,13 +28,18 @@ class RunPodBackend(LLMBackend):
         return {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
 
     def _payload(self, messages: list, **kwargs) -> dict:
-        return {
+        payload: dict = {
             "input": {
                 "messages": messages,
                 "max_tokens": kwargs.get("max_tokens", 512),
                 "temperature": kwargs.get("temperature", 0.7),
             }
         }
+        if kwargs.get("tools"):
+            payload["input"]["tools"] = kwargs["tools"]
+        if kwargs.get("stop"):
+            payload["input"]["stop"] = kwargs["stop"]
+        return payload
 
     async def generate(self, messages: list[dict], **kwargs) -> str:
         async with httpx.AsyncClient(timeout=httpx.Timeout(35, read=35)) as client:
