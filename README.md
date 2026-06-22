@@ -73,12 +73,36 @@ ollama pull qwen2.5:1.5b   # 개발용 (빠른 테스트)
 # ollama pull qwen2.5:7b   # 품질 향상 시
 ```
 
-### 3. UI 실행
+### 3. RAG 데이터 인덱싱
 
 ```bash
-python app/ui.py
+# data/ 경로에 PDF를 넣은 뒤 아래 순서대로 실행
+.venv/bin/python scripts/index_regulations.py   # 생기부 기재요령·훈령
+.venv/bin/python scripts/index_past_exams.py    # 수능·모평 기출 (사탐)
+.venv/bin/python scripts/index_standards.py     # 사회과 교육과정 성취기준
+```
+
+> 이미 적재된 파일은 자동 스킵 (idempotent). 처음 한 번만 실행하면 됩니다.
+
+### 4. UI 실행
+
+```bash
+ollama serve &                    # 로컬 LLM 서버 (별도 터미널)
+.venv/bin/python app/ui.py
 # → http://localhost:7860
 ```
+
+---
+
+## 데이터
+
+| 컬렉션 | 경로 | 출처 | 용도 |
+|---|---|---|---|
+| `regulations` | `data/regulations/` | 학교생활기록부 종합지원포털 | 생기부 규정 위반 검증 |
+| `past_exams` | `data/past_exams/` | 한국교육과정평가원 | 출제 시 기출 중복 체크 |
+| `standards` | `data/standards/` | 국가교육과정정보센터(NCIC) | 출제 시 성취기준 검색 |
+
+> **저작권**: 수능·모평 기출은 참고용 인덱싱만 허용 — 재배포·노출 금지.
 
 ---
 
@@ -95,11 +119,20 @@ bunpil/
 │   │   └── record/       # 생기부 모듈 (LCEL Chain)
 │   ├── main.py           # FastAPI (GET /health)
 │   └── ui.py             # Gradio UI
+├── data/
+│   ├── regulations/      # 생기부 기재요령, 작성·관리지침
+│   ├── past_exams/       # 수능·모평 기출 PDF (사탐 과목)
+│   └── standards/        # 사회과 교육과정 PDF
 ├── scripts/
-│   ├── test_exam.py      # 출제 모듈 통합 테스트
-│   ├── test_record.py    # 생기부 모듈 통합 테스트
-│   ├── eval_exam.py      # 출제 평가 (Recall@5, MRR, LLM Judge)
-│   └── eval_record.py    # 생기부 평가 (마스킹 FN, 사실추가율, 위반 Recall)
+│   ├── index_regulations.py  # regulations 컬렉션 인덱싱
+│   ├── index_past_exams.py   # past_exams 컬렉션 인덱싱
+│   ├── index_standards.py    # standards 컬렉션 인덱싱
+│   ├── test_llm.py           # LLM 추상화 레이어 검증
+│   ├── test_rag.py           # RAG 파이프라인 검증
+│   ├── test_exam.py          # 출제 모듈 통합 테스트
+│   ├── test_record.py        # 생기부 모듈 통합 테스트
+│   ├── eval_exam.py          # 출제 평가 (Recall@5, MRR, LLM Judge)
+│   └── eval_record.py        # 생기부 평가 (마스킹 FN, 사실추가율, 위반 Recall)
 ├── runpod_handler/       # RunPod 서버리스 핸들러 (Qwen2.5-7B vLLM)
 ├── deploy/               # EC2·Caddy·빌링알람 프로비저닝 스크립트
 ├── Dockerfile

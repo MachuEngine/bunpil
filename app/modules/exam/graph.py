@@ -72,7 +72,11 @@ def agent_node(state: ExamState) -> dict:
 
             for tc in response.tool_calls:
                 fn = tool_map.get(tc["name"])
-                result_content = str(fn.invoke(tc["args"])) if fn else f"Unknown: {tc['name']}"
+                args = tc["args"]
+                # 소형 모델이 judge_item을 호출할 때 question_json 대신 필드를 직접 풀어 전달하는 경우 정규화
+                if tc["name"] == "judge_item" and "question_json" not in args:
+                    args = {"question_json": args}
+                result_content = str(fn.invoke(args)) if fn else f"Unknown: {tc['name']}"
                 tm = ToolMessage(content=result_content, tool_call_id=tc["id"])
                 messages.append(tm)
                 all_messages.append(tm)

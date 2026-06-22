@@ -2,7 +2,7 @@ import os
 
 from langchain_ollama import ChatOllama
 
-from common.llm.backends.chat_runpod import ChatRunPod
+from app.common.llm.backends.chat_runpod import ChatRunPod
 
 
 def get_langchain_model():

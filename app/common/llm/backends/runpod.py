@@ -19,10 +19,6 @@ class RunPodBackend(LLMBackend):
     def __init__(self):
         self.api_key     = os.getenv("RUNPOD_API_KEY", "")
         self.endpoint_id = os.getenv("RUNPOD_ENDPOINT_ID", "")
-        if not self.api_key or not self.endpoint_id:
-            raise RuntimeError(
-                "RUNPOD_API_KEY / RUNPOD_ENDPOINT_ID 환경변수가 설정되지 않았습니다."
-            )
 
     def _headers(self) -> dict:
         return {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
@@ -42,6 +38,10 @@ class RunPodBackend(LLMBackend):
         return payload
 
     async def generate(self, messages: list[dict], **kwargs) -> str:
+        if not self.api_key or not self.endpoint_id:
+            raise RuntimeError(
+                "RUNPOD_API_KEY / RUNPOD_ENDPOINT_ID 환경변수가 설정되지 않았습니다."
+            )
         async with httpx.AsyncClient(timeout=httpx.Timeout(35, read=35)) as client:
             # 1. runsync 시도 (35초 이내 완료 시 즉시 반환)
             try:

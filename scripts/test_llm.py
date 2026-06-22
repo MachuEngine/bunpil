@@ -6,6 +6,9 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from app.common.llm import PromptTemplate, get_llm_backend
 from app.common.llm.backends.runpod import RunPodBackend
 
