@@ -20,22 +20,6 @@ logger = logging.getLogger(__name__)
 
 REGULATION_COLLECTION = "regulations"
 
-# 합성 기재요령 코퍼스 (공개 자료 기반)
-_REGULATION_CORPUS = [
-    "사실에 근거하여 기재하고 추측이나 상상에 의한 내용은 기재하지 않는다.",
-    "부정적·비하적 표현을 사용하지 않는다.",
-    "학생의 구체적 활동과 행동을 중심으로 기술한다.",
-    "주민번호·전화번호·주소 등 개인정보를 생기부에 기재하지 않는다.",
-    "감정적 판단이나 가치 판단 표현은 배제하고 객관적으로 기술한다.",
-    "학생이 경험하지 않은 내용이나 확인되지 않은 성과를 기재하지 않는다.",
-    "교사의 관찰에 근거한 내용만 기재하고 학부모나 학생의 진술만으로 사실을 확정하지 않는다.",
-    "비교·서열화하는 표현을 사용하지 않는다.",
-    "오기·오탈자가 없도록 하고 정확한 사실만 기재한다.",
-    "교과명·활동명 등 고유명사는 정확히 표기한다.",
-    "학생의 지적·정서적 특성을 긍정적 방향으로 기술하되 과장하지 않는다.",
-    "수상 실적 등 허위 사실을 기재하면 관련 법령에 따라 처벌받을 수 있다.",
-]
-
 WARNING = (
     "\n\n[교사 확인 사항]\n"
     "이 문장은 AI 보조 도구로 생성된 초안입니다. "
@@ -92,26 +76,16 @@ class RecordChain:
         self._reranker = BGEReranker()
         self._retriever = RAGRetriever(self._store, self._embedder, self._reranker)
         self._llm = get_llm_backend()
-        self._index_regulations()
+        if self._store.count(REGULATION_COLLECTION) == 0:
+            logger.warning(
+                "regulations 컬렉션이 비어있습니다. "
+                "scripts/index_regulations.py를 실행한 뒤 다시 시도하세요."
+            )
         self._chain = (
             RunnableLambda(self._step_mask)
             | RunnableLambda(self._step_polish)
             | RunnableLambda(self._step_validate)
         )
-
-    def _index_regulations(self) -> None:
-        """규정 코퍼스를 영구 컬렉션에 적재 (이미 있으면 스킵)."""
-        try:
-            existing = self._store._client.get_collection(REGULATION_COLLECTION)
-            if existing.count() > 0:
-                return
-        except Exception:
-            pass
-        chunks = [{"text": t, "source": "기재요령", "year": 2024, "page": 1}
-                  for t in _REGULATION_CORPUS]
-        vecs = self._embedder.embed([c["text"] for c in chunks])
-        self._store.add_chunks(REGULATION_COLLECTION, chunks, vecs)
-        logger.info("규정 코퍼스 %d건 인덱싱 완료", len(chunks))
 
     # ── LCEL 스텝 ────────────────────────────────────────────────────
 
@@ -139,15 +113,17 @@ class RecordChain:
             results = self._retriever.retrieve(
                 state["polished"], REGULATION_COLLECTION, top_k=3, n_candidates=10
             )
-            reg_text = "\n".join(r["text"] for r in results[:3])
+            if results:
+                reg_text = "\n".join(r["text"] for r in results[:3])
+                prompt = f"[규정]\n{reg_text}\n\n[문장]\n{state['polished']}"
+                messages = VALIDATE_TPL.build(prompt)
+                raw = _run_async(self._llm.generate(messages)).strip()
+                if not raw.upper().startswith("OK"):
+                    violations.append(raw)
+            else:
+                logger.warning("regulations 컬렉션이 비어있어 LLM 검증을 건너뜁니다.")
         except Exception:
-            reg_text = "\n".join(_REGULATION_CORPUS[:3])
-
-        prompt = f"[규정]\n{reg_text}\n\n[문장]\n{state['polished']}"
-        messages = VALIDATE_TPL.build(prompt)
-        raw = _run_async(self._llm.generate(messages)).strip()
-        if not raw.upper().startswith("OK"):
-            violations.append(raw)
+            logger.warning("regulations 검색 실패 — LLM 검증을 건너뜁니다.")
 
         return {**state, "violations": violations}
 

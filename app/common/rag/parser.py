@@ -9,7 +9,7 @@ def parse_pdf(path: str) -> dict:
     """PDF를 파싱해 텍스트와 메타데이터를 반환한다."""
     p = Path(path)
     source = p.stem
-    year = _extract_year(p.name)
+    year = extract_year(p.name)
 
     doc = fitz.open(path)
     pages = []
@@ -43,6 +43,6 @@ def chunk_document(doc: dict, chunk_size: int = 800, overlap: int = 100) -> list
     return chunks
 
 
-def _extract_year(filename: str) -> Optional[int]:
+def extract_year(filename: str) -> Optional[int]:
     match = re.search(r"(19|20)\d{2}", filename)
     return int(match.group()) if match else None

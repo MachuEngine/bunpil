@@ -5,7 +5,6 @@
 """
 import logging
 import os
-import re
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -13,7 +12,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from dotenv import load_dotenv
 load_dotenv()
 
-from app.common.rag import BGEEmbedder, RAGStore, chunk_document, parse_pdf
+from app.common.rag import BGEEmbedder, RAGStore, chunk_document, extract_year, parse_pdf
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -22,30 +21,12 @@ COLLECTION = "standards"
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "standards")
 
 
-def _extract_year(filename: str):
-    match = re.search(r"(19|20)\d{2}", filename)
-    return int(match.group()) if match else None
-
-
 def _parse_txt(path: str) -> dict:
     stem = os.path.splitext(os.path.basename(path))[0]
-    year = _extract_year(os.path.basename(path))
+    year = extract_year(os.path.basename(path))
     with open(path, encoding="utf-8") as f:
         text = f.read()
     return {"source": stem, "year": year, "pages": [{"page": 1, "text": text}]}
-
-
-def _indexed_sources(store: RAGStore) -> set[str]:
-    try:
-        col = store.client.get_or_create_collection(
-            COLLECTION, metadata={"hnsw:space": "cosine"}
-        )
-        if col.count() == 0:
-            return set()
-        result = col.get(include=["metadatas"])
-        return {m.get("source", "") for m in result["metadatas"]}
-    except Exception:
-        return set()
 
 
 def main() -> None:
@@ -63,7 +44,7 @@ def main() -> None:
 
     store = RAGStore()
     embedder = BGEEmbedder()
-    already = _indexed_sources(store)
+    already = store.indexed_sources(COLLECTION)
 
     indexed = 0
     for filename in sorted(all_files):

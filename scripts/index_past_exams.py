@@ -20,20 +20,6 @@ COLLECTION = "past_exams"
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "past_exams")
 
 
-def _indexed_sources(store: RAGStore) -> set[str]:
-    """컬렉션에 이미 적재된 source 목록을 반환한다."""
-    try:
-        col = store.client.get_or_create_collection(
-            COLLECTION, metadata={"hnsw:space": "cosine"}
-        )
-        if col.count() == 0:
-            return set()
-        result = col.get(include=["metadatas"])
-        return {m.get("source", "") for m in result["metadatas"]}
-    except Exception:
-        return set()
-
-
 def main() -> None:
     if not os.path.isdir(DATA_DIR):
         logger.error("디렉토리가 없습니다: %s", DATA_DIR)
@@ -46,7 +32,7 @@ def main() -> None:
 
     store = RAGStore()
     embedder = BGEEmbedder()
-    already = _indexed_sources(store)
+    already = store.indexed_sources(COLLECTION)
 
     indexed = 0
     for filename in sorted(pdf_files):
