@@ -186,6 +186,8 @@ class RecordChain:
 _instance: RecordChain = None
 
 
+# 싱클톤 패턴 - 다중 사용자 환경에서도 RecordChain()을 여러번 실행하지 않기 위함 
+# 첫 사용자에 의하여 맨 처음 1회만 생성 - 서버 메모리 절약 및 빠른 응답 속도
 def get_record_chain() -> RecordChain:
     global _instance
     if _instance is None:
