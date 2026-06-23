@@ -14,6 +14,8 @@ RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/wh
     pip install --no-cache-dir -r requirements.txt
 
 COPY app/ ./app/
+COPY scripts/ ./scripts/
+COPY data/ ./data/
 
 # ChromaDB 영구 저장 위치 (EBS 볼륨 마운트 포인트)
 VOLUME ["/data/chroma_db"]

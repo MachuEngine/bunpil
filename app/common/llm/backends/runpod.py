@@ -11,8 +11,8 @@ import httpx
 from ..base import LLMBackend
 
 _BASE = "https://api.runpod.ai/v2"
-_POLL_INTERVAL = 3   # seconds
-_MAX_POLL      = 60  # 최대 3분 대기
+_POLL_INTERVAL = 5   # seconds
+_MAX_POLL      = 120 # 최대 10분 대기 (콜드 스타트 + 모델 다운로드 포함)
 
 
 class RunPodBackend(LLMBackend):

@@ -28,3 +28,6 @@ chroma_db/
 # 로그
 *.log
 logs/
+
+# SSH 키
+*.pem

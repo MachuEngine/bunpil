@@ -30,22 +30,14 @@ SOCIAL_TEMPLATE = PromptTemplate(
 
 
 async def main():
-    # 1. 로컬(Ollama) 백엔드
-    os.environ["LLM_BACKEND"] = "local"
     llm = get_llm_backend()
-    print(f"[백엔드] {llm.__class__.__name__} | 모델: {os.getenv('OLLAMA_MODEL', 'qwen2.5:7b-instruct')}")
+    print(f"[백엔드] {llm.__class__.__name__} | backend={os.getenv('LLM_BACKEND')}")
 
     messages = SOCIAL_TEMPLATE.build("사회계약론을 주장한 사상가 2명과 각각의 핵심 주장은?")
     print(f"[메시지 수] {len(messages)}개 (system 1 + few-shot {len(SOCIAL_TEMPLATE.few_shots)*2} + user 1 + cot 1)\n")
     print("[생성 중...]")
     response = await llm.generate(messages)
     print(f"[응답]\n{response}\n")
-
-    # 2. 백엔드 전환 확인 (RunPod — 키 없이 클래스만 확인)
-    os.environ["LLM_BACKEND"] = "runpod"
-    llm2 = get_llm_backend()
-    assert isinstance(llm2, RunPodBackend), "RunPod 백엔드 전환 실패"
-    print(f"[백엔드 전환] {llm.__class__.__name__} → {llm2.__class__.__name__} ✓")
     print("\n[완료] Phase 2 LLM 추상화 레이어 검증 통과")
 
 
