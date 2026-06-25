@@ -31,6 +31,10 @@ Gradio UI (app/ui.py)
 LLM 백엔드
   개발: Ollama (qwen2.5:1.5b, 로컬)
   프로덕션: RunPod 서버리스 (Qwen2.5-7B, vLLM)
+
+RunPod Tool Calling 흐름 (출제 에이전트)
+  ChatRunPod → apply_chat_template(tools=...) → vLLM → <tool_call> 파싱
+  → AIMessage(tool_calls=[...]) → LangGraph ReAct 루프
 ```
 
 ---
@@ -46,7 +50,7 @@ LLM 백엔드
 | 리랭킹 | BGE-reranker-base (CPU) |
 | LLM 서빙 | Ollama (개발) / RunPod vLLM (프로덕션) |
 | UI | Gradio 4.x |
-| 배포 | AWS EC2 + RunPod 서버리스 + Caddy HTTPS |
+| 배포 | AWS EC2 t3.medium + EBS + RunPod 서버리스 + Caddy HTTPS |
 
 ---
 
@@ -203,6 +207,16 @@ bunpil/
 
 > 생기부 평가는 규칙 기반(결정론적) 지표 비중이 높아 소형 모델에서도 유효.
 
+### 프로덕션 검증 결과 (RunPod Qwen2.5-7B, RTX A5000)
+
+| 항목 | 결과 |
+|---|---|
+| 출제 에이전트 tool calling | ✅ (ChatRunPod → vLLM apply_chat_template) |
+| 문항 생성 정확도 (객관식 3+서술형 1) | ✅ 검증 통과 |
+| RAG 인덱싱 (3개 컬렉션) | ✅ regulations 510 / past_exams 124 / standards 573 청크 |
+| EBS 영구 저장 | ✅ 컨테이너 재시작 후 재인덱싱 불필요 |
+| 추론 속도 (4문항 세트) | ~120–180초 (RTX A5000, min workers=1)
+
 ---
 
 ## 보안 원칙
@@ -218,7 +232,9 @@ bunpil/
 ## 배포 (프로덕션)
 
 ```
-브라우저 → Caddy (HTTPS) → EC2 t3.small (Gradio + ChromaDB) → RunPod 서버리스 (Qwen2.5-7B)
+브라우저 → Caddy (HTTPS) → EC2 t3.medium (Gradio + ChromaDB) → RunPod 서버리스 (Qwen2.5-7B)
+                                    │
+                              EBS 10GB (ChromaDB 영구 저장)
 ```
 
 ### RunPod 서버리스 설정
@@ -226,29 +242,41 @@ bunpil/
 ```bash
 # 1. 핸들러 이미지 빌드 & 푸시
 cd runpod_handler
-docker build -t <your-dockerhub>/bunpil-runpod:latest .
-docker push <your-dockerhub>/bunpil-runpod:latest
+docker build -t <your-dockerhub>/bunpil-runpod:v9 .
+docker push <your-dockerhub>/bunpil-runpod:v9
 
 # 2. RunPod 콘솔 → Serverless → New Endpoint → 이미지 URL 입력
-# 3. 발급된 Endpoint ID를 .env에 입력
+# 3. 워커 설정: min workers=1 (콜드스타트 방지), max workers=2
+# 4. 발급된 Endpoint ID를 .env에 입력
 # LLM_BACKEND=runpod
 # RUNPOD_API_KEY=...
 # RUNPOD_ENDPOINT_ID=...
 ```
 
-### EC2 배포
+### EC2 배포 (Docker Hub 이미지 사용)
 
 ```bash
-# AWS CLI 설정 후
-bash deploy/ec2_setup.sh
+# EC2 (Ubuntu 22.04 t3.medium) 내부에서
+docker pull jongmin0826/bunpil-app:latest
 
-# EC2 내부에서
-git clone https://github.com/MachuEngine/bunpil.git && cd bunpil
-cp .env.example .env && nano .env   # RunPod 키 입력
-docker compose up -d --build
+# EBS 볼륨 마운트 (처음 한 번)
+sudo mkfs.ext4 /dev/nvme1n1
+sudo mkdir -p /data/chroma_db
+echo '/dev/nvme1n1 /data/chroma_db ext4 defaults,nofail 0 2' | sudo tee -a /etc/fstab
+sudo mount -a
 
-# HTTPS (도메인 DNS가 서버 IP를 가리킨 후)
-bash deploy/caddy_setup.sh
+# 컨테이너 실행
+docker run -d --name bunpil \
+  -p 7860:7860 \
+  --env-file .env \
+  -v /data/chroma_db:/data/chroma_db \
+  -v hf_cache:/root/.cache/huggingface \
+  jongmin0826/bunpil-app:latest
+
+# RAG 인덱싱 (처음 한 번 — EBS에 영구 저장됨)
+docker exec bunpil python scripts/index_regulations.py
+docker exec bunpil python scripts/index_past_exams.py
+docker exec bunpil python scripts/index_standards.py
 ```
 
 ### 빌링 알람
@@ -269,7 +297,7 @@ bash deploy/billing_alarm.sh   # 월 $10 초과 시 이메일 알람
 | `OLLAMA_MODEL` | 로컬 개발 모델명 | `qwen2.5:1.5b` |
 | `RUNPOD_API_KEY` | RunPod API 키 | — |
 | `RUNPOD_ENDPOINT_ID` | RunPod 엔드포인트 ID | — |
-| `CHROMA_PERSIST_DIR` | ChromaDB 저장 경로 | `./chroma_db` |
+| `CHROMA_PERSIST_DIR` | ChromaDB 저장 경로 (EBS 마운트 시 `/data/chroma_db`) | `./chroma_db` |
 
 ---
 
@@ -277,9 +305,9 @@ bash deploy/billing_alarm.sh   # 월 $10 초과 시 이메일 알람
 
 | 항목 | 비용 |
 |---|---|
-| EC2 t3.small | ~$15 |
-| RunPod 서버리스 (추론만 과금) | ~$1–5 |
-| EBS 스토리지 | ~$1 |
-| **합계** | **~$17–21** |
+| EC2 t3.medium | ~$30 |
+| RunPod 서버리스 (추론만 과금, min workers=1) | ~$5–15 |
+| EBS 10GB | ~$1 |
+| **합계** | **~$36–46** |
 
-데모/개발 중에는 EC2를 필요할 때만 켜서 절감 가능.
+데모/개발 중에는 EC2를 필요할 때만 켜서 절감 가능. min workers=0으로 설정 시 RunPod 비용 대폭 절감 (단, 콜드스타트 30–60초 발생).
