@@ -31,11 +31,22 @@ def agent_node(state: ExamState) -> dict:
     # 1. 지문 검색 (코드로 직접)
     passage = _search.invoke({"query": spec["unit"]})
 
-    # 2. 문항 유형별 목록 생성
+    # 2. 이미 승인된 문항을 제외하고 부족한 것만 생성
+    approved = get_draft_items()
+    approved_counts: dict = {}
+    for it in approved:
+        if it.get("status") == "approved":
+            t = it.get("item_type", "")
+            approved_counts[t] = approved_counts.get(t, 0) + 1
+
     items_to_generate = []
     for itype, cnt in spec["type_dist"].items():
-        for _ in range(cnt):
+        deficit = cnt - approved_counts.get(itype, 0)
+        for _ in range(deficit):
             items_to_generate.append(itype)
+
+    if not items_to_generate:
+        return {"agent_messages": [], "budget": state["budget"] - 1}
 
     tool_map = {t.name: t for t in TOOLS}
     gen_judge_tools = [t for t in TOOLS if t.name in ("generate_item", "judge_item", "check_duplicate")]
