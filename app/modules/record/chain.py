@@ -3,12 +3,10 @@
 흐름: mask_pii → polish → validate → (위반 시 재시도) → 출력 + 교사 고지
 보안: 마스킹은 모델 호출 전 / 입력 비저장 / 로그 PII 금지
 """
-import asyncio
-import concurrent.futures
 import logging
 from typing import List, TypedDict
 
-from app.common.llm import get_llm_backend
+from app.common.llm import get_llm_backend, run_async
 from app.common.rag import BGEEmbedder, BGEReranker, RAGRetriever, RAGStore
 
 from .masker import mask_pii
@@ -44,10 +42,6 @@ def _rule_violations(text: str) -> List[str]:
         found.append(f"VIOLATION: 개인정보({', '.join(pii)}) 포함")
     return found
 
-
-def _run_async(coro):
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-        return pool.submit(asyncio.run, coro).result(timeout=300)
 
 
 class RecordState(TypedDict):
@@ -92,7 +86,7 @@ class RecordChain:
     def _step_polish(self, state: RecordState) -> RecordState:
         """② 마스킹된 메모로 윤문 생성."""
         messages = POLISH_TPL.build(state["masked"])
-        raw = _run_async(self._llm.generate(messages))
+        raw = run_async(self._llm.generate(messages))
         polished = raw.strip()
         return {**state, "polished": polished}
 
@@ -110,7 +104,7 @@ class RecordChain:
                 reg_text = "\n".join(r["text"] for r in results[:3])
                 prompt = f"[규정]\n{reg_text}\n\n[문장]\n{state['polished']}"
                 messages = VALIDATE_TPL.build(prompt)
-                raw = _run_async(self._llm.generate(messages)).strip()
+                raw = run_async(self._llm.generate(messages)).strip()
                 if not raw.upper().startswith("OK"):
                     violations.append(raw)
             else:

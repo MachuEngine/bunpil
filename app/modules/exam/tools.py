@@ -1,5 +1,3 @@
-import asyncio
-import concurrent.futures
 import json
 import logging
 import uuid
@@ -10,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 from langchain_core.tools import tool
 
-from app.common.llm import PromptTemplate, get_llm_backend
+from app.common.llm import PromptTemplate, get_llm_backend, run_async
 from app.common.rag import BGEEmbedder, BGEReranker, RAGRetriever, RAGStore
 
 # ── 세션 컨텍스트 (단일 사용자 시스템이므로 module-level dict 사용) ──
@@ -75,11 +73,6 @@ def _get_reranker() -> BGEReranker:
         _reranker = BGEReranker()
     return _reranker
 
-
-def _run_async(coro):
-    """async coroutine을 동기 컨텍스트에서 안전하게 실행한다."""
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-        return pool.submit(asyncio.run, coro).result(timeout=300)
 
 
 # ── 프롬프트 템플릿 ──
@@ -154,7 +147,7 @@ def generate_item(item_type: str, difficulty: str, standard: str = "", passage: 
         passage = _ctx.get("last_passage", "")
     prompt = f"유형:{item_type} 난이도:{difficulty} 성취기준:{standard} 지문:{passage[:300]}"
     messages = _GENERATE_TPL.build(prompt)
-    raw = _run_async(get_llm_backend().generate(messages, max_tokens=400))
+    raw = run_async(get_llm_backend().generate(messages, max_tokens=400))
 
     item = {}
     try:
@@ -186,7 +179,7 @@ def judge_item(question_json: Any) -> str:
     elif not isinstance(question_json, str):
         question_json = str(question_json)
     messages = _JUDGE_TPL.build(question_json)
-    raw = _run_async(get_llm_backend().generate(messages, max_tokens=10))
+    raw = run_async(get_llm_backend().generate(messages, max_tokens=10))
     score = 3.0
     for ch in raw.strip():
         if ch in "012345":  # ASCII 숫자 0-5만 허용

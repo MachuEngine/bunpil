@@ -56,6 +56,8 @@ class RunPodBackend(LLMBackend):
                 if data.get("status") == "COMPLETED":
                     return data["output"]
                 job_id = data.get("id")
+                if not job_id:
+                    raise RuntimeError(f"RunPod runsync 응답에 job id 없음: {data}")
             except (httpx.ReadTimeout, httpx.TimeoutException):
                 resp2 = await client.post(
                     f"{_BASE}/{self.endpoint_id}/run",

@@ -7,6 +7,7 @@ LangChain AIMessage.tool_calls 형식으로 변환한다.
 """
 import asyncio
 import json
+import os
 from typing import Any, List, Optional, Sequence
 
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -73,7 +74,6 @@ class ChatRunPod(BaseChatModel):
 
     @property
     def _identifying_params(self) -> dict[str, Any]:
-        import os
         return {"endpoint_id": os.getenv("RUNPOD_ENDPOINT_ID", "")}
 
     def bind_tools(self, tools: Sequence[Any], **kwargs: Any) -> Any:
