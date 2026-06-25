@@ -1,6 +1,6 @@
-"""생기부 윤문 LCEL Chain.
+"""생기부 윤문 Chain.
 
-흐름: mask_pii → polish → rag_validate → (위반 시 재시도) → 출력 + 교사 고지
+흐름: mask_pii → polish → validate → (위반 시 재시도) → 출력 + 교사 고지
 보안: 마스킹은 모델 호출 전 / 입력 비저장 / 로그 PII 금지
 """
 import asyncio
@@ -80,7 +80,7 @@ class RecordChain:
                 "scripts/index_regulations.py를 실행한 뒤 다시 시도하세요."
             )
 
-    # ── LCEL 스텝 ────────────────────────────────────────────────────
+    # ── 처리 스텝 ────────────────────────────────────────────────────
 
     def _step_mask(self, state: RecordState) -> RecordState:
         """① PII 마스킹 — 모델 호출 전 반드시 실행."""

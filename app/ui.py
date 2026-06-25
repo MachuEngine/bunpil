@@ -18,6 +18,9 @@ from app.common.rag import BGEEmbedder, RAGStore, chunk_document, parse_pdf
 from app.modules.exam import ExamSpec, get_exam_graph
 from app.modules.record import get_record_chain
 
+_store = RAGStore()
+_embedder = BGEEmbedder()
+
 # ── 출제 모드 핸들러 ──────────────────────────────────────────────────
 
 def run_exam(pdf_file, unit, mc_count, essay_count, high_count, mid_count, low_count, standards_text):
@@ -58,8 +61,6 @@ def run_exam(pdf_file, unit, mc_count, essay_count, high_count, mid_count, low_c
         "standards": standards,
     }
 
-    store = RAGStore()
-    embedder = BGEEmbedder()
     collection_name = None
 
     try:
@@ -69,9 +70,9 @@ def run_exam(pdf_file, unit, mc_count, essay_count, high_count, mid_count, low_c
         if not chunks:
             return "⚠️ PDF에서 텍스트를 추출할 수 없습니다."
 
-        vecs = embedder.embed([c["text"] for c in chunks])
-        collection_name = store.create_temp_collection()
-        store.add_chunks(collection_name, chunks, vecs)
+        vecs = _embedder.embed([c["text"] for c in chunks])
+        collection_name = _store.create_temp_collection()
+        _store.add_chunks(collection_name, chunks, vecs)
 
         graph = get_exam_graph()
         state = graph.invoke({
@@ -124,7 +125,7 @@ def run_exam(pdf_file, unit, mc_count, essay_count, high_count, mid_count, low_c
     finally:
         if collection_name:
             try:
-                store.delete_collection(collection_name)
+                _store.delete_collection(collection_name)
             except Exception:
                 pass
 
