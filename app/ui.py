@@ -111,7 +111,10 @@ def run_exam(pdf_file, unit, mc_count, essay_count, high_count, mid_count, low_c
             lines.append("")
 
         if not items:
-            lines.append("⚠️ 문항이 생성되지 않았습니다. Ollama 연결 상태를 확인하세요.")
+            error_msg = state.get("error", "")
+            backend = os.getenv("LLM_BACKEND", "local")
+            hint = f"LLM_BACKEND={backend}" + (f" | {error_msg}" if error_msg else "")
+            lines.append(f"⚠️ 문항이 생성되지 않았습니다. ({hint})")
 
         return "\n".join(lines)
 

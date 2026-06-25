@@ -1,7 +1,9 @@
 """LangChain BaseChatModel adapter for RunPod serverless vLLM.
 
 LangGraph ReAct 에이전트는 LangChain 인터페이스가 필요하므로
-기존 RunPodBackend(단순 HTTP) 위에 래퍼를 씌운다.
+RunPodBackend 위에 래퍼를 씌운다.
+tool_calls 파싱: handler가 반환한 OpenAI 호환 tool_calls 구조체를
+LangChain AIMessage.tool_calls 형식으로 변환한다.
 """
 import asyncio
 import json
@@ -19,7 +21,6 @@ def _to_runpod_messages(messages: List[BaseMessage]) -> List[dict]:
     result = []
     for m in messages:
         msg: dict = {"role": role_map.get(m.type, "user"), "content": m.content or ""}
-        # AIMessage가 tool_calls를 가질 때 OpenAI 호환 형식으로 포함
         if isinstance(m, AIMessage) and m.tool_calls:
             msg["content"] = m.content or None
             msg["tool_calls"] = [
@@ -33,11 +34,31 @@ def _to_runpod_messages(messages: List[BaseMessage]) -> List[dict]:
                 }
                 for tc in m.tool_calls
             ]
-        # ToolMessage는 tool_call_id가 있어야 vLLM이 결과를 매핑 가능
         if isinstance(m, ToolMessage):
             msg["tool_call_id"] = m.tool_call_id
         result.append(msg)
     return result
+
+
+def _build_ai_message(result: dict) -> AIMessage:
+    """handler 응답 dict → LangChain AIMessage (tool_calls 포함)."""
+    raw_tool_calls = result.get("tool_calls") or []
+    if raw_tool_calls:
+        tool_calls = []
+        for tc in raw_tool_calls:
+            fn = tc.get("function", {})
+            try:
+                args = json.loads(fn.get("arguments", "{}"))
+            except Exception:
+                args = {}
+            tool_calls.append({
+                "id": tc.get("id", ""),
+                "name": fn.get("name", ""),
+                "args": args,
+                "type": "tool_call",
+            })
+        return AIMessage(content=result.get("response") or "", tool_calls=tool_calls)
+    return AIMessage(content=result.get("response") or "")
 
 
 class ChatRunPod(BaseChatModel):
@@ -67,9 +88,8 @@ class ChatRunPod(BaseChatModel):
         run_manager: Any = None,
         **kwargs: Any,
     ) -> ChatResult:
-        """동기 컨텍스트용 폴백."""
-        text = asyncio.run(self._call_backend(messages, stop=stop, **kwargs))
-        return ChatResult(generations=[ChatGeneration(message=AIMessage(content=text))])
+        result = asyncio.run(self._call_backend(messages, stop=stop, **kwargs))
+        return ChatResult(generations=[ChatGeneration(message=_build_ai_message(result))])
 
     async def _agenerate(
         self,
@@ -78,13 +98,12 @@ class ChatRunPod(BaseChatModel):
         run_manager: Any = None,
         **kwargs: Any,
     ) -> ChatResult:
-        """FastAPI/LangGraph 비동기 컨텍스트에서 호출되는 주 경로."""
-        text = await self._call_backend(messages, stop=stop, **kwargs)
-        return ChatResult(generations=[ChatGeneration(message=AIMessage(content=text))])
+        result = await self._call_backend(messages, stop=stop, **kwargs)
+        return ChatResult(generations=[ChatGeneration(message=_build_ai_message(result))])
 
-    async def _call_backend(self, messages: List[BaseMessage], **kwargs: Any) -> str:
+    async def _call_backend(self, messages: List[BaseMessage], **kwargs: Any) -> dict:
         backend = RunPodBackend()
-        return await backend.generate(
+        return await backend.generate_chat(
             _to_runpod_messages(messages),
             max_tokens=kwargs.pop("max_tokens", self.max_tokens),
             temperature=kwargs.pop("temperature", self.temperature),

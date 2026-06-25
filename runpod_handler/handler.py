@@ -1,13 +1,15 @@
-"""v7 진단용 — GPU 확인 후 vllm import 시도."""
+"""Qwen2.5-7B-Instruct — tool calling 지원."""
 import sys
 import os
+import uuid
+import re
+import json
 import traceback
 import subprocess
 
-print("=== handler.py 시작 ===", flush=True)
+print("=== handler.py v8 시작 ===", flush=True)
 print(f"Python: {sys.version}", flush=True)
 
-# GPU 가시성 확인
 try:
     r = subprocess.run(["nvidia-smi", "--query-gpu=name,memory.total,driver_version",
                         "--format=csv,noheader"],
@@ -27,7 +29,6 @@ except Exception as e:
     traceback.print_exc()
     sys.exit(1)
 
-# torch로 CUDA 상태 확인 (vllm보다 가볍게)
 try:
     import torch
     print(f"torch: {torch.__version__}", flush=True)
@@ -39,7 +40,6 @@ except Exception as e:
     print(f"torch CUDA 확인 실패: {e}", flush=True)
     traceback.print_exc()
 
-# vllm import 시도
 try:
     print("vllm import 시도...", flush=True)
     from vllm import LLM, SamplingParams
@@ -53,6 +53,7 @@ MODEL = "Qwen/Qwen2.5-7B-Instruct"
 print(f"모델 로드 시작: {MODEL}", flush=True)
 try:
     llm = LLM(model=MODEL, dtype="float16", gpu_memory_utilization=0.90)
+    tokenizer = llm.get_tokenizer()
     print("모델 로드 완료", flush=True)
 except Exception as e:
     print(f"모델 로드 실패: {e}", flush=True)
@@ -61,13 +62,36 @@ except Exception as e:
 
 
 def _build_prompt(messages: list) -> str:
+    """tools 없는 경우 수동 포맷 (기존 방식)."""
     prompt = ""
     for msg in messages:
         role    = msg.get("role", "user")
-        content = msg.get("content", "")
+        content = msg.get("content") or ""
         prompt += f"<|im_start|>{role}\n{content}<|im_end|>\n"
     prompt += "<|im_start|>assistant\n"
     return prompt
+
+
+def _parse_tool_calls(text: str):
+    """Qwen tool call 태그 파싱 → OpenAI 호환 구조체 반환."""
+    matches = re.findall(r'<tool_call>\s*(.*?)\s*</tool_call>', text, re.DOTALL)
+    if not matches:
+        return None
+    result = []
+    for m in matches:
+        try:
+            data = json.loads(m)
+            result.append({
+                "id": f"call_{uuid.uuid4().hex[:8]}",
+                "type": "function",
+                "function": {
+                    "name": data["name"],
+                    "arguments": json.dumps(data.get("arguments", {}), ensure_ascii=False),
+                },
+            })
+        except Exception:
+            pass
+    return result or None
 
 
 def handler(job: dict) -> dict:
@@ -75,15 +99,36 @@ def handler(job: dict) -> dict:
     messages    = inp.get("messages", [])
     max_tokens  = int(inp.get("max_tokens", 512))
     temperature = float(inp.get("temperature", 0.7))
+    tools       = inp.get("tools", None)
+    stop        = inp.get("stop", ["<|im_end|>"])
 
     if not messages:
         return {"error": "messages 필드가 비어 있습니다."}
 
-    prompt  = _build_prompt(messages)
-    params  = SamplingParams(temperature=temperature, max_tokens=max_tokens, stop=["<|im_end|>"])
+    if tools:
+        try:
+            prompt = tokenizer.apply_chat_template(
+                messages,
+                tools=tools,
+                tokenize=False,
+                add_generation_prompt=True,
+            )
+        except Exception as e:
+            print(f"apply_chat_template 실패, 폴백: {e}", flush=True)
+            prompt = _build_prompt(messages)
+    else:
+        prompt = _build_prompt(messages)
+
+    params  = SamplingParams(temperature=temperature, max_tokens=max_tokens, stop=stop)
     outputs = llm.generate([prompt], params)
     text    = outputs[0].outputs[0].text.strip()
-    return {"response": text}
+
+    if tools:
+        tool_calls = _parse_tool_calls(text)
+        if tool_calls:
+            return {"response": None, "tool_calls": tool_calls}
+
+    return {"response": text, "tool_calls": None}
 
 
 runpod.serverless.start({"handler": handler})

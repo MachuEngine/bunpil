@@ -22,16 +22,13 @@ def plan_node(state: ExamState) -> dict:
 
 
 def agent_node(state: ExamState) -> dict:
-    """ReAct 에이전트로 문항을 생성한다.
-    - search_passages: 코드로 직접 실행 (1.5b 모델의 sequential 지시 미준수 회피)
-    - generate_item / judge_item / check_duplicate: LLM 결정
-    """
+    """ReAct 에이전트로 문항을 생성한다."""
     from .tools import search_passages as _search
 
     spec = state["spec"]
     standards = spec.get("standards") or [f"{spec['unit']} 핵심 개념 이해"]
 
-    # 1. 지문 검색 (에이전트 결정 없이 코드로 직접)
+    # 1. 지문 검색 (코드로 직접)
     passage = _search.invoke({"query": spec["unit"]})
 
     # 2. 문항 유형별 목록 생성
@@ -73,7 +70,6 @@ def agent_node(state: ExamState) -> dict:
             for tc in response.tool_calls:
                 fn = tool_map.get(tc["name"])
                 args = tc["args"]
-                # 소형 모델이 judge_item을 호출할 때 question_json 대신 필드를 직접 풀어 전달하는 경우 정규화
                 if tc["name"] == "judge_item" and "question_json" not in args:
                     args = {"question_json": args}
                 result_content = str(fn.invoke(args)) if fn else f"Unknown: {tc['name']}"
