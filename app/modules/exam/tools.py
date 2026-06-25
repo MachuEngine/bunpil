@@ -154,7 +154,7 @@ def generate_item(item_type: str, difficulty: str, standard: str = "", passage: 
         passage = _ctx.get("last_passage", "")
     prompt = f"유형:{item_type} 난이도:{difficulty} 성취기준:{standard} 지문:{passage[:300]}"
     messages = _GENERATE_TPL.build(prompt)
-    raw = _run_async(get_llm_backend().generate(messages))
+    raw = _run_async(get_llm_backend().generate(messages, max_tokens=400))
 
     item = {}
     try:
@@ -186,7 +186,7 @@ def judge_item(question_json: Any) -> str:
     elif not isinstance(question_json, str):
         question_json = str(question_json)
     messages = _JUDGE_TPL.build(question_json)
-    raw = _run_async(get_llm_backend().generate(messages))
+    raw = _run_async(get_llm_backend().generate(messages, max_tokens=10))
     score = 3.0
     for ch in raw.strip():
         if ch in "012345":  # ASCII 숫자 0-5만 허용

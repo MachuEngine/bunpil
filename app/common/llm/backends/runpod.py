@@ -28,7 +28,7 @@ class RunPodBackend(LLMBackend):
         payload: dict = {
             "input": {
                 "messages": messages,
-                "max_tokens": kwargs.get("max_tokens", 512),
+                "max_tokens": kwargs.get("max_tokens", 256),
                 "temperature": kwargs.get("temperature", 0.7),
             }
         }
