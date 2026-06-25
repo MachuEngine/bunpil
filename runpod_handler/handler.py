@@ -81,12 +81,15 @@ def _parse_tool_calls(text: str):
     for m in matches:
         try:
             data = json.loads(m)
+            args = data.get("arguments", {})
+            # Qwen이 arguments를 dict 또는 JSON 문자열로 출력할 수 있음
+            arguments_str = args if isinstance(args, str) else json.dumps(args, ensure_ascii=False)
             result.append({
                 "id": f"call_{uuid.uuid4().hex[:8]}",
                 "type": "function",
                 "function": {
                     "name": data["name"],
-                    "arguments": json.dumps(data.get("arguments", {}), ensure_ascii=False),
+                    "arguments": arguments_str,
                 },
             })
         except Exception:
