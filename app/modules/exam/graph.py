@@ -8,6 +8,22 @@ from .state import ExamState
 from .tools import TOOLS, get_draft_items, init_session
 
 
+def _build_target_pairs(spec: dict) -> list[tuple]:
+    """(item_type, difficulty) 쌍의 목표 리스트를 생성한다.
+    type_dist와 difficulty_dist를 순서대로 짝지으며, 길이가 다르면 짧은 쪽을 순환한다."""
+    type_items: list[str] = []
+    for itype, cnt in spec["type_dist"].items():
+        type_items.extend([itype] * cnt)
+    diff_items: list[str] = []
+    for diff, cnt in spec["difficulty_dist"].items():
+        diff_items.extend([diff] * cnt)
+    n = max(len(type_items), len(diff_items))
+    return [
+        (type_items[i % len(type_items)], diff_items[i % len(diff_items)])
+        for i in range(n)
+    ]
+
+
 def plan_node(state: ExamState) -> dict:
     """spec 분석, 세션 초기화, coverage_map 설정."""
     spec = state["spec"]
@@ -22,55 +38,48 @@ def plan_node(state: ExamState) -> dict:
 
 
 def agent_node(state: ExamState) -> dict:
-    """ReAct 에이전트로 문항을 생성한다."""
-    from .tools import search_passages as _search
+    """ReAct 에이전트로 문항을 생성한다.
 
+    search_passages는 첫 스텝에서 에이전트가 호출하도록 시스템 프롬프트로 유도한다.
+    generate_item → judge_item → check_duplicate는 문항당 정확히 한 번씩 호출한다.
+    """
     spec = state["spec"]
     standards = spec.get("standards") or [f"{spec['unit']} 핵심 개념 이해"]
 
-    # 1. 지문 검색 (코드로 직접)
-    passage = _search.invoke({"query": spec["unit"]})
-
-    # 2. 이미 승인된 문항을 제외하고 부족한 것만 생성
-    approved = get_draft_items()
-    approved_counts: dict = {}
-    for it in approved:
+    # 목표 (type, difficulty) 쌍에서 이미 승인된 것을 빼 남은 것만 생성
+    target_pairs = _build_target_pairs(spec)
+    remaining = list(target_pairs)
+    for it in get_draft_items():
         if it.get("status") == "approved":
-            t = it.get("item_type", "")
-            approved_counts[t] = approved_counts.get(t, 0) + 1
+            pair = (it.get("item_type", ""), it.get("difficulty", ""))
+            if pair in remaining:
+                remaining.remove(pair)
 
-    items_to_generate = []
-    for itype, cnt in spec["type_dist"].items():
-        deficit = cnt - approved_counts.get(itype, 0)
-        for _ in range(deficit):
-            items_to_generate.append(itype)
-
-    if not items_to_generate:
+    if not remaining:
         return {"agent_messages": [], "budget": state["budget"] - 1}
 
     tool_map = {t.name: t for t in TOOLS}
-    gen_judge_tools = [t for t in TOOLS if t.name in ("generate_item", "judge_item", "check_duplicate")]
-    llm = get_langchain_model().bind_tools(gen_judge_tools)
+    llm = get_langchain_model().bind_tools(TOOLS)  # search_passages 포함 전체 도구
 
     all_messages = []
 
-    for idx, itype in enumerate(items_to_generate):
-        diff = list(spec["difficulty_dist"].keys())[idx % len(spec["difficulty_dist"])]
+    for idx, (itype, diff) in enumerate(remaining):
         std = standards[idx % len(standards)]
 
         system_prompt = (
             "당신은 한국 고등학교 사회 문항 출제 에이전트입니다. 한국어로만 응답하세요.\n"
-            "반드시 generate_item → judge_item → check_duplicate 순서로 도구를 정확히 한 번씩만 호출하세요.\n"
+            "반드시 search_passages → generate_item → judge_item → check_duplicate 순서로 "
+            "도구를 정확히 한 번씩만 호출하세요.\n"
             "추가 generate_item 호출은 절대 하지 마세요."
         )
         user_content = (
-            f"아래 지문으로 문항을 출제하세요.\n지문: {passage[:400]}\n"
+            f"단원 '{spec['unit']}'에서 문항을 출제하세요.\n"
             f"유형: {itype}, 난이도: {diff}, 성취기준: {std}"
         )
 
         messages = [SystemMessage(content=system_prompt), HumanMessage(content=user_content)]
 
-        for _ in range(8):  # 문항당 최대 8 스텝
+        for _ in range(10):  # 문항당 최대 10 스텝 (search 포함으로 1 증가)
             response = llm.invoke(messages)
             messages.append(response)
             all_messages.append(response)

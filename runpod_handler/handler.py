@@ -7,7 +7,7 @@ import json
 import traceback
 import subprocess
 
-print("=== handler.py v8 시작 ===", flush=True)
+print("=== handler.py v9 시작 ===", flush=True)
 print(f"Python: {sys.version}", flush=True)
 
 try:

@@ -8,8 +8,6 @@ import concurrent.futures
 import logging
 from typing import List, TypedDict
 
-from langchain_core.runnables import RunnableLambda
-
 from app.common.llm import get_llm_backend
 from app.common.rag import BGEEmbedder, BGEReranker, RAGRetriever, RAGStore
 
@@ -81,11 +79,6 @@ class RecordChain:
                 "regulations 컬렉션이 비어있습니다. "
                 "scripts/index_regulations.py를 실행한 뒤 다시 시도하세요."
             )
-        self._chain = (
-            RunnableLambda(self._step_mask)
-            | RunnableLambda(self._step_polish)
-            | RunnableLambda(self._step_validate)
-        )
 
     # ── LCEL 스텝 ────────────────────────────────────────────────────
 
@@ -162,8 +155,7 @@ class RecordChain:
 _instance: RecordChain = None
 
 
-# 싱클톤 패턴 - 다중 사용자 환경에서도 RecordChain()을 여러번 실행하지 않기 위함 
-# 첫 사용자에 의하여 맨 처음 1회만 생성 - 서버 메모리 절약 및 빠른 응답 속도
+# BGEEmbedder/BGEReranker 로딩 비용이 크므로 프로세스당 한 번만 생성
 def get_record_chain() -> RecordChain:
     global _instance
     if _instance is None:
