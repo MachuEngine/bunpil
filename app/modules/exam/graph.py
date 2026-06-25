@@ -60,8 +60,8 @@ def agent_node(state: ExamState) -> dict:
 
         system_prompt = (
             "당신은 한국 고등학교 사회 문항 출제 에이전트입니다. 한국어로만 응답하세요.\n"
-            "generate_item → judge_item → check_duplicate 순서로 도구를 호출하세요.\n"
-            "judge 점수가 3 미만이면 generate_item을 다시 호출하세요."
+            "반드시 generate_item → judge_item → check_duplicate 순서로 도구를 정확히 한 번씩만 호출하세요.\n"
+            "추가 generate_item 호출은 절대 하지 마세요."
         )
         user_content = (
             f"아래 지문으로 문항을 출제하세요.\n지문: {passage[:400]}\n"
