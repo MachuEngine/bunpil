@@ -21,6 +21,8 @@ COPY data/ ./data/
 VOLUME ["/data/chroma_db"]
 ENV CHROMA_PERSIST_DIR=/data/chroma_db
 
+RUN mkdir -p /tmp/gradio
+
 EXPOSE 7860
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
