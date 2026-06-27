@@ -23,12 +23,23 @@ def _get_ctx() -> dict:
 
 
 def init_session(collection: str) -> None:
-    _request_ctx.set({
-        "collection": collection,
-        "items": [],
-        "scores": {},
-        "duplicates": {},
-    })
+    # LangGraph는 각 노드를 context.run()으로 격리 실행하므로
+    # plan_node 내에서 set()한 새 dict가 agent_node에 전파되지 않는다.
+    # 해결: asyncio.to_thread 호출 전 main.py에서 먼저 set()으로 dict를 생성하고,
+    # 이후 호출(plan_node)에서는 같은 dict를 in-place로 초기화해 모든 노드가 공유한다.
+    try:
+        ctx = _request_ctx.get()
+        ctx["collection"] = collection
+        ctx["items"] = []
+        ctx["scores"] = {}
+        ctx["duplicates"] = {}
+    except LookupError:
+        _request_ctx.set({
+            "collection": collection,
+            "items": [],
+            "scores": {},
+            "duplicates": {},
+        })
 
 
 def get_draft_items() -> list:

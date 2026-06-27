@@ -76,6 +76,12 @@ async def exam(
             "standards": std_list,
         }
 
+        # asyncio.to_thread는 copy_context()로 현재 컨텍스트를 복사한다.
+        # LangGraph가 각 노드를 별도 context.run()으로 격리 실행하므로,
+        # plan_node 안에서 init_session()을 호출해도 agent_node에 전파되지 않는다.
+        # 해결: to_thread 이전에 먼저 호출해 ContextVar dict를 생성하면
+        # 모든 노드가 동일 dict 객체를 공유하고 plan_node의 in-place 초기화도 보인다.
+        init_session(col)
         graph = get_exam_graph()
         state = await asyncio.to_thread(
             graph.invoke,
