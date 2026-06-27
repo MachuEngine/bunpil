@@ -51,10 +51,11 @@ def agent_node(state: ExamState) -> dict:
     target_pairs = _build_target_pairs(spec)
     remaining = list(target_pairs)
     for it in get_draft_items():
-        if it.get("status") == "approved":
-            pair = (it.get("item_type", ""), it.get("difficulty", ""))
-            if pair in remaining:
-                remaining.remove(pair)
+        # 저장된 항목은 품질 무관하게 해당 pair 재시도 제외
+        # (재시도는 아예 저장 못 한 경우에만)
+        pair = (it.get("item_type", ""), it.get("difficulty", ""))
+        if pair in remaining:
+            remaining.remove(pair)
 
     if not remaining:
         return {"agent_messages": [], "budget": state["budget"] - 1}
