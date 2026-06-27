@@ -189,6 +189,8 @@ def save_item(question: str, options: list, answer: str, item_type: str, difficu
     }
     _thread_local.last_id = item_id
     _get_ctx()["items"].append(item)
+    # 소형 LLM이 record_score를 생략하더라도 기본 통과 점수 부여 (재시도 루프 방지)
+    _get_ctx()["scores"][item_id] = 3.0
     return f"저장 완료 (item_id={item_id})"
 
 

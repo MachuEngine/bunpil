@@ -112,6 +112,17 @@ async def exam_stream(
             )
             items = get_draft_items()
 
+            # 선지가 비어있는 객관식 항목 제거 (소형 LLM 출력 품질 보정)
+            def _valid_item(it: dict) -> bool:
+                if it.get("item_type") == "객관식":
+                    opts = it.get("options") or []
+                    return len(opts) == 4 and all(len(str(o).strip()) > 2 for o in opts)
+                return True
+
+            items = [it for it in items if _valid_item(it)]
+            # 요청한 개수로 trim (재시도로 초과 생성된 경우)
+            items = items[: num_mc + num_sa]
+
             yield evt({
                 "status": "done",
                 "items": items,
