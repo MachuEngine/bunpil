@@ -120,13 +120,32 @@ ollama pull qwen2.5:1.5b   # 개발용 (빠른 테스트)
 
 > 이미 적재된 파일은 자동 스킵 (idempotent). 처음 한 번만 실행하면 됩니다.
 
-### 4. UI 실행
+### 4. 서버 실행
+
+터미널 3개를 사용합니다.
 
 ```bash
-ollama serve &                    # 로컬 LLM 서버 (별도 터미널)
-.venv/bin/python app/ui.py
-# → http://localhost:7860
+# 터미널 1 — Ollama LLM 서버 (설치 후 최초 1회 또는 재부팅 시)
+ollama serve
+
+# 터미널 2 — FastAPI 백엔드 (포트 8765)
+# Windows
+$env:LLM_BACKEND="local"; $env:OLLAMA_MODEL="qwen2.5:1.5b"
+.venv\Scripts\python.exe -m uvicorn app.main:app --port 8765
+
+# macOS / Linux
+LLM_BACKEND=local OLLAMA_MODEL=qwen2.5:1.5b .venv/bin/python -m uvicorn app.main:app --port 8765
+
+# 터미널 3 — Gradio UI (포트 7860)
+# Windows
+$env:LLM_BACKEND="local"; $env:OLLAMA_MODEL="qwen2.5:1.5b"
+.venv\Scripts\python.exe app/ui.py
+
+# macOS / Linux
+LLM_BACKEND=local OLLAMA_MODEL=qwen2.5:1.5b .venv/bin/python app/ui.py
 ```
+
+브라우저에서 http://localhost:7860 접속.
 
 ---
 
