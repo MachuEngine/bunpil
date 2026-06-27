@@ -111,17 +111,8 @@ async def exam_stream(
                 {"spec": spec, "source_collection": col, "budget": 3},
             )
             items = get_draft_items()
-
-            # 선지가 비어있는 객관식 항목 제거 (소형 LLM 출력 품질 보정)
-            def _valid_item(it: dict) -> bool:
-                if it.get("item_type") == "객관식":
-                    opts = it.get("options") or []
-                    return len(opts) == 4 and all(len(str(o).strip()) > 2 for o in opts)
-                return True
-
-            items = [it for it in items if _valid_item(it)]
-            # 요청한 개수로 trim (재시도로 초과 생성된 경우)
-            items = items[: num_mc + num_sa]
+            # graph 수정으로 pair당 1회 생성이 보장되므로 별도 trim 불필요
+            # 빈 선지 항목은 프론트에서 표시 — 조용히 제거하면 결과 0개가 될 수 있음
 
             yield evt({
                 "status": "done",
