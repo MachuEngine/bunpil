@@ -51,7 +51,13 @@ RunPod Tool Calling 흐름
 search_passages → [선택: get_past_item_examples, search_regulations]
 → validate_item_format (형식 오류 시 자기수정 후 재검증)
 → save_item → record_score → check_duplicate
+                                      └─ 호출 즉시 루프 종료 (중복 save_item 방지)
 ```
+
+### 동시성 설계
+
+- **요청 간 세션 격리**: 출제 요청별 컨텍스트를 `contextvars.ContextVar`로 분리. `asyncio.to_thread` + `contextvars.copy_context()`로 worker 스레드에 전파.
+- **이벤트 루프 비블로킹**: `/exam`, `/record` 엔드포인트 모두 `asyncio.to_thread`로 LangGraph·Chain 실행. FastAPI 이벤트 루프 점유 없음.
 
 ### 업로드 지문 처리
 
