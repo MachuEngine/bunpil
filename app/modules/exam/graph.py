@@ -48,17 +48,14 @@ def agent_node(state: ExamState) -> dict:
     spec = state["spec"]
     standards = spec.get("standards") or [f"{spec['unit']} 핵심 개념 이해"]
 
-    target_pairs = _build_target_pairs(spec)
-    remaining = list(target_pairs)
-    for it in get_draft_items():
-        # 저장된 항목은 품질 무관하게 해당 pair 재시도 제외
-        # (재시도는 아예 저장 못 한 경우에만)
-        pair = (it.get("item_type", ""), it.get("difficulty", ""))
-        if pair in remaining:
-            remaining.remove(pair)
-
-    if not remaining:
+    existing = get_draft_items()
+    # 이미 요청 개수만큼 저장됐으면 재시도 불필요
+    # pair 비교 대신 총 개수로 판단 — 소형 LLM이 난이도를 무시해도 루프 탈출 보장
+    if len(existing) >= spec["num_items"]:
         return {"agent_messages": [], "budget": state["budget"] - 1}
+
+    target_pairs = _build_target_pairs(spec)
+    remaining = target_pairs[len(existing):]  # 아직 생성 안 된 슬롯만
 
     tool_map = {t.name: t for t in TOOLS}
     llm = get_langchain_model().bind_tools(TOOLS)
