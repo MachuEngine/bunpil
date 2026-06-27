@@ -94,12 +94,17 @@ def agent_node(state: ExamState) -> dict:
             if not getattr(response, "tool_calls", []):
                 break
 
+            done = False
             for tc in response.tool_calls:
                 fn = tool_map.get(tc["name"])
                 result_content = str(fn.invoke(tc["args"])) if fn else f"Unknown tool: {tc['name']}"
                 tm = ToolMessage(content=result_content, tool_call_id=tc["id"])
                 messages.append(tm)
                 item_messages.append(tm)
+                if tc["name"] == "check_duplicate":
+                    done = True
+            if done:
+                break
 
         return item_messages
 
