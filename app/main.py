@@ -100,5 +100,5 @@ async def record(req: RecordRequest):
     """관찰 메모를 받아 윤문 결과를 반환한다."""
     from app.modules.record import get_record_chain
     chain = get_record_chain()
-    result = await asyncio.to_thread(chain.run, req.memo)
+    result = await chain.run(req.memo)
     return result
