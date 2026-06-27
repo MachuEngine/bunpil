@@ -52,6 +52,9 @@ async def exam_stream(
 ):
     """PDF + 파라미터를 받아 SSE로 진행 상황과 결과를 스트리밍한다."""
 
+    # UploadFile은 StreamingResponse 반환 즉시 닫히므로 제너레이터 밖에서 미리 읽는다
+    pdf_bytes = await pdf.read()
+
     async def generate():
         from app.common.rag import BGEEmbedder, RAGStore, chunk_document, parse_pdf
         from app.modules.exam import ExamSpec, get_exam_graph
@@ -67,7 +70,6 @@ async def exam_stream(
         try:
             yield evt({"status": "parsing", "msg": "PDF를 분석하고 있습니다..."})
 
-            pdf_bytes = await pdf.read()
             with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
                 tmp.write(pdf_bytes)
                 tmp_path = tmp.name
