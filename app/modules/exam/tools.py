@@ -168,7 +168,7 @@ def validate_item_format(question: str, options: list, answer: str, item_type: s
 
 
 @tool
-def save_item(question: str, options: list, answer: str, item_type: str, difficulty: str, standard: str = "") -> str:
+def save_item(question: str, options: list, answer: str, item_type: str, difficulty: str = "중", standard: str = "") -> str:
     """검증된 문항을 저장합니다. 에이전트가 직접 작성한 내용을 저장합니다.
     question: 문제 질문
     options: 선지 목록 (객관식: ["①...", "②...", "③...", "④..."], 서술형: [])
