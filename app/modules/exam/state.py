@@ -8,6 +8,7 @@ class ExamSpec(TypedDict):
     difficulty_dist: dict    # {"상": 1, "중": 2, "하": 1}
     target: str              # "내신" | "수능형"
     standards: list          # 성취기준 목록
+    passage_text: str        # 업로드 PDF 원문 (에이전트 프롬프트에 직접 삽입)
 
 
 class DraftItem(TypedDict):
@@ -25,7 +26,7 @@ class DraftItem(TypedDict):
 
 class ExamState(TypedDict):
     spec: ExamSpec
-    source_collection: str   # 업로드 지문 임시 컬렉션명
+    source_collection: str   # 더 이상 사용 안 함 — 하위 호환용으로 유지
     coverage_map: dict       # {standard: 승인 문항 수}
     draft_items: list        # 누적 문항 (validate 노드가 교체)
     budget: int              # 남은 재시도 횟수

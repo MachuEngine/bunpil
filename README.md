@@ -2,8 +2,8 @@
 
 고등학교 사회 교사용 AI 어시스턴트. 두 가지 기능을 제공합니다.
 
-- **출제 도우미** — 지문 업로드 → 유형·난이도·성취기준 제약을 만족하는 문항 세트 자동 생성
-- **생기부 윤문** — 교사 관찰 메모 → PII 마스킹 → 생기부 문체 윤문 → 규정 위반 플래그
+- **문항 출제** — 지문 PDF 업로드 → 유형·난이도·성취기준 지정 → 1문항 자동 출제
+- **생기부 다듬기** — 교사 관찰 메모 → PII 마스킹 → 학교생활기록부 문체 교정 → 규정 위반 플래그
 
 > 포트폴리오 목적 + 지인 사회 교사 1인 실사용.
 
@@ -18,23 +18,48 @@
 Gradio UI (app/ui.py)
   │
   ├─ 출제 모듈 ─── LangGraph ReAct Agent
-  │                  ├─ search_passages   (ChromaDB + BGE-M3 + BGE-reranker)
-  │                  ├─ generate_item     (Few-shot LLM)
-  │                  ├─ judge_item        (LLM as Judge)
-  │                  └─ check_duplicate   (기출 유사도)
+  │                  │
+  │                  │  [도구 — 모두 LLM 없는 순수 계산/검색/저장]
+  │                  ├─ search_passages       성취기준 RAG 검색
+  │                  ├─ search_regulations    교육과정 법령 RAG 검색
+  │                  ├─ get_past_item_examples 기출 스타일 참조
+  │                  ├─ validate_item_format  형식 자기교정
+  │                  ├─ save_item             에이전트가 직접 생성한 문항 저장
+  │                  ├─ record_score          에이전트 자체 품질 평가 기록
+  │                  └─ check_duplicate       기출 중복 유사도 검사
   │
-  └─ 생기부 모듈 ── LCEL Chain
-                     ├─ mask_pii          (regex, 모델 호출 전)
-                     ├─ polish            (Few-shot LLM)
-                     └─ validate          (규칙 기반 + RAG + LLM)
+  └─ 생기부 모듈 ── Chain (수동 루프)
+                     ├─ mask_pii     regex 기반, 모델 호출 전 처리
+                     ├─ polish       Few-shot LLM 문체 교정
+                     └─ validate     규칙 기반 + RAG 규정 검증
 
 LLM 백엔드
-  개발: Ollama (qwen2.5:1.5b, 로컬)
-  프로덕션: RunPod 서버리스 (Qwen2.5-7B, vLLM)
+  개발:       Ollama (qwen2.5:1.5b, 로컬)
+  프로덕션:   RunPod 서버리스 (Qwen2.5-7B-Instruct, vLLM)
 
-RunPod Tool Calling 흐름 (출제 에이전트)
-  ChatRunPod → apply_chat_template(tools=...) → vLLM → <tool_call> 파싱
-  → AIMessage(tool_calls=[...]) → LangGraph ReAct 루프
+RunPod Tool Calling 흐름
+  ChatRunPod → apply_chat_template(tools=...) → vLLM
+  → <tool_call> 태그 파싱 → AIMessage(tool_calls=[...]) → LangGraph ReAct 루프
+```
+
+### ReAct 에이전트 설계 원칙
+
+에이전트(LLM)가 추론과 문항 생성을 **직접** 담당합니다. 도구는 검색·저장·검증의 **순수 계산**만 수행하며 내부 LLM 호출이 없습니다. 이를 통해 도구 내부에 LLM을 중첩하는 안티패턴을 제거했습니다.
+
+```
+에이전트 실행 흐름 (1문항 기준)
+search_passages → [선택: get_past_item_examples, search_regulations]
+→ validate_item_format (형식 오류 시 자기수정 후 재검증)
+→ save_item → record_score → check_duplicate
+```
+
+### 업로드 지문 처리
+
+PDF 텍스트를 에이전트 프롬프트에 직접 삽입합니다. 임시 컬렉션 생성과 BGE-M3 임베딩 단계를 거치지 않으므로 인덱싱 대기 시간이 없습니다.
+
+```
+기존: PDF → BGE-M3 임베딩 → ChromaDB 임시 컬렉션 → RAG 검색
+현재: PDF → 텍스트 추출(최대 4000자) → 에이전트 프롬프트에 직접 포함
 ```
 
 ---
@@ -43,8 +68,9 @@ RunPod Tool Calling 흐름 (출제 에이전트)
 
 | 구분 | 기술 |
 |---|---|
-| 백엔드 | FastAPI (비동기) |
-| 에이전트 | LangGraph (ReAct) / LangChain LCEL |
+| 백엔드 | FastAPI (GET /health) |
+| 에이전트 | LangGraph (ReAct) |
+| 생기부 체인 | LangChain (수동 루프) |
 | 벡터스토어 | ChromaDB |
 | 임베딩 | BGE-M3 (CPU) |
 | 리랭킹 | BGE-reranker-base (CPU) |
@@ -102,8 +128,8 @@ ollama serve &                    # 로컬 LLM 서버 (별도 터미널)
 
 | 컬렉션 | 경로 | 출처 | 용도 |
 |---|---|---|---|
-| `regulations` | `data/regulations/` | 학교생활기록부 종합지원포털 | 생기부 규정 위반 검증 |
-| `past_exams` | `data/past_exams/` | 한국교육과정평가원 | 출제 시 기출 중복 체크 |
+| `regulations` | `data/regulations/` | 학교생활기록부 종합지원포털 | 생기부 규정 위반 검증 + 출제 시 교육과정 법령 참조 |
+| `past_exams` | `data/past_exams/` | 한국교육과정평가원 | 출제 시 기출 중복 체크 + 스타일 참조 |
 | `standards` | `data/standards/` | 국가교육과정정보센터(NCIC) | 출제 시 성취기준 검색 |
 
 > **저작권**: 수능·모평 기출은 참고용 인덱싱만 허용 — 재배포·노출 금지.
@@ -116,11 +142,11 @@ ollama serve &                    # 로컬 LLM 서버 (별도 터미널)
 bunpil/
 ├── app/
 │   ├── common/
-│   │   ├── llm/          # LLM 추상화 (OllamaBackend / RunPodBackend)
+│   │   ├── llm/          # LLM 추상화 (OllamaBackend / RunPodBackend / ChatRunPod)
 │   │   └── rag/          # PDF 파싱, 임베딩, 리랭킹, ChromaDB
 │   ├── modules/
-│   │   ├── exam/         # 출제 모듈 (LangGraph ReAct Agent)
-│   │   └── record/       # 생기부 모듈 (LCEL Chain)
+│   │   ├── exam/         # 출제 모듈 (LangGraph ReAct Agent, 7개 도구)
+│   │   └── record/       # 생기부 모듈 (수동 루프 Chain)
 │   ├── main.py           # FastAPI (GET /health)
 │   └── ui.py             # Gradio UI
 ├── data/
@@ -150,8 +176,6 @@ bunpil/
 
 ### 검증 구조
 
-스크립트를 두 레이어로 분리합니다.
-
 | 레이어 | 스크립트 | 목적 | 실행 시점 |
 |---|---|---|---|
 | 기능 검증 | `test_*.py` | 파이프라인이 에러 없이 동작하는가 | 개발 중 수시 |
@@ -167,13 +191,12 @@ bunpil/
 | 테스트 | 항목 | 결과 |
 |---|---|---|
 | `test_rag.py` | PDF 파싱·청킹·임베딩·ChromaDB 저장/검색 | ✅ |
-| `test_rag.py` | 세션 임시 컬렉션 생성·폐기 | ✅ |
 | `test_rag.py` | 검색 + BGE-reranker 재정렬 | ✅ |
 | `test_llm.py` | Ollama 응답 수신 | ✅ |
 | `test_llm.py` | local → RunPod 백엔드 전환 | ✅ |
-| `test_exam.py` | 지문 업로드 → 문항 생성 → judge → 중복 검증 흐름 | ✅ |
+| `test_exam.py` | 지문 업로드 → 에이전트 문항 생성 → 저장 → 중복 검증 흐름 | ✅ |
 | `test_record.py` | PII 마스킹 4케이스 (전화번호·주민번호·학교명·이메일) | ✅ |
-| `test_record.py` | 관찰 메모 → 생기부 문체 윤문 | ✅ |
+| `test_record.py` | 관찰 메모 → 생기부 문체 교정 | ✅ |
 | `test_record.py` | 교사 책임 고지 출력 | ✅ |
 
 > 1.5b 모델로 생성된 문항 품질(문장·정확도)은 낮을 수 있음. 파이프라인 로직 검증 목적.
@@ -190,7 +213,7 @@ bunpil/
 |---|---|
 | Recall@5 | ≥ 0.80 |
 | MRR | 참고값 |
-| 세트 제약 (유형·난이도·커버리지) | 전체 통과 |
+| 유형·난이도·성취기준 제약 | 통과 |
 | LLM Judge 종합평균 | ≥ 4.0 / 5 |
 
 **생기부 모듈**
@@ -211,11 +234,13 @@ bunpil/
 
 | 항목 | 결과 |
 |---|---|
-| 출제 에이전트 tool calling | ✅ (ChatRunPod → vLLM apply_chat_template) |
-| 문항 생성 정확도 (객관식 3+서술형 1) | ✅ 검증 통과 |
+| 에이전트 tool calling (ChatRunPod → vLLM) | ✅ |
+| 1문항 출제 (save_item → record_score → check_duplicate) | ✅ |
+| validate_item_format 자기교정 루프 | ✅ |
 | RAG 인덱싱 (3개 컬렉션) | ✅ regulations 510 / past_exams 124 / standards 573 청크 |
 | EBS 영구 저장 | ✅ 컨테이너 재시작 후 재인덱싱 불필요 |
-| 추론 속도 (4문항 세트) | ~120–180초 (RTX A5000, min workers=1)
+| 업로드 PDF 인덱싱 제거 | ✅ 텍스트 직접 삽입으로 대기 시간 제거 |
+| 추론 속도 (1문항) | ~2–3분 (RTX A5000, min workers=1) |
 
 ---
 
@@ -223,7 +248,7 @@ bunpil/
 
 - 실제 학생 데이터 미사용 — 전부 합성/익명
 - PII 마스킹은 모델 호출 **이전**에 수행
-- 사용자 입력(메모·업로드 지문) **비저장**
+- 사용자 입력(메모·업로드 지문) **비저장** (업로드 PDF는 메모리에서만 처리 후 폐기)
 - 로그·캐시에 **PII 기록 금지**
 - 생기부: 메모에 없는 사실 **추가 금지**. 출력에 교사 책임 고지 표시
 
@@ -242,11 +267,11 @@ bunpil/
 ```bash
 # 1. 핸들러 이미지 빌드 & 푸시
 cd runpod_handler
-docker build -t <your-dockerhub>/bunpil-runpod:v9 .
-docker push <your-dockerhub>/bunpil-runpod:v9
+docker build -t <your-dockerhub>/bunpil-runpod:latest .
+docker push <your-dockerhub>/bunpil-runpod:latest
 
 # 2. RunPod 콘솔 → Serverless → New Endpoint → 이미지 URL 입력
-# 3. 워커 설정: min workers=1 (콜드스타트 방지), max workers=2
+# 3. 워커 설정: min workers=1 (콜드스타트 방지), max workers=4 (병렬 출제 시)
 # 4. 발급된 Endpoint ID를 .env에 입력
 # LLM_BACKEND=runpod
 # RUNPOD_API_KEY=...
@@ -268,9 +293,8 @@ sudo mount -a
 # 컨테이너 실행
 docker run -d --name bunpil \
   -p 7860:7860 \
-  --env-file .env \
+  --env-file /home/ubuntu/.env \
   -v /data/chroma_db:/data/chroma_db \
-  -v hf_cache:/root/.cache/huggingface \
   jongmin0826/bunpil-app:latest
 
 # RAG 인덱싱 (처음 한 번 — EBS에 영구 저장됨)
@@ -297,7 +321,7 @@ bash deploy/billing_alarm.sh   # 월 $10 초과 시 이메일 알람
 | `OLLAMA_MODEL` | 로컬 개발 모델명 | `qwen2.5:1.5b` |
 | `RUNPOD_API_KEY` | RunPod API 키 | — |
 | `RUNPOD_ENDPOINT_ID` | RunPod 엔드포인트 ID | — |
-| `CHROMA_PERSIST_DIR` | ChromaDB 저장 경로 (EBS 마운트 시 `/data/chroma_db`) | `./chroma_db` |
+| `CHROMA_PERSIST_DIR` | ChromaDB 저장 경로 | `/data/chroma_db` (EC2) / `./chroma_db` (로컬) |
 
 ---
 

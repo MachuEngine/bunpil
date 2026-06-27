@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Literal
 
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
@@ -38,15 +39,14 @@ def plan_node(state: ExamState) -> dict:
 
 
 def agent_node(state: ExamState) -> dict:
-    """ReAct 에이전트로 문항을 생성한다.
+    """ReAct 에이전트로 문항을 병렬 생성한다.
 
-    search_passages는 첫 스텝에서 에이전트가 호출하도록 시스템 프롬프트로 유도한다.
-    generate_item → judge_item → check_duplicate는 문항당 정확히 한 번씩 호출한다.
+    remaining 목록의 각 (type, difficulty) 쌍을 ThreadPoolExecutor로 동시에 처리한다.
+    last_id / last_passage는 threading.local()로 스레드별 분리된다.
     """
     spec = state["spec"]
     standards = spec.get("standards") or [f"{spec['unit']} 핵심 개념 이해"]
 
-    # 목표 (type, difficulty) 쌍에서 이미 승인된 것을 빼 남은 것만 생성
     target_pairs = _build_target_pairs(spec)
     remaining = list(target_pairs)
     for it in get_draft_items():
@@ -59,43 +59,57 @@ def agent_node(state: ExamState) -> dict:
         return {"agent_messages": [], "budget": state["budget"] - 1}
 
     tool_map = {t.name: t for t in TOOLS}
-    llm = get_langchain_model().bind_tools(TOOLS)  # search_passages 포함 전체 도구
+    llm = get_langchain_model().bind_tools(TOOLS)
 
-    all_messages = []
-
-    for idx, (itype, diff) in enumerate(remaining):
-        std = standards[idx % len(standards)]
-
+    def _run_item(itype: str, diff: str, std: str) -> list:
+        passage_text = spec.get("passage_text", "")
         system_prompt = (
-            "당신은 한국 고등학교 사회 문항 출제 에이전트입니다. 한국어로만 응답하세요.\n"
-            "반드시 search_passages → generate_item → judge_item → check_duplicate 순서로 "
-            "도구를 정확히 한 번씩만 호출하세요.\n"
-            "추가 generate_item 호출은 절대 하지 마세요."
+            "당신은 한국 고등학교 사회 문항 출제 전문가 에이전트입니다. 한국어로만 응답하세요.\n\n"
+            "다음 순서대로 도구를 호출해 문항을 출제하세요:\n"
+            "1. search_passages — 성취기준 관련 내용 검색\n"
+            "2. [선택] get_past_item_examples — 기출 스타일 참조\n"
+            "3. [선택] search_regulations — 교육과정 준수 사항 확인\n"
+            "4. validate_item_format — 직접 구성한 문항의 형식 검증\n"
+            "   (오류가 있으면 수정 후 재검증, 통과할 때까지 반복)\n"
+            "5. save_item — 검증 통과한 문항 저장\n"
+            "6. record_score — 품질 자체 평가 (0~5점)\n"
+            "7. check_duplicate — 기출 중복 확인\n\n"
+            "문항은 당신이 직접 작성합니다. "
+            "객관식 선지는 반드시 ①②③④ 형식으로 4개 작성하세요."
         )
         user_content = (
             f"단원 '{spec['unit']}'에서 문항을 출제하세요.\n"
             f"유형: {itype}, 난이도: {diff}, 성취기준: {std}"
+            + (f"\n\n[지문]\n{passage_text[:3000]}" if passage_text else "")
         )
-
         messages = [SystemMessage(content=system_prompt), HumanMessage(content=user_content)]
+        item_messages = []
 
-        for _ in range(10):  # 문항당 최대 10 스텝 (search 포함으로 1 증가)
+        for _ in range(14):
             response = llm.invoke(messages)
             messages.append(response)
-            all_messages.append(response)
+            item_messages.append(response)
 
             if not getattr(response, "tool_calls", []):
                 break
 
             for tc in response.tool_calls:
                 fn = tool_map.get(tc["name"])
-                args = tc["args"]
-                if tc["name"] == "judge_item" and "question_json" not in args:
-                    args = {"question_json": args}
-                result_content = str(fn.invoke(args)) if fn else f"Unknown: {tc['name']}"
+                result_content = str(fn.invoke(tc["args"])) if fn else f"Unknown tool: {tc['name']}"
                 tm = ToolMessage(content=result_content, tool_call_id=tc["id"])
                 messages.append(tm)
-                all_messages.append(tm)
+                item_messages.append(tm)
+
+        return item_messages
+
+    all_messages = []
+    with ThreadPoolExecutor(max_workers=len(remaining)) as executor:
+        futures = {
+            executor.submit(_run_item, itype, diff, standards[idx % len(standards)]): idx
+            for idx, (itype, diff) in enumerate(remaining)
+        }
+        for future in as_completed(futures):
+            all_messages.extend(future.result())
 
     return {
         "agent_messages": all_messages,

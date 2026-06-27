@@ -1,24 +1,23 @@
-import json
 import logging
+import threading
 import uuid
-
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
 from langchain_core.tools import tool
 
-from app.common.llm import PromptTemplate, get_llm_backend, run_async
 from app.common.rag import BGEEmbedder, BGEReranker, RAGRetriever, RAGStore
 
-# ── 세션 컨텍스트 (단일 사용자 시스템이므로 module-level dict 사용) ──
+# ── 세션 컨텍스트 ──
+# items/scores/duplicates: 전체 세션 공유 (GIL로 단순 dict/list 연산은 안전)
+# last_id: 스레드별 분리 — 병렬 생성 시 레이스 컨디션 방지
 _ctx: dict = {
     "collection": "",
-    "items": [],       # list[dict] — generate_item이 추가
-    "scores": {},      # item_id -> float
-    "duplicates": {},  # item_id -> bool
-    "last_id": "",
+    "items": [],
+    "scores": {},
+    "duplicates": {},
 }
+_thread_local = threading.local()
 
 
 def init_session(collection: str) -> None:
@@ -26,8 +25,6 @@ def init_session(collection: str) -> None:
     _ctx["items"] = []
     _ctx["scores"] = {}
     _ctx["duplicates"] = {}
-    _ctx["last_id"] = ""
-    _ctx["last_passage"] = ""
 
 
 def get_draft_items() -> list:
@@ -74,120 +71,120 @@ def _get_reranker() -> BGEReranker:
     return _reranker
 
 
-
-# ── 프롬프트 템플릿 ──
-_GENERATE_TPL = PromptTemplate(
-    system=(
-        "한국 고등학교 사회 문항 출제 전문가입니다. "
-        "JSON 형식으로만 응답하세요.\n"
-        "형식: {\"question\":\"...\",\"options\":[\"①...\",\"②...\",\"③...\",\"④...\"],\"answer\":\"①\","
-        "\"item_type\":\"객관식\",\"difficulty\":\"중\",\"standard\":\"...\"}\n"
-        "서술형은 options를 []로 설정하세요."
-    ),
-    few_shots=[
-        {
-            "user": "유형:객관식 난이도:중 성취기준:민주주의이해 지문:민주주의는 국민이 주권을 갖는다.",
-            "assistant": (
-                '{"question":"민주주의의 핵심 원리는?","options":["①국민주권","②국가주권","③왕정","④군주제"],'
-                '"answer":"①","item_type":"객관식","difficulty":"중","standard":"민주주의이해"}'
-            ),
-        }
-    ],
-)
-
-_JUDGE_TPL = PromptTemplate(
-    system="문항 품질을 0~5점으로 평가하세요. 숫자 하나만 응답하세요.",
-    few_shots=[
-        {
-            "user": '{"question":"민주주의 핵심은?","options":["①국민주권","②왕정","③독재","④귀족"],"answer":"①"}',
-            "assistant": "4",
-        }
-    ],
-)
-
-
 # ── 도구 정의 ──
+# 모든 도구는 LLM 호출 없이 순수 계산/검색/저장만 수행한다.
+# 추론과 생성은 에이전트(LLM)가 직접 담당한다.
 
 @tool
 def search_passages(query: str) -> str:
-    """지문에서 관련 내용을 검색합니다. query: 검색 키워드"""
-    col = _ctx["collection"]
-    if not col:
-        return "컬렉션이 설정되지 않았습니다."
+    """성취기준 관련 내용을 검색합니다. query: 검색 키워드"""
     retriever = RAGRetriever(_get_store(), _get_embedder(), _get_reranker())
+    results = []
 
-    # 업로드 임시 컬렉션 검색
-    results = retriever.retrieve(query, col, top_k=3)
+    col = _ctx["collection"]
+    if col:
+        results = retriever.retrieve(query, col, top_k=3)
 
-    # standards 영구 컬렉션이 있으면 함께 검색하고 재랭킹
     if _get_store().count("standards") > 0:
         std_results = retriever.retrieve(query, "standards", top_k=3)
         if std_results:
-            all_results = results + std_results
-            all_texts = [r["text"] for r in all_results]
+            all_texts = [r["text"] for r in results + std_results]
             ranked = _get_reranker().rerank(query, all_texts, top_k=3)
             results = [{"text": all_texts[r["index"]], "score": r["score"]} for r in ranked]
 
     if not results:
-        return "관련 지문 없음"
-    combined = "\n\n".join(f"[{i+1}] {r['text'][:400]}" for i, r in enumerate(results))
-    _ctx["last_passage"] = results[0]["text"]  # generate_item fallback용
-    return combined
+        return "관련 성취기준 없음"
+    return "\n\n".join(f"[{i+1}] {r['text'][:400]}" for i, r in enumerate(results))
 
 
 @tool
-def generate_item(item_type: str, difficulty: str, standard: str = "", passage: str = "") -> str:
-    """문항을 생성합니다.
+def search_regulations(query: str) -> str:
+    """교육과정 법령·지침에서 관련 내용을 검색합니다. query: 검색 키워드"""
+    count = _get_store().count("regulations")
+    if count == 0:
+        logger.warning("regulations 컬렉션이 비어있습니다.")
+        return "교육과정 자료 없음"
+    retriever = RAGRetriever(_get_store(), _get_embedder(), _get_reranker())
+    results = retriever.retrieve(query, "regulations", top_k=3)
+    if not results:
+        return "관련 규정 없음"
+    return "\n\n".join(f"[{i+1}] {r['text'][:300]}" for i, r in enumerate(results))
+
+
+@tool
+def get_past_item_examples(concept: str) -> str:
+    """기출문제에서 유사 문항을 참조합니다. 출제 스타일 벤치마킹 및 차별화에 활용하세요."""
+    count = _get_store().count("past_exams")
+    if count == 0:
+        logger.warning("past_exams 컬렉션이 비어있습니다.")
+        return "기출문제 데이터 없음"
+    retriever = RAGRetriever(_get_store(), _get_embedder(), _get_reranker())
+    results = retriever.retrieve(concept, "past_exams", top_k=2)
+    if not results:
+        return "관련 기출문제 없음"
+    return "\n\n".join(f"[기출 {i+1}] {r['text'][:400]}" for i, r in enumerate(results))
+
+
+@tool
+def validate_item_format(question: str, options: list, answer: str, item_type: str) -> str:
+    """문항 형식을 검증합니다. 오류가 있으면 구체적인 수정 지침을 반환합니다.
+    question: 문제 질문
+    options: 선지 목록 (객관식: ["①...", "②...", "③...", "④..."], 서술형: [])
+    answer: 정답 (객관식: "①"~"④", 서술형: "")
+    item_type: 객관식|서술형
+    """
+    errors = []
+    if not question or len(question.strip()) < 10:
+        errors.append("질문이 너무 짧습니다 (10자 이상 필요)")
+    if item_type == "객관식":
+        if len(options) != 4:
+            errors.append(f"선지는 4개여야 합니다 (현재 {len(options)}개)")
+        marks = ["①", "②", "③", "④"]
+        if answer not in marks:
+            errors.append(f"정답은 ①②③④ 중 하나여야 합니다 (현재: '{answer}')")
+        for i, opt in enumerate(options[:4]):
+            if not str(opt).startswith(marks[i]):
+                errors.append(f"선지 {i+1}번이 '{marks[i]}'로 시작해야 합니다")
+                break
+    if errors:
+        return "형식 오류 — 수정 필요: " + " / ".join(errors)
+    return "형식 검증 통과"
+
+
+@tool
+def save_item(question: str, options: list, answer: str, item_type: str, difficulty: str, standard: str = "") -> str:
+    """검증된 문항을 저장합니다. 에이전트가 직접 작성한 내용을 저장합니다.
+    question: 문제 질문
+    options: 선지 목록 (객관식: ["①...", "②...", "③...", "④..."], 서술형: [])
+    answer: 정답 (객관식: "①"~"④", 서술형: "")
     item_type: 객관식|서술형
     difficulty: 상|중|하
     standard: 성취기준명 (선택)
-    passage: 참조 지문 (선택)
     """
-    if not passage:
-        passage = _ctx.get("last_passage", "")
-    prompt = f"유형:{item_type} 난이도:{difficulty} 성취기준:{standard} 지문:{passage[:300]}"
-    messages = _GENERATE_TPL.build(prompt)
-    raw = run_async(get_llm_backend().generate(messages, max_tokens=400))
-
-    item = {}
-    try:
-        s, e = raw.find("{"), raw.rfind("}") + 1
-        if s >= 0 and e > s:
-            item = json.loads(raw[s:e])
-    except Exception:
-        pass
-
     item_id = uuid.uuid4().hex[:8]
-    item["item_id"] = item_id
-    item.setdefault("item_type", item_type)
-    item.setdefault("difficulty", difficulty)
-    item.setdefault("standard", standard)
-    item.setdefault("question", raw[:200])
-    item.setdefault("options", [])
-    item.setdefault("answer", "")
-
-    _ctx["last_id"] = item_id
+    item = {
+        "item_id": item_id,
+        "question": question,
+        "options": options,
+        "answer": answer,
+        "item_type": item_type,
+        "difficulty": difficulty,
+        "standard": standard,
+    }
+    _thread_local.last_id = item_id
     _ctx["items"].append(item)
-    return json.dumps(item, ensure_ascii=False)
+    return f"저장 완료 (item_id={item_id})"
 
 
 @tool
-def judge_item(question_json: Any) -> str:
-    """문항 품질을 0~5점으로 평가합니다. generate_item의 반환값(JSON 문자열 또는 dict)을 입력으로 주세요."""
-    if isinstance(question_json, dict):
-        question_json = json.dumps(question_json, ensure_ascii=False)
-    elif not isinstance(question_json, str):
-        question_json = str(question_json)
-    messages = _JUDGE_TPL.build(question_json)
-    raw = run_async(get_llm_backend().generate(messages, max_tokens=10))
-    score = 3.0
-    for ch in raw.strip():
-        if ch in "012345":  # ASCII 숫자 0-5만 허용
-            score = float(ch)
-            break
-    if _ctx["last_id"]:
-        _ctx["scores"][_ctx["last_id"]] = score
-    return f"점수: {int(score)}/5"
+def record_score(score: int) -> str:
+    """문항 품질 점수를 기록합니다. 에이전트가 직접 평가한 점수를 입력합니다.
+    score: 0~5 (5=매우 우수, 4=우수, 3=보통, 2=미흡, 1=불량, 0=생성 실패)
+    """
+    item_id = getattr(_thread_local, "last_id", "")
+    if item_id:
+        _ctx["scores"][item_id] = float(max(0, min(5, int(score))))
+    return f"품질 점수 {score}/5 기록됨"
 
 
 @tool
@@ -195,30 +192,40 @@ def check_duplicate(question: str) -> str:
     """기출 문제와 중복 여부를 확인합니다. 중복이면 True, 아니면 False 반환."""
     try:
         count = _get_store().count("past_exams")
+        item_id = getattr(_thread_local, "last_id", "")
         if count == 0:
             logger.warning(
                 "past_exams 컬렉션이 비어있습니다. "
                 "scripts/index_past_exams.py를 실행한 뒤 다시 시도하세요."
             )
-            if _ctx["last_id"]:
-                _ctx["duplicates"][_ctx["last_id"]] = False
+            if item_id:
+                _ctx["duplicates"][item_id] = False
             return "False"
         q_vec = _get_embedder().embed([question])[0]
         results = _get_store().query("past_exams", q_vec, n_results=min(3, count))
         if not results:
-            if _ctx["last_id"]:
-                _ctx["duplicates"][_ctx["last_id"]] = False
+            if item_id:
+                _ctx["duplicates"][item_id] = False
             return "False"
         passages = [r["text"] for r in results]
         ranked = _get_reranker().rerank(question, passages, top_k=1)
         is_dup = ranked[0]["score"] > 0.8
-        if _ctx["last_id"]:
-            _ctx["duplicates"][_ctx["last_id"]] = is_dup
+        if item_id:
+            _ctx["duplicates"][item_id] = is_dup
         return str(is_dup)
     except Exception:
-        if _ctx["last_id"]:
-            _ctx["duplicates"][_ctx["last_id"]] = False
+        item_id = getattr(_thread_local, "last_id", "")
+        if item_id:
+            _ctx["duplicates"][item_id] = False
         return "False"
 
 
-TOOLS = [search_passages, generate_item, judge_item, check_duplicate]
+TOOLS = [
+    search_passages,
+    search_regulations,
+    get_past_item_examples,
+    validate_item_format,
+    save_item,
+    record_score,
+    check_duplicate,
+]
