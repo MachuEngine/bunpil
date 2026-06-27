@@ -130,7 +130,7 @@ def run_exam(pdf_file, unit, item_type, difficulty, standards_text):
 
 # ── 생기부 모드 핸들러 ────────────────────────────────────────────────
 
-def run_record(memo: str):
+async def run_record(memo: str):
     if not memo.strip():
         yield _status("관찰 메모를 입력해주세요.", "error"), "", "", ""
         return
@@ -141,7 +141,7 @@ def run_record(memo: str):
         chain = get_record_chain()
 
         yield _status("학교생활기록부 문체로 다듬고 있습니다..."), "", "", ""
-        out = chain.run(memo.strip())
+        out = await chain.run(memo.strip())
 
         pii_info = f"감지된 개인정보: {', '.join(out['pii_found'])}" if out["pii_found"] else "감지된 개인정보 없음"
         masked_display = f"{out['masked_memo']}\n\n({pii_info})"
