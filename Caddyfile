@@ -1,23 +1,23 @@
-# 쌤조 Caddy 리버스 프록시
-# your-domain.com → EC2 내부 Gradio(7860) 포트로 전달
+# 분필 Caddy 리버스 프록시
+# your-domain.com → EC2 내부 FastAPI(8765) 포트로 전달
 # TLS: Let's Encrypt 자동 발급 (도메인 DNS가 이 서버 IP를 가리켜야 함)
 
 your-domain.com {
-    reverse_proxy localhost:7860
+    # 타임아웃: LLM 생성이 길므로 넉넉히 설정
+    reverse_proxy localhost:8765 {
+        transport http {
+            read_timeout  300s
+            write_timeout 300s
+        }
+        # SSE 스트리밍을 위한 flush 설정
+        flush_interval -1
+    }
 
     # 요청/응답 로그 — PII 포함 가능성이 있으므로 body 로깅 비활성화
     log {
         output file /var/log/caddy/access.log
         format json
         level INFO
-    }
-
-    # 타임아웃: LLM 생성이 길므로 넉넉히 설정
-    reverse_proxy localhost:7860 {
-        transport http {
-            read_timeout  300s
-            write_timeout 300s
-        }
     }
 
     # 보안 헤더

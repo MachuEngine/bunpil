@@ -15,7 +15,11 @@
 브라우저
   │
   ▼
-Gradio UI (app/ui.py)
+FastAPI (app/main.py)
+  ├─ GET  /               커스텀 웹 UI (app/static/index.html)
+  ├─ POST /exam/stream    문항 출제 — SSE 스트리밍 (parsing → indexing → generating → done)
+  ├─ POST /exam           문항 출제 — JSON 응답 (하위 호환)
+  └─ POST /record         생기부 다듬기 — JSON 응답
   │
   ├─ 출제 모듈 ─── LangGraph ReAct Agent
   │                  │
@@ -36,10 +40,6 @@ Gradio UI (app/ui.py)
 LLM 백엔드
   개발:       Ollama (qwen2.5:1.5b, 로컬)
   프로덕션:   RunPod 서버리스 (Qwen2.5-7B-Instruct, vLLM)
-
-RunPod Tool Calling 흐름
-  ChatRunPod → apply_chat_template(tools=...) → vLLM
-  → <tool_call> 태그 파싱 → AIMessage(tool_calls=[...]) → LangGraph ReAct 루프
 ```
 
 ### ReAct 에이전트 설계 원칙
@@ -57,15 +57,17 @@ search_passages → [선택: get_past_item_examples, search_regulations]
 ### 동시성 설계
 
 - **요청 간 세션 격리**: 출제 요청별 컨텍스트를 `contextvars.ContextVar`로 분리. `asyncio.to_thread` + `contextvars.copy_context()`로 worker 스레드에 전파.
-- **이벤트 루프 비블로킹**: `/exam`은 `asyncio.to_thread`로 LangGraph 실행. `/record`는 Chain 전체가 async이므로 `await chain.run()`으로 직접 호출. 둘 다 FastAPI 이벤트 루프 점유 없음.
+- **이벤트 루프 비블로킹**: `/exam/stream`은 `asyncio.to_thread`로 LangGraph 실행. `/record`는 Chain 전체가 async이므로 `await chain.run()`으로 직접 호출.
 
-### 업로드 지문 처리
+### SSE 스트리밍
 
-PDF 텍스트를 에이전트 프롬프트에 직접 삽입합니다. 임시 컬렉션 생성과 BGE-M3 임베딩 단계를 거치지 않으므로 인덱싱 대기 시간이 없습니다.
+`/exam/stream`은 `text/event-stream`으로 진행 상황을 클라이언트에 실시간 전달합니다.
 
 ```
-기존: PDF → BGE-M3 임베딩 → ChromaDB 임시 컬렉션 → RAG 검색
-현재: PDF → 텍스트 추출(최대 4000자) → 에이전트 프롬프트에 직접 포함
+data: {"status": "parsing",    "msg": "PDF를 분석하고 있습니다..."}
+data: {"status": "indexing",   "msg": "텍스트를 인덱싱하고 있습니다..."}
+data: {"status": "generating", "msg": "AI가 문항을 생성하고 있습니다..."}
+data: {"status": "done",       "items": [...], "validation_passed": true}
 ```
 
 ---
@@ -74,14 +76,14 @@ PDF 텍스트를 에이전트 프롬프트에 직접 삽입합니다. 임시 컬
 
 | 구분 | 기술 |
 |---|---|
-| 백엔드 | FastAPI (GET /health) |
+| 백엔드 | FastAPI (비동기) |
+| 프론트엔드 | HTML / CSS / Vanilla JS (FastAPI static 서빙) |
 | 에이전트 | LangGraph (ReAct) |
 | 생기부 체인 | LangChain (수동 루프) |
 | 벡터스토어 | ChromaDB |
 | 임베딩 | BGE-M3 (CPU) |
 | 리랭킹 | BGE-reranker-base (CPU) |
 | LLM 서빙 | Ollama (개발) / RunPod vLLM (프로덕션) |
-| UI | Gradio 4.x |
 | 배포 | AWS EC2 t3.medium + EBS + RunPod 서버리스 + Caddy HTTPS |
 
 ---
@@ -95,7 +97,7 @@ git clone https://github.com/MachuEngine/bunpil.git
 cd bunpil
 
 python -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
 cp .env.example .env   # 필요 시 값 수정
@@ -122,30 +124,22 @@ ollama pull qwen2.5:1.5b   # 개발용 (빠른 테스트)
 
 ### 4. 서버 실행
 
-터미널 3개를 사용합니다.
+터미널 2개를 사용합니다.
 
 ```bash
-# 터미널 1 — Ollama LLM 서버 (설치 후 최초 1회 또는 재부팅 시)
+# 터미널 1 — Ollama LLM 서버
 ollama serve
 
-# 터미널 2 — FastAPI 백엔드 (포트 8765)
+# 터미널 2 — FastAPI (UI + API 통합, 포트 8765)
 # Windows
 $env:LLM_BACKEND="local"; $env:OLLAMA_MODEL="qwen2.5:1.5b"
 .venv\Scripts\python.exe -m uvicorn app.main:app --port 8765
 
 # macOS / Linux
 LLM_BACKEND=local OLLAMA_MODEL=qwen2.5:1.5b .venv/bin/python -m uvicorn app.main:app --port 8765
-
-# 터미널 3 — Gradio UI (포트 7860)
-# Windows
-$env:LLM_BACKEND="local"; $env:OLLAMA_MODEL="qwen2.5:1.5b"
-.venv\Scripts\python.exe app/ui.py
-
-# macOS / Linux
-LLM_BACKEND=local OLLAMA_MODEL=qwen2.5:1.5b .venv/bin/python app/ui.py
 ```
 
-브라우저에서 http://localhost:7860 접속.
+브라우저에서 **http://localhost:8765** 접속.
 
 ---
 
@@ -172,8 +166,9 @@ bunpil/
 │   ├── modules/
 │   │   ├── exam/         # 출제 모듈 (LangGraph ReAct Agent, 7개 도구)
 │   │   └── record/       # 생기부 모듈 (수동 루프 Chain)
-│   ├── main.py           # FastAPI (GET /health)
-│   └── ui.py             # Gradio UI
+│   ├── static/
+│   │   └── index.html    # 커스텀 웹 UI (HTML/CSS/Vanilla JS)
+│   └── main.py           # FastAPI (UI 서빙 + /exam/stream + /record)
 ├── data/
 │   ├── regulations/      # 생기부 기재요령, 작성·관리지침
 │   ├── past_exams/       # 수능·모평 기출 PDF (사탐 과목)
@@ -282,7 +277,7 @@ bunpil/
 ## 배포 (프로덕션)
 
 ```
-브라우저 → Caddy (HTTPS) → EC2 t3.medium (Gradio + ChromaDB) → RunPod 서버리스 (Qwen2.5-7B)
+브라우저 → Caddy (HTTPS) → EC2 t3.medium (FastAPI + ChromaDB) → RunPod 서버리스 (Qwen2.5-7B)
                                     │
                               EBS 10GB (ChromaDB 영구 저장)
 ```
@@ -317,7 +312,7 @@ sudo mount -a
 
 # 컨테이너 실행
 docker run -d --name bunpil \
-  -p 7860:7860 \
+  -p 8765:8765 \
   --env-file /home/ubuntu/.env \
   -v /data/chroma_db:/data/chroma_db \
   jongmin0826/bunpil-app:latest

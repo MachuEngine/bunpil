@@ -344,74 +344,91 @@ async def run_record(memo: str):
 _CSS = """
 /* ── Design Tokens ── */
 :root {
-    --bg:             #f7f8f9;
+    --bg:             #f0f2f5;
     --surface:        #ffffff;
-    --surface-muted:  #f1f3f5;
+    --surface-muted:  #f8f9fa;
     --primary:        #12b886;
     --primary-hover:  #0ca678;
     --primary-light:  #e6fcf5;
     --primary-ring:   rgba(18,184,134,0.18);
-    --text:           #1a1a2e;
-    --text-secondary: #495057;
-    --text-muted:     #868e96;
-    --border:         #dee2e6;
+    --text:           #111827;
+    --text-secondary: #4b5563;
+    --text-muted:     #9ca3af;
+    --border:         #e5e7eb;
     --border-focus:   #12b886;
     --radius-sm:      8px;
     --radius-md:      12px;
-    --radius-lg:      16px;
-    --shadow-sm:      0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-    --shadow-md:      0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+    --radius-lg:      20px;
+    --shadow-sm:      0 1px 2px rgba(0,0,0,0.05);
+    --shadow-md:      0 4px 16px rgba(0,0,0,0.08);
+    --shadow-lg:      0 8px 32px rgba(0,0,0,0.10);
 }
 
-/* ── Reset & Base ── */
+/* ── Base ── */
 *, *::before, *::after { box-sizing: border-box; }
-
-body,
-.gradio-container,
-.gradio-container > .main,
-.gradio-container > .main > .wrap {
-    background: var(--bg) !important;
-    color: var(--text) !important;
-    font-family: 'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont,
-                 'Segoe UI', sans-serif !important;
-}
-
-/* Gradio 기본 다크 배경 제거 */
 .dark, [data-theme="dark"] { color-scheme: light !important; }
 
-/* ── Page Layout ── */
+body, .gradio-container, .gradio-container > .main, .gradio-container > .main > .wrap {
+    background: var(--bg) !important;
+    color: var(--text) !important;
+    font-family: 'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+}
+
+/* Gradio 내부 블록 배경 전부 투명 — 우리 카드만 배경 갖는다 */
+.gradio-container .block,
+.gradio-container .form,
+.gradio-container .gap,
+.gradio-container .panel {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+/* ── Layout ── */
 .gradio-container > .main {
-    max-width: 1100px !important;
+    max-width: 1160px !important;
     margin: 0 auto !important;
-    padding: 0 24px 48px !important;
+    padding: 0 20px 60px !important;
 }
 
 /* ── Header ── */
 .bp-header {
-    background: var(--surface);
-    border-bottom: 2px solid var(--primary);
-    padding: 22px 32px;
-    margin: 0 -24px 28px;
+    padding: 28px 0 20px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border);
 }
 .bp-header h1 {
-    margin: 0 0 4px;
-    font-size: 1.5rem;
+    margin: 0 0 3px;
+    font-size: 1.375rem;
     font-weight: 800;
     color: var(--text);
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.bp-header h1::before {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--primary);
+    flex-shrink: 0;
 }
 .bp-header p {
     margin: 0;
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     color: var(--text-muted);
+    padding-left: 20px;
 }
 
 /* ── Tabs ── */
 .bp-tabs > .tab-nav {
-    background: var(--surface) !important;
+    background: transparent !important;
     border-bottom: 1px solid var(--border) !important;
-    padding: 0 4px !important;
+    padding: 0 !important;
     gap: 0 !important;
+    margin-bottom: 24px !important;
 }
 .bp-tabs > .tab-nav button {
     border: none !important;
@@ -421,188 +438,181 @@ body,
     color: var(--text-muted) !important;
     font-size: 0.9375rem !important;
     font-weight: 600 !important;
-    padding: 12px 20px !important;
+    padding: 14px 20px !important;
     margin-bottom: -1px !important;
     transition: color 0.15s, border-color 0.15s !important;
 }
 .bp-tabs > .tab-nav button:hover:not(.selected) {
-    color: var(--text) !important;
-    background: var(--surface-muted) !important;
+    color: var(--text-secondary) !important;
 }
 .bp-tabs > .tab-nav button.selected {
     color: var(--primary) !important;
     border-bottom-color: var(--primary) !important;
-    background: transparent !important;
-}
-
-/* ── Card ── */
-.bp-card {
-    background: var(--surface) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: var(--radius-md) !important;
-    padding: 24px !important;
-    box-shadow: var(--shadow-sm) !important;
 }
 
 /* ── Info Banner ── */
 .bp-info {
     background: var(--primary-light) !important;
-    border-left: 3px solid var(--primary) !important;
-    border-radius: 0 var(--radius-sm) var(--radius-sm) 0 !important;
-    padding: 10px 14px !important;
+    border: 1px solid #b2f2cc !important;
+    border-radius: var(--radius-sm) !important;
+    padding: 11px 16px !important;
     margin-bottom: 20px !important;
-    font-size: 0.875rem !important;
+    font-size: 0.8125rem !important;
     color: #0b6e4f !important;
-    line-height: 1.5 !important;
+    line-height: 1.55 !important;
 }
 
-/* ── Labels ── */
-.gradio-container label > span,
-.gradio-container .label-wrap > span {
-    color: var(--text) !important;
-    font-size: 0.8125rem !important;
+/* ── Input Panel (left column card) ── */
+.bp-panel {
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-md) !important;
+    padding: 0 !important;
+    box-shadow: var(--shadow-md) !important;
+    overflow: hidden !important;
+}
+
+/* 패널 안 각 블록 구분선 */
+.bp-panel .block,
+.bp-panel .form {
+    border: none !important;
+    border-bottom: 1px solid var(--border) !important;
+    padding: 16px 20px !important;
+    margin: 0 !important;
+}
+.bp-panel .block:last-child,
+.bp-panel .form:last-child {
+    border-bottom: none !important;
+}
+
+/* 블록 라벨 */
+.bp-panel .block-label,
+.bp-panel .label-wrap {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 0 6px !important;
+}
+.bp-panel label > span,
+.bp-panel .label-wrap > span {
+    font-size: 0.75rem !important;
     font-weight: 700 !important;
-    letter-spacing: 0.01em !important;
+    color: var(--text-muted) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+}
+
+/* ── File Upload ── */
+/* 파일 업로드 블록 자체도 동일한 패딩 구조 */
+#bp-pdf-upload {
+    border-bottom: 1px solid var(--border) !important;
+    padding: 16px 20px !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+#bp-pdf-upload .wrap {
+    background: var(--primary-light) !important;
+    border: 2px dashed var(--primary) !important;
+    border-radius: var(--radius-sm) !important;
+    min-height: 110px !important;
+    transition: background 0.15s !important;
+    cursor: pointer !important;
+}
+#bp-pdf-upload .wrap:hover { background: #ccf5e7 !important; }
+#bp-pdf-upload .wrap * { background: transparent !important; color: var(--text-secondary) !important; }
+#bp-pdf-upload .wrap svg { stroke: var(--primary) !important; fill: none !important; }
+#bp-pdf-upload .block-label, #bp-pdf-upload .label-wrap {
+    background: transparent !important; border: none !important; padding: 0 0 8px !important;
+}
+#bp-pdf-upload .label-wrap span {
+    font-size: 0.75rem !important; font-weight: 700 !important;
+    color: var(--text-muted) !important; text-transform: uppercase !important; letter-spacing: 0.06em !important;
 }
 
 /* ── Inputs & Textarea ── */
 .gradio-container input[type="text"],
 .gradio-container input[type="search"],
 .gradio-container textarea {
-    background: var(--surface) !important;
+    background: var(--surface-muted) !important;
     color: var(--text) !important;
-    border: 1px solid var(--border) !important;
+    border: 1.5px solid var(--border) !important;
     border-radius: var(--radius-sm) !important;
-    padding: 10px 14px !important;
-    font-size: 0.9375rem !important;
+    padding: 10px 13px !important;
+    font-size: 0.9rem !important;
     line-height: 1.6 !important;
-    transition: border-color 0.15s, box-shadow 0.15s !important;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s !important;
 }
 .gradio-container input[type="text"]:focus,
 .gradio-container textarea:focus {
-    border-color: var(--border-focus) !important;
+    background: var(--surface) !important;
+    border-color: var(--primary) !important;
     box-shadow: 0 0 0 3px var(--primary-ring) !important;
     outline: none !important;
 }
 .gradio-container input::placeholder,
-.gradio-container textarea::placeholder {
-    color: var(--text-muted) !important;
-}
+.gradio-container textarea::placeholder { color: var(--text-muted) !important; }
 
-/* ── Readonly / Disabled Textbox ── */
-.gradio-container textarea[readonly],
-.gradio-container textarea:disabled,
-.gradio-container input[readonly],
-.gradio-container input:disabled {
-    background: var(--surface-muted) !important;
-    color: var(--text-secondary) !important;
-    border-color: var(--border) !important;
+/* ── Radio — Pill Buttons ── */
+.bp-radio input[type="radio"] {
+    appearance: none !important; -webkit-appearance: none !important;
+    width: 0 !important; height: 0 !important; margin: 0 !important; padding: 0 !important;
+    position: absolute !important; opacity: 0 !important; pointer-events: none !important;
 }
-
-/* ── Radio (Segmented style) ── */
-.bp-card .gr-radio-group,
-.bp-card fieldset {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    gap: 8px !important;
-    border: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
+.bp-radio > .wrap, .bp-radio fieldset, .bp-radio > div {
+    display: flex !important; flex-wrap: wrap !important; gap: 6px !important;
+    border: none !important; padding: 0 !important; margin: 0 !important; background: transparent !important;
 }
-.bp-card .gr-radio-group label,
-.bp-card fieldset label {
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 6px !important;
-    padding: 7px 16px !important;
-    border: 1.5px solid var(--border) !important;
-    border-radius: var(--radius-sm) !important;
-    background: var(--surface) !important;
-    cursor: pointer !important;
-    font-size: 0.875rem !important;
-    font-weight: 500 !important;
-    color: var(--text-secondary) !important;
-    transition: all 0.15s !important;
-    user-select: none !important;
+.bp-radio label {
+    display: inline-flex !important; align-items: center !important;
+    padding: 5px 16px !important; border: 1.5px solid var(--border) !important;
+    border-radius: var(--radius-lg) !important; background: var(--surface-muted) !important;
+    cursor: pointer !important; font-size: 0.8125rem !important; font-weight: 500 !important;
+    color: var(--text-secondary) !important; transition: all 0.15s !important; user-select: none !important;
 }
-.bp-card .gr-radio-group label:hover,
-.bp-card fieldset label:hover {
-    border-color: var(--primary) !important;
-    color: var(--primary) !important;
-    background: var(--primary-light) !important;
+.bp-radio label:hover {
+    border-color: var(--primary) !important; color: var(--primary) !important; background: var(--primary-light) !important;
 }
-.bp-card input[type="radio"]:checked + span {
-    color: var(--primary) !important;
-    font-weight: 700 !important;
+.bp-radio label:has(input:checked) {
+    border-color: var(--primary) !important; background: var(--primary) !important;
+    color: #fff !important; font-weight: 700 !important; box-shadow: 0 2px 6px rgba(18,184,134,0.3) !important;
 }
-
-/* ── File Upload ── */
-.gradio-container .upload-container,
-.gradio-container .file-preview,
-.gradio-container [data-testid="file"] {
-    background: var(--primary-light) !important;
-    border: 2px dashed var(--primary) !important;
-    border-radius: var(--radius-md) !important;
-    color: var(--text) !important;
-    transition: background 0.15s !important;
-}
-.gradio-container .upload-container:hover,
-.gradio-container [data-testid="file"]:hover {
-    background: #d3f9e8 !important;
-}
+.bp-radio label:has(input:checked) span { color: #fff !important; }
 
 /* ── Primary Button ── */
-.gradio-container button.primary,
-.gradio-container .gr-button.primary,
-button[variant="primary"] {
+.gradio-container button.primary {
     background: var(--primary) !important;
-    border: none !important;
-    border-radius: var(--radius-sm) !important;
-    color: #ffffff !important;
-    font-size: 0.9375rem !important;
-    font-weight: 700 !important;
-    padding: 12px 24px !important;
-    width: 100% !important;
-    box-shadow: 0 2px 8px rgba(18,184,134,0.25) !important;
+    border: none !important; border-radius: var(--radius-sm) !important;
+    color: #fff !important; font-size: 0.9375rem !important; font-weight: 700 !important;
+    padding: 13px 24px !important; width: 100% !important; letter-spacing: 0.01em !important;
+    box-shadow: 0 2px 8px rgba(18,184,134,0.3) !important;
     transition: background 0.15s, box-shadow 0.15s, transform 0.1s !important;
     cursor: pointer !important;
 }
 .gradio-container button.primary:hover {
     background: var(--primary-hover) !important;
-    box-shadow: 0 4px 14px rgba(18,184,134,0.35) !important;
+    box-shadow: 0 4px 16px rgba(18,184,134,0.4) !important;
     transform: translateY(-1px) !important;
 }
-.gradio-container button.primary:active {
-    transform: translateY(0) !important;
-    box-shadow: 0 2px 6px rgba(18,184,134,0.25) !important;
-}
-.gradio-container button.primary:disabled {
-    opacity: 0.5 !important;
-    cursor: not-allowed !important;
-    transform: none !important;
+.gradio-container button.primary:active { transform: none !important; }
+.gradio-container button.primary:disabled { opacity: 0.45 !important; transform: none !important; cursor: not-allowed !important; }
+
+/* ── Result Panel (right column) ── */
+.bp-result-panel {
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-md) !important;
+    padding: 20px !important;
+    box-shadow: var(--shadow-md) !important;
+    min-height: 200px !important;
 }
 
-/* ── Markdown Result ── */
-.bp-result .prose,
-.bp-result p,
-.bp-result li,
-.bp-result h1,
-.bp-result h2,
-.bp-result h3 {
-    color: var(--text) !important;
-}
-
-/* ── Section Divider ── */
-.bp-divider {
-    border: none !important;
-    border-top: 1px solid var(--border) !important;
-    margin: 20px 0 !important;
-}
+/* HTML 결과 컴포넌트 배경 투명 */
+.bp-result-panel .block { padding: 0 !important; }
 
 /* ── Scrollbar ── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
 /* ── Animations ── */
@@ -610,12 +620,7 @@ button[variant="primary"] {
     0%, 100% { opacity: 1; transform: scale(1); }
     50%       { opacity: 0.4; transform: scale(0.7); }
 }
-
-/* ── Focus visible ── */
-:focus-visible {
-    outline: 2px solid var(--primary) !important;
-    outline-offset: 2px !important;
-}
+:focus-visible { outline: 2px solid var(--primary) !important; outline-offset: 2px !important; }
 """
 
 _HEADER_HTML = """
@@ -627,8 +632,7 @@ _HEADER_HTML = """
 
 _EXAM_INFO_HTML = """
 <div class="bp-info">
-    지문 PDF를 업로드하고 유형·난이도를 지정한 뒤 <strong>문항 생성</strong>을 누르세요.
-    생성에 수 분 소요됩니다.
+    지문 PDF를 업로드하고 유형·난이도를 지정한 뒤 <strong>문항 생성</strong>을 누르세요. 생성에 수 분 소요됩니다.
 </div>
 """
 
@@ -639,16 +643,98 @@ _RECORD_INFO_HTML = """
 </div>
 """
 
+_EXAM_EMPTY_HTML = """
+<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+            min-height:240px;text-align:center;padding:32px 20px;">
+    <div style="width:52px;height:52px;border-radius:14px;background:#e6fcf5;
+                display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+             stroke="#12b886" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+        </svg>
+    </div>
+    <p style="margin:0 0 6px;font-size:0.9375rem;font-weight:600;color:#374151;">생성된 문항이 여기에 표시됩니다</p>
+    <p style="margin:0;font-size:0.8125rem;color:#9ca3af;line-height:1.6;">
+        PDF를 업로드하고 설정을 지정한 뒤<br>문항 생성 버튼을 누르세요
+    </p>
+</div>
+"""
+
+_RECORD_EMPTY_HTML = """
+<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+            min-height:180px;text-align:center;padding:32px 20px;">
+    <div style="width:52px;height:52px;border-radius:14px;background:#e6fcf5;
+                display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+             stroke="#12b886" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+        </svg>
+    </div>
+    <p style="margin:0 0 6px;font-size:0.9375rem;font-weight:600;color:#374151;">다듬기 결과가 여기에 표시됩니다</p>
+    <p style="margin:0;font-size:0.8125rem;color:#9ca3af;">관찰 메모를 입력하고 버튼을 누르세요</p>
+</div>
+"""
+
 
 def build_ui() -> gr.Blocks:
+    _theme = gr.themes.Base(
+        primary_hue=gr.themes.colors.emerald,
+        neutral_hue=gr.themes.colors.slate,
+        font=["Pretendard", "Noto Sans KR", "system-ui", "sans-serif"],
+    ).set(
+        # 라이트 모드 강제 — dark 변형까지 동일한 밝은 색으로 덮어씀
+        body_background_fill="#f7f8f9",
+        body_background_fill_dark="#f7f8f9",
+        body_text_color="#1a1a2e",
+        body_text_color_dark="#1a1a2e",
+        body_text_color_subdued="#6c757d",
+        body_text_color_subdued_dark="#6c757d",
+        background_fill_primary="#ffffff",
+        background_fill_primary_dark="#ffffff",
+        background_fill_secondary="#f1f3f5",
+        background_fill_secondary_dark="#f1f3f5",
+        block_background_fill="#ffffff",
+        block_background_fill_dark="#ffffff",
+        block_border_color="#dee2e6",
+        block_border_color_dark="#dee2e6",
+        block_label_background_fill="#ffffff",
+        block_label_background_fill_dark="#ffffff",
+        block_label_text_color="#1a1a2e",
+        block_label_text_color_dark="#1a1a2e",
+        block_title_text_color="#1a1a2e",
+        block_title_text_color_dark="#1a1a2e",
+        input_background_fill="#ffffff",
+        input_background_fill_dark="#ffffff",
+        input_border_color="#dee2e6",
+        input_border_color_dark="#dee2e6",
+        input_placeholder_color="#adb5bd",
+        input_placeholder_color_dark="#adb5bd",
+        border_color_primary="#dee2e6",
+        border_color_primary_dark="#dee2e6",
+        border_color_accent="#12b886",
+        border_color_accent_dark="#12b886",
+        color_accent_soft="rgba(18,184,134,0.1)",
+        color_accent_soft_dark="rgba(18,184,134,0.1)",
+        checkbox_background_color="#ffffff",
+        checkbox_background_color_dark="#ffffff",
+        table_even_background_fill="#ffffff",
+        table_even_background_fill_dark="#ffffff",
+        table_odd_background_fill="#f7f8f9",
+        table_odd_background_fill_dark="#f7f8f9",
+        panel_background_fill="#ffffff",
+        panel_background_fill_dark="#ffffff",
+        panel_border_color="#dee2e6",
+        panel_border_color_dark="#dee2e6",
+    )
+
     with gr.Blocks(
         title="분필",
         css=_CSS,
-        theme=gr.themes.Base(
-            font=["Pretendard", "Noto Sans KR", "system-ui", "sans-serif"],
-            primary_hue=gr.themes.colors.green,
-            neutral_hue=gr.themes.colors.slate,
-        ),
+        theme=_theme,
     ) as demo:
 
         gr.HTML(_HEADER_HTML)
@@ -661,12 +747,13 @@ def build_ui() -> gr.Blocks:
                 with gr.Row(equal_height=False):
 
                     # 좌측: 입력 패널
-                    with gr.Column(scale=1, min_width=280):
-                        with gr.Group(elem_classes=["bp-card"]):
+                    with gr.Column(scale=1, min_width=300):
+                        with gr.Group(elem_classes=["bp-panel"]):
                             pdf_input = gr.File(
                                 label="지문 PDF",
                                 file_types=[".pdf"],
                                 type="filepath",
+                                elem_id="bp-pdf-upload",
                             )
                             unit_input = gr.Textbox(
                                 label="단원명",
@@ -680,18 +767,21 @@ def build_ui() -> gr.Blocks:
                                 choices=["객관식", "서술형"],
                                 value="객관식",
                                 label="문항 유형",
+                                elem_classes=["bp-radio"],
                             )
                             diff_radio = gr.Radio(
                                 choices=["상", "중", "하"],
                                 value="중",
                                 label="난이도",
+                                elem_classes=["bp-radio"],
                             )
                         exam_btn = gr.Button("문항 생성", variant="primary", size="lg")
 
                     # 우측: 결과 패널
-                    with gr.Column(scale=2, min_width=400):
-                        exam_status = gr.HTML(value=_status("대기 중", "idle"))
-                        exam_output = gr.HTML(value="", elem_classes=["bp-result"])
+                    with gr.Column(scale=2, min_width=420):
+                        with gr.Group(elem_classes=["bp-result-panel"]):
+                            exam_status = gr.HTML(value=_status("대기 중", "idle"))
+                            exam_output = gr.HTML(value=_EXAM_EMPTY_HTML)
 
                 exam_btn.click(
                     fn=run_exam,
@@ -705,8 +795,8 @@ def build_ui() -> gr.Blocks:
                 with gr.Row(equal_height=False):
 
                     # 좌측: 입력 패널
-                    with gr.Column(scale=1, min_width=280):
-                        with gr.Group(elem_classes=["bp-card"]):
+                    with gr.Column(scale=1, min_width=300):
+                        with gr.Group(elem_classes=["bp-panel"]):
                             memo_input = gr.Textbox(
                                 label="관찰 메모",
                                 placeholder=(
@@ -714,16 +804,17 @@ def build_ui() -> gr.Blocks:
                                     "모둠 토론에서 논리적으로 의견을 제시하고 "
                                     "친구들이 이해하지 못할 때 적극적으로 도움."
                                 ),
-                                lines=7,
+                                lines=8,
                             )
                         record_btn = gr.Button("생기부 다듬기", variant="primary", size="lg")
 
                     # 우측: 결과 패널
-                    with gr.Column(scale=2, min_width=400):
-                        record_status = gr.HTML(value=_status("대기 중", "idle"))
-                        pii_output     = gr.HTML(value=_empty_result_card("개인정보 처리 결과"))
-                        polished_output = gr.HTML(value=_empty_result_card("생기부 작성 결과"))
-                        check_output   = gr.HTML(value=_empty_result_card("규정 확인 및 교사 안내"))
+                    with gr.Column(scale=2, min_width=420):
+                        with gr.Group(elem_classes=["bp-result-panel"]):
+                            record_status = gr.HTML(value=_status("대기 중", "idle"))
+                            pii_output     = gr.HTML(value=_RECORD_EMPTY_HTML)
+                            polished_output = gr.HTML(value="")
+                            check_output   = gr.HTML(value="")
 
                 record_btn.click(
                     fn=run_record,

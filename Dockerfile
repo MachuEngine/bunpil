@@ -21,11 +21,9 @@ COPY data/ ./data/
 VOLUME ["/data/chroma_db"]
 ENV CHROMA_PERSIST_DIR=/data/chroma_db
 
-RUN mkdir -p /tmp/gradio
-
-EXPOSE 7860
+EXPOSE 8765
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD curl -f http://localhost:7860/ || exit 1
+    CMD curl -f http://localhost:8765/health || exit 1
 
-CMD ["python", "app/ui.py"]
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8765"]

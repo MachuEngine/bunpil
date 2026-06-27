@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>분필</title>
+<style>
+/* ── tokens ─────────────────────────────────── */
+:root {
+  --primary:       #12b886;
+  --primary-dark:  #0ca678;
+  --primary-light: #e6fcf5;
+  --primary-ring:  rgba(18,184,134,.18);
+  --bg:            #f0f2f5;
+  --surface:       #ffffff;
+  --surface-2:     #f8f9fa;
+  --text:          #111827;
+  --text-2:        #4b5563;
+  --text-3:        #9ca3af;
+  --border:        #e5e7eb;
+  --border-2:      #d1d5db;
+  --danger:        #ef4444;
+  --danger-light:  #fef2f2;
+  --warn:          #f59e0b;
+  --warn-light:    #fffbeb;
+  --success-light: #f0fdf4;
+  --r-sm:  6px;
+  --r-md:  10px;
+  --r-lg:  16px;
+  --sh-sm: 0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --sh-md: 0 4px 16px rgba(0,0,0,.07),0 1px 4px rgba(0,0,0,.05);
+}
+
+/* ── reset ───────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;-webkit-font-smoothing:antialiased}
+body{
+  font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:var(--bg);color:var(--text);min-height:100vh;
+  line-height:1.6;
+}
+input,button,textarea{font:inherit}
+button{cursor:pointer;border:none;background:none}
+a{color:inherit;text-decoration:none}
+
+/* ── layout ──────────────────────────────────── */
+.container{max-width:1160px;margin:0 auto;padding:0 24px}
+
+/* ── header ──────────────────────────────────── */
+header{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.header-inner{
+  display:flex;align-items:center;gap:16px;
+  height:60px;
+}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-mark{
+  width:30px;height:30px;border-radius:8px;
+  background:var(--primary);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.brand-mark svg{stroke:#fff;fill:none}
+.brand-name{font-size:1.125rem;font-weight:800;color:var(--text);letter-spacing:-.02em}
+.brand-sep{color:var(--border-2);font-size:1.25rem;font-weight:300}
+.brand-sub{font-size:.8125rem;color:var(--text-3)}
+
+/* ── tabs ────────────────────────────────────── */
+.tab-bar{background:var(--surface);border-bottom:1px solid var(--border);margin-bottom:28px}
+.tab-nav{display:flex;gap:0}
+.tab-btn{
+  padding:13px 22px;font-size:.9375rem;font-weight:600;color:var(--text-3);
+  border-bottom:2px solid transparent;transition:color .15s,border-color .15s;
+  position:relative;
+}
+.tab-btn:hover{color:var(--text-2)}
+.tab-btn.active{color:var(--primary);border-bottom-color:var(--primary)}
+
+/* ── main layout ─────────────────────────────── */
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+main{padding-bottom:60px}
+
+.two-col{
+  display:grid;
+  grid-template-columns:340px 1fr;
+  gap:20px;
+  align-items:start;
+}
+
+/* ── info banner ─────────────────────────────── */
+.info-banner{
+  background:var(--primary-light);border:1px solid #b2f2cc;border-radius:var(--r-sm);
+  padding:10px 16px;margin-bottom:20px;
+  font-size:.8125rem;color:#065f46;line-height:1.55;
+}
+.info-banner strong{font-weight:700}
+
+/* ── card ────────────────────────────────────── */
+.card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-lg);box-shadow:var(--sh-md);overflow:hidden;
+}
+
+/* ── form card ───────────────────────────────── */
+.form-section{
+  padding:16px 20px;
+  border-bottom:1px solid var(--border);
+}
+.form-section:last-child{border-bottom:none}
+
+.field-label{
+  display:block;margin-bottom:8px;
+  font-size:.6875rem;font-weight:700;color:var(--text-3);
+  text-transform:uppercase;letter-spacing:.07em;
+}
+.field-label .opt{font-weight:400;text-transform:none;letter-spacing:0;margin-left:4px}
+
+/* ── file dropzone ───────────────────────────── */
+.dropzone{
+  border:2px dashed var(--border-2);border-radius:var(--r-md);
+  padding:28px 16px;text-align:center;
+  background:var(--surface-2);
+  transition:border-color .15s,background .15s;
+  cursor:pointer;position:relative;
+}
+.dropzone:hover,.dropzone.drag-over{
+  border-color:var(--primary);background:var(--primary-light);
+}
+.dropzone input[type=file]{
+  position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;
+}
+.dropzone-icon{
+  width:36px;height:36px;margin:0 auto 10px;
+  border-radius:10px;background:var(--primary-light);
+  display:flex;align-items:center;justify-content:center;
+}
+.dropzone-icon svg{stroke:var(--primary);fill:none}
+.dropzone-text{font-size:.875rem;font-weight:600;color:var(--text-2)}
+.dropzone-hint{font-size:.75rem;color:var(--text-3);margin-top:3px}
+.dropzone.has-file{border-color:var(--primary);background:var(--primary-light)}
+.dropzone.has-file .dropzone-icon{background:#d1fae5}
+.file-name{
+  font-size:.8125rem;font-weight:600;color:var(--primary);
+  margin-top:6px;word-break:break-all;
+}
+
+/* ── text inputs ─────────────────────────────── */
+.text-input{
+  width:100%;padding:9px 12px;
+  border:1.5px solid var(--border);border-radius:var(--r-sm);
+  background:var(--surface-2);color:var(--text);
+  font-size:.9rem;transition:border-color .15s,background .15s,box-shadow .15s;
+}
+.text-input:focus{
+  outline:none;border-color:var(--primary);
+  background:var(--surface);
+  box-shadow:0 0 0 3px var(--primary-ring);
+}
+.text-input::placeholder{color:var(--text-3)}
+
+/* ── toggle group ────────────────────────────── */
+.toggle-group{display:flex;gap:6px;flex-wrap:wrap}
+.toggle-btn{
+  padding:5px 16px;border-radius:99px;
+  border:1.5px solid var(--border);
+  background:var(--surface-2);
+  font-size:.8125rem;font-weight:500;color:var(--text-2);
+  transition:all .15s;
+}
+.toggle-btn:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-light)}
+.toggle-btn.active{
+  border-color:var(--primary);background:var(--primary);color:#fff;
+  font-weight:700;box-shadow:0 2px 6px rgba(18,184,134,.3);
+}
+
+/* ── primary button ──────────────────────────── */
+.primary-btn{
+  width:100%;margin-top:12px;padding:13px;
+  background:var(--primary);color:#fff;
+  border-radius:var(--r-md);font-size:.9375rem;font-weight:700;
+  letter-spacing:.01em;
+  box-shadow:0 2px 10px rgba(18,184,134,.35);
+  transition:background .15s,box-shadow .15s,transform .1s;
+}
+.primary-btn:hover{background:var(--primary-dark);box-shadow:0 4px 18px rgba(18,184,134,.4);transform:translateY(-1px)}
+.primary-btn:active{transform:none}
+.primary-btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+
+/* ── result panel ────────────────────────────── */
+.result-panel{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-lg);box-shadow:var(--sh-md);
+  min-height:420px;overflow:hidden;
+}
+
+/* ── empty state ─────────────────────────────── */
+.empty-state{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:380px;padding:40px 24px;text-align:center;
+}
+.empty-icon{
+  width:60px;height:60px;border-radius:16px;background:var(--surface-2);
+  display:flex;align-items:center;justify-content:center;margin-bottom:18px;
+  border:1px solid var(--border);
+}
+.empty-icon svg{stroke:var(--text-3);fill:none}
+.empty-title{font-size:.9375rem;font-weight:600;color:var(--text-2);margin-bottom:6px}
+.empty-desc{font-size:.8125rem;color:var(--text-3);line-height:1.65}
+
+/* ── progress steps ──────────────────────────── */
+.progress-wrap{padding:28px 24px}
+.progress-title{font-size:.875rem;font-weight:700;color:var(--text-2);margin-bottom:20px}
+.step-list{display:flex;flex-direction:column;gap:12px}
+.step{display:flex;align-items:center;gap:14px}
+.step-dot{
+  width:28px;height:28px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.75rem;font-weight:700;transition:all .3s;
+}
+.step-dot.wait{background:var(--surface-2);border:2px solid var(--border);color:var(--text-3)}
+.step-dot.active{
+  background:var(--primary-light);border:2px solid var(--primary);color:var(--primary);
+  animation:pulse-ring 1.4s ease-in-out infinite;
+}
+.step-dot.done{background:var(--primary);border:2px solid var(--primary);color:#fff}
+.step-label{font-size:.875rem;font-weight:500;color:var(--text-2)}
+.step.active .step-label{color:var(--text);font-weight:600}
+.step.done .step-label{color:var(--text-3)}
+
+@keyframes pulse-ring{
+  0%,100%{box-shadow:0 0 0 0 var(--primary-ring)}
+  50%{box-shadow:0 0 0 6px rgba(18,184,134,0)}
+}
+
+/* ── result cards ────────────────────────────── */
+.result-header{
+  padding:18px 24px 0;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 10px;border-radius:99px;font-size:.75rem;font-weight:700;
+}
+.badge-success{background:var(--success-light);color:#166534}
+.badge-warn{background:var(--warn-light);color:#92400e}
+.badge-neutral{background:var(--surface-2);color:var(--text-2);border:1px solid var(--border)}
+.result-meta{font-size:.8125rem;color:var(--text-3)}
+
+.item-list{padding:16px 24px 24px;display:flex;flex-direction:column;gap:14px}
+
+.item-card{
+  border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;
+}
+.item-card-header{
+  padding:12px 16px;background:var(--surface-2);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;
+}
+.item-type-badge{
+  font-size:.6875rem;font-weight:700;padding:2px 8px;border-radius:4px;
+  background:var(--primary-light);color:#065f46;
+}
+.item-diff-badge{
+  font-size:.6875rem;font-weight:700;padding:2px 8px;border-radius:4px;
+}
+.diff-상{background:#fef2f2;color:#991b1b}
+.diff-중{background:#fffbeb;color:#92400e}
+.diff-하{background:#f0fdf4;color:#166534}
+
+.item-body{padding:14px 16px}
+.item-question{font-size:.9375rem;font-weight:600;color:var(--text);line-height:1.65;margin-bottom:12px}
+.item-options{list-style:none;display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.item-options li{
+  font-size:.875rem;color:var(--text-2);padding:7px 12px;
+  border-radius:var(--r-sm);background:var(--surface-2);border:1px solid var(--border);
+  line-height:1.5;
+}
+.item-answer{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:.8125rem;color:#1d4ed8;background:#eff6ff;
+  padding:5px 12px;border-radius:var(--r-sm);font-weight:600;
+}
+
+.item-footer{
+  padding:10px 16px;border-top:1px solid var(--border);background:var(--surface-2);
+  display:flex;align-items:center;gap:10px;
+}
+.score-label{font-size:.75rem;color:var(--text-3)}
+.score-dots{display:flex;gap:3px}
+.score-dot{width:10px;height:10px;border-radius:2px}
+.score-dot.filled{background:var(--primary)}
+.score-dot.empty{background:var(--border)}
+.score-val{font-size:.75rem;font-weight:700;color:var(--text-2)}
+
+/* ── error state ─────────────────────────────── */
+.error-state{
+  margin:24px;padding:16px;border-radius:var(--r-md);
+  background:var(--danger-light);border:1px solid #fecaca;
+}
+.error-state p{font-size:.875rem;color:#b91c1c;line-height:1.6}
+.error-state pre{font-size:.75rem;color:#991b1b;margin-top:8px;white-space:pre-wrap;word-break:break-all}
+
+/* ── record results ──────────────────────────── */
+.record-results{padding:20px 24px;display:flex;flex-direction:column;gap:14px}
+.rcard{border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden}
+.rcard-title{
+  padding:10px 16px;background:var(--surface-2);border-bottom:1px solid var(--border);
+  font-size:.6875rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;
+}
+.rcard-body{padding:14px 16px;font-size:.9rem;color:var(--text);line-height:1.7;white-space:pre-wrap;word-break:break-word}
+.rcard-body.muted{color:var(--text-2)}
+
+.pii-none{color:#166534;font-weight:600;font-size:.875rem}
+.pii-list{list-style:none;display:flex;flex-direction:column;gap:4px}
+.pii-list li{font-size:.8125rem;color:var(--text-2);padding:4px 0}
+
+.compliance-ok{
+  display:flex;align-items:center;gap:8px;padding:10px 12px;
+  background:var(--success-light);border-radius:var(--r-sm);
+  font-size:.875rem;color:#166534;font-weight:600;
+}
+.compliance-warn{
+  padding:12px 14px;background:var(--warn-light);border-radius:var(--r-sm);
+  font-size:.875rem;color:#92400e;line-height:1.6;
+}
+
+/* ── notice ──────────────────────────────────── */
+.teacher-notice{
+  padding:10px 14px;background:#eff6ff;border-radius:var(--r-sm);
+  font-size:.8125rem;color:#1e40af;line-height:1.6;border:1px solid #bfdbfe;
+}
+
+/* ── status bar ──────────────────────────────── */
+.status-bar{
+  padding:10px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+  background:var(--surface);
+}
+.status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--text-3)}
+.status-dot.running{background:var(--primary);animation:blink 1.4s ease-in-out infinite}
+.status-dot.done{background:var(--primary)}
+.status-dot.error{background:var(--danger)}
+.status-msg{font-size:.8125rem;font-weight:500;color:var(--text-2);flex:1}
+.status-tag{
+  font-size:.6875rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  padding:2px 8px;border-radius:4px;
+}
+.status-tag.idle{background:var(--surface-2);color:var(--text-3)}
+.status-tag.running{background:var(--primary-light);color:var(--primary)}
+.status-tag.done{background:#dbeafe;color:#1d4ed8}
+.status-tag.error{background:var(--danger-light);color:var(--danger)}
+
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* ── scrollbar ───────────────────────────────── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:4px}
+
+/* ── responsive ──────────────────────────────── */
+@media(max-width:820px){
+  .two-col{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container header-inner">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg width="16" height="16" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+        </svg>
+      </div>
+      <span class="brand-name">분필</span>
+    </div>
+    <span class="brand-sep">|</span>
+    <span class="brand-sub">고등학교 사회 교사용 AI 어시스턴트</span>
+  </div>
+</header>
+
+<div class="tab-bar">
+  <div class="container">
+    <nav class="tab-nav">
+      <button class="tab-btn active" data-tab="exam">문항 출제</button>
+      <button class="tab-btn" data-tab="record">생기부 다듬기</button>
+    </nav>
+  </div>
+</div>
+
+<main>
+<div class="container">
+
+  <!-- ── 탭 1: 문항 출제 ─────────────────────── -->
+  <section id="tab-exam" class="tab-panel active">
+    <div class="info-banner">
+      지문 PDF를 업로드하고 유형·난이도를 지정한 뒤 <strong>문항 생성</strong>을 누르세요. 생성에 수 분 소요됩니다.
+    </div>
+    <div class="two-col">
+
+      <!-- 좌측: 입력 폼 -->
+      <div>
+        <div class="card">
+          <!-- 파일 업로드 -->
+          <div class="form-section">
+            <label class="field-label">지문 PDF</label>
+            <div class="dropzone" id="exam-dropzone">
+              <input type="file" id="exam-pdf" accept=".pdf">
+              <div class="dropzone-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
+                  <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+                </svg>
+              </div>
+              <p class="dropzone-text">파일을 끌어다 놓거나 클릭해서 선택</p>
+              <p class="dropzone-hint">PDF 파일만 가능</p>
+              <p class="file-name" id="exam-file-name" style="display:none"></p>
+            </div>
+          </div>
+
+          <!-- 단원명 -->
+          <div class="form-section">
+            <label class="field-label" for="exam-unit">단원명</label>
+            <input type="text" id="exam-unit" class="text-input" placeholder="예: 민주주의와 헌법">
+          </div>
+
+          <!-- 성취기준 -->
+          <div class="form-section">
+            <label class="field-label" for="exam-standards">
+              성취기준 <span class="opt">쉼표 구분 · 비워두면 자동</span>
+            </label>
+            <input type="text" id="exam-standards" class="text-input" placeholder="예: 민주주의 원리 이해, 기본권 보장의 의미">
+          </div>
+
+          <!-- 문항 유형 -->
+          <div class="form-section">
+            <label class="field-label">문항 유형</label>
+            <div class="toggle-group" id="type-group">
+              <button class="toggle-btn active" data-value="객관식">객관식</button>
+              <button class="toggle-btn" data-value="서술형">서술형</button>
+            </div>
+          </div>
+
+          <!-- 난이도 -->
+          <div class="form-section">
+            <label class="field-label">난이도</label>
+            <div class="toggle-group" id="diff-group">
+              <button class="toggle-btn" data-value="상">상</button>
+              <button class="toggle-btn active" data-value="중">중</button>
+              <button class="toggle-btn" data-value="하">하</button>
+            </div>
+          </div>
+        </div>
+
+        <button class="primary-btn" id="exam-btn">문항 생성</button>
+      </div>
+
+      <!-- 우측: 결과 -->
+      <div class="result-panel" id="exam-result-panel">
+        <div class="empty-state" id="exam-empty">
+          <div class="empty-icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+          </div>
+          <p class="empty-title">생성된 문항이 여기에 표시됩니다</p>
+          <p class="empty-desc">PDF를 업로드하고 설정을 지정한 뒤<br>문항 생성 버튼을 누르세요</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── 탭 2: 생기부 다듬기 ─────────────────── -->
+  <section id="tab-record" class="tab-panel">
+    <div class="info-banner">
+      교사 관찰 메모를 입력하면 학교생활기록부 문체로 다듬어 드립니다.
+      입력 내용은 <strong>저장되지 않으며</strong>, 개인정보는 모델 호출 전에 자동으로 가려집니다.
+    </div>
+    <div class="two-col">
+
+      <!-- 좌측: 입력 폼 -->
+      <div>
+        <div class="card">
+          <div class="form-section">
+            <label class="field-label" for="record-memo">관찰 메모</label>
+            <textarea
+              id="record-memo"
+              class="text-input"
+              rows="10"
+              style="resize:vertical"
+              placeholder="예: 수업 시간에 발표를 잘 함. 모둠 토론에서 논리적으로 의견을 제시하고 친구들이 이해하지 못할 때 적극적으로 도움."
+            ></textarea>
+          </div>
+        </div>
+        <button class="primary-btn" id="record-btn">생기부 다듬기</button>
+      </div>
+
+      <!-- 우측: 결과 -->
+      <div class="result-panel" id="record-result-panel">
+        <div class="empty-state" id="record-empty">
+          <div class="empty-icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
+          </div>
+          <p class="empty-title">다듬기 결과가 여기에 표시됩니다</p>
+          <p class="empty-desc">관찰 메모를 입력하고 버튼을 누르세요</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</div>
+</main>
+
+<script>
+/* ── 탭 전환 ────────────────────────────────── */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* ── 토글 그룹 ──────────────────────────────── */
+document.querySelectorAll('.toggle-group').forEach(group => {
+  group.addEventListener('click', e => {
+    const btn = e.target.closest('.toggle-btn');
+    if (!btn) return;
+    group.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+function getToggleValue(groupId) {
+  const active = document.querySelector(`#${groupId} .toggle-btn.active`);
+  return active ? active.dataset.value : '';
+}
+
+/* ── 파일 드롭존 ────────────────────────────── */
+function setupDropzone(dropzoneId, inputId, fileNameId) {
+  const dz = document.getElementById(dropzoneId);
+  const inp = document.getElementById(inputId);
+  const fnEl = document.getElementById(fileNameId);
+
+  function setFile(file) {
+    if (!file || file.type !== 'application/pdf') return;
+    inp._selectedFile = file;
+    dz.classList.add('has-file');
+    const icon = dz.querySelector('.dropzone-icon svg');
+    if (icon) { icon.style.stroke = 'var(--primary)'; }
+    dz.querySelector('.dropzone-text').textContent = '파일 선택됨';
+    dz.querySelector('.dropzone-hint').textContent = '다른 파일로 교체하려면 클릭';
+    fnEl.style.display = 'block';
+    fnEl.textContent = file.name;
+  }
+
+  inp.addEventListener('change', () => { if (inp.files[0]) setFile(inp.files[0]); });
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+  });
+}
+setupDropzone('exam-dropzone', 'exam-pdf', 'exam-file-name');
+
+/* ── 상태 표시 헬퍼 ─────────────────────────── */
+function renderStatusBar(msg, state) {
+  // state: idle | running | done | error
+  const labels = { idle:'대기', running:'진행 중', done:'완료', error:'오류' };
+  return `<div class="status-bar">
+    <span class="status-dot ${state}"></span>
+    <span class="status-msg">${escHtml(msg)}</span>
+    <span class="status-tag ${state}">${labels[state]||state}</span>
+  </div>`;
+}
+
+function renderProgressSteps(activeIdx) {
+  const steps = ['PDF 분석', '텍스트 인덱싱', 'AI 문항 생성'];
+  const items = steps.map((s, i) => {
+    const cls = i < activeIdx ? 'done' : i === activeIdx ? 'active' : 'wait';
+    const icon = i < activeIdx ? '✓' : i + 1;
+    const stepCls = i < activeIdx ? 'step done' : i === activeIdx ? 'step active' : 'step';
+    return `<div class="${stepCls}">
+      <div class="step-dot ${cls}">${icon}</div>
+      <span class="step-label">${s}</span>
+    </div>`;
+  }).join('');
+  return `<div class="progress-wrap">
+    <p class="progress-title">생성 진행 상황</p>
+    <div class="step-list">${items}</div>
+  </div>`;
+}
+
+/* ── 결과 렌더 ──────────────────────────────── */
+function renderExamResult(data) {
+  const items = data.items || [];
+  const passed = data.validation_passed;
+
+  if (!items.length) {
+    return `<div class="error-state"><p>문항이 생성되지 않았습니다.</p></div>`;
+  }
+
+  const passedBadge = passed
+    ? `<span class="badge badge-success"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>검증 통과</span>`
+    : `<span class="badge badge-warn">검증 미통과</span>`;
+
+  const header = `<div class="result-header">
+    ${passedBadge}
+    <span class="result-meta">문항 ${items.length}개</span>
+  </div>`;
+
+  const cards = items.map(item => {
+    const score = Math.round(item.judge_score || 0);
+    const dots = Array.from({length:5}, (_,i) =>
+      `<span class="score-dot ${i < score ? 'filled' : 'empty'}"></span>`).join('');
+
+    const optionsHtml = item.options && item.options.length
+      ? `<ul class="item-options">${item.options.map(o =>
+          `<li>${escHtml(String(o))}</li>`).join('')}</ul>
+         <div style="margin-bottom:10px">
+           <span class="item-answer">
+             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+             정답: ${escHtml(item.answer || '?')}
+           </span>
+         </div>`
+      : '';
+
+    const diffCls = `diff-${item.difficulty || '중'}`;
+
+    return `<div class="item-card">
+      <div class="item-card-header">
+        <span class="item-type-badge">${escHtml(item.item_type || '')}</span>
+        <span class="item-diff-badge ${diffCls}">${escHtml(item.difficulty || '')}</span>
+      </div>
+      <div class="item-body">
+        <p class="item-question">${escHtml(item.question || '')}</p>
+        ${optionsHtml}
+      </div>
+      <div class="item-footer">
+        <span class="score-label">품질</span>
+        <div class="score-dots">${dots}</div>
+        <span class="score-val">${score}/5</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  return header + `<div class="item-list">${cards}</div>`;
+}
+
+function renderRecordResult(data) {
+  const piiList = data.pii_found || [];
+  const piiBody = piiList.length
+    ? `<p style="font-size:.8125rem;font-weight:600;color:#92400e;margin-bottom:8px">감지된 개인정보 ${piiList.length}건 — 마스킹 처리됨</p>
+       <ul class="pii-list">${piiList.map(p => `<li>• ${escHtml(String(p))}</li>`).join('')}</ul>`
+    : `<span class="pii-none">✓ 감지된 개인정보 없음</span>`;
+
+  const maskedHtml = data.masked_memo
+    ? `<div class="rcard">
+         <div class="rcard-title">마스킹된 메모</div>
+         <div class="rcard-body muted">${escHtml(data.masked_memo)}</div>
+       </div>` : '';
+
+  const violations = data.violations || [];
+  const complianceHtml = violations.length
+    ? `<div class="compliance-warn">
+         <strong>규정 위반 ${violations.length}건 감지</strong>
+         <ul style="margin-top:6px;padding-left:16px">${violations.map(v => `<li>${escHtml(String(v))}</li>`).join('')}</ul>
+       </div>`
+    : `<div class="compliance-ok">
+         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+         규정 위반 사항 없음
+       </div>`;
+
+  const warning = (data.warning || '').replace('[교사 확인 사항]', '').trim();
+  const warningHtml = warning
+    ? `<div class="teacher-notice" style="margin-top:10px">${escHtml(warning)}</div>` : '';
+
+  return `<div class="record-results">
+    <div class="rcard">
+      <div class="rcard-title">개인정보 처리 결과</div>
+      <div class="rcard-body">${piiBody}</div>
+    </div>
+    ${maskedHtml}
+    <div class="rcard">
+      <div class="rcard-title">생기부 작성 결과</div>
+      <div class="rcard-body">${escHtml(data.polished || '')}</div>
+    </div>
+    <div class="rcard">
+      <div class="rcard-title">규정 확인 및 교사 안내</div>
+      <div class="rcard-body">${complianceHtml}${warningHtml}</div>
+    </div>
+  </div>`;
+}
+
+/* ── 문항 출제 ──────────────────────────────── */
+document.getElementById('exam-btn').addEventListener('click', async () => {
+  const pdfFile = document.getElementById('exam-pdf')._selectedFile;
+  const unit = document.getElementById('exam-unit').value.trim();
+  const standards = document.getElementById('exam-standards').value.trim();
+  const itemType = getToggleValue('type-group');
+  const difficulty = getToggleValue('diff-group');
+
+  if (!pdfFile) { alert('PDF 파일을 선택해주세요.'); return; }
+  if (!unit) { alert('단원명을 입력해주세요.'); return; }
+
+  const btn = document.getElementById('exam-btn');
+  const panel = document.getElementById('exam-result-panel');
+  btn.disabled = true;
+
+  // 진행 단계 렌더
+  let stepIdx = 0;
+  panel.innerHTML = renderStatusBar('PDF를 분석하고 있습니다...', 'running') + renderProgressSteps(0);
+
+  const form = new FormData();
+  form.append('pdf', pdfFile);
+  form.append('unit', unit);
+  form.append('standards', standards);
+  form.append('num_mc', itemType === '객관식' ? '1' : '0');
+  form.append('num_sa', itemType === '서술형' ? '1' : '0');
+  form.append('num_hard', difficulty === '상' ? '1' : '0');
+  form.append('num_med', difficulty === '중' ? '1' : '0');
+  form.append('num_easy', difficulty === '하' ? '1' : '0');
+
+  try {
+    const resp = await fetch('/exam/stream', { method:'POST', body: form });
+    if (!resp.ok || !resp.body) throw new Error(`서버 오류 (${resp.status})`);
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();
+
+      for (const line of lines) {
+        if (!line.startsWith('data:')) continue;
+        const raw = line.slice(5).trim();
+        if (!raw) continue;
+        let evt;
+        try { evt = JSON.parse(raw); } catch { continue; }
+
+        if (evt.status === 'parsing') {
+          stepIdx = 0;
+          panel.innerHTML = renderStatusBar(evt.msg, 'running') + renderProgressSteps(0);
+        } else if (evt.status === 'indexing') {
+          stepIdx = 1;
+          panel.innerHTML = renderStatusBar(evt.msg, 'running') + renderProgressSteps(1);
+        } else if (evt.status === 'generating') {
+          stepIdx = 2;
+          panel.innerHTML = renderStatusBar(evt.msg, 'running') + renderProgressSteps(2);
+        } else if (evt.status === 'done') {
+          panel.innerHTML = renderStatusBar('문항 생성 완료', 'done') + renderExamResult(evt);
+        } else if (evt.status === 'error') {
+          panel.innerHTML = renderStatusBar('오류가 발생했습니다', 'error')
+            + `<div class="error-state"><p>${escHtml(evt.msg)}</p>${evt.detail ? `<pre>${escHtml(evt.detail)}</pre>` : ''}</div>`;
+        }
+      }
+    }
+  } catch (err) {
+    panel.innerHTML = renderStatusBar('오류가 발생했습니다', 'error')
+      + `<div class="error-state"><p>${escHtml(String(err))}</p></div>`;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+/* ── 생기부 다듬기 ──────────────────────────── */
+document.getElementById('record-btn').addEventListener('click', async () => {
+  const memo = document.getElementById('record-memo').value.trim();
+  if (!memo) { alert('관찰 메모를 입력해주세요.'); return; }
+
+  const btn = document.getElementById('record-btn');
+  const panel = document.getElementById('record-result-panel');
+  btn.disabled = true;
+
+  panel.innerHTML = renderStatusBar('개인정보를 확인하고 윤문하고 있습니다...', 'running')
+    + `<div style="padding:40px 24px;text-align:center">
+        <div style="display:inline-block;width:32px;height:32px;border:3px solid var(--border);
+                    border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite"></div>
+        <p style="margin-top:14px;font-size:.875rem;color:var(--text-3)">처리 중입니다...</p>
+       </div>
+       <style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
+
+  try {
+    const resp = await fetch('/record', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ memo })
+    });
+    if (!resp.ok) throw new Error(`서버 오류 (${resp.status})`);
+    const data = await resp.json();
+    panel.innerHTML = renderStatusBar('다듬기 완료', 'done') + renderRecordResult(data);
+  } catch (err) {
+    panel.innerHTML = renderStatusBar('오류가 발생했습니다', 'error')
+      + `<div class="error-state"><p>${escHtml(String(err))}</p></div>`;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+/* ── 유틸 ───────────────────────────────────── */
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+</script>
+</body>
+</html>
