@@ -57,7 +57,7 @@ search_passages → [선택: get_past_item_examples, search_regulations]
 ### 동시성 설계
 
 - **요청 간 세션 격리**: 출제 요청별 컨텍스트를 `contextvars.ContextVar`로 분리. `asyncio.to_thread` + `contextvars.copy_context()`로 worker 스레드에 전파.
-- **이벤트 루프 비블로킹**: `/exam`, `/record` 엔드포인트 모두 `asyncio.to_thread`로 LangGraph·Chain 실행. FastAPI 이벤트 루프 점유 없음.
+- **이벤트 루프 비블로킹**: `/exam`은 `asyncio.to_thread`로 LangGraph 실행. `/record`는 Chain 전체가 async이므로 `await chain.run()`으로 직접 호출. 둘 다 FastAPI 이벤트 루프 점유 없음.
 
 ### 업로드 지문 처리
 
