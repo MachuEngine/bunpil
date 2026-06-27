@@ -1,3 +1,4 @@
+import contextvars
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Literal
 
@@ -102,10 +103,12 @@ def agent_node(state: ExamState) -> dict:
 
         return item_messages
 
+    # contextvars 컨텍스트를 worker 스레드에 복사해 _request_ctx(세션 dict)가 전파되도록 한다.
+    ctx_snapshot = contextvars.copy_context()
     all_messages = []
     with ThreadPoolExecutor(max_workers=len(remaining)) as executor:
         futures = {
-            executor.submit(_run_item, itype, diff, standards[idx % len(standards)]): idx
+            executor.submit(ctx_snapshot.run, _run_item, itype, diff, standards[idx % len(standards)]): idx
             for idx, (itype, diff) in enumerate(remaining)
         }
         for future in as_completed(futures):

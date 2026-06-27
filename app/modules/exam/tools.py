@@ -1,3 +1,4 @@
+import contextvars
 import logging
 import threading
 import uuid
@@ -9,30 +10,34 @@ from langchain_core.tools import tool
 from app.common.rag import BGEEmbedder, BGEReranker, RAGRetriever, RAGStore
 
 # ── 세션 컨텍스트 ──
-# items/scores/duplicates: 전체 세션 공유 (GIL로 단순 dict/list 연산은 안전)
+# _request_ctx: 요청별 독립 dict. asyncio.to_thread + contextvars.copy_context()로
+# 요청 간 격리 보장. 같은 요청의 worker 스레드들은 동일 dict 객체를 공유하므로
+# intra-request 가시성 유지 (GIL로 단순 list/dict 연산은 안전).
 # last_id: 스레드별 분리 — 병렬 생성 시 레이스 컨디션 방지
-_ctx: dict = {
-    "collection": "",
-    "items": [],
-    "scores": {},
-    "duplicates": {},
-}
+_request_ctx: contextvars.ContextVar[dict] = contextvars.ContextVar("_request_ctx")
 _thread_local = threading.local()
 
 
+def _get_ctx() -> dict:
+    return _request_ctx.get()
+
+
 def init_session(collection: str) -> None:
-    _ctx["collection"] = collection
-    _ctx["items"] = []
-    _ctx["scores"] = {}
-    _ctx["duplicates"] = {}
+    _request_ctx.set({
+        "collection": collection,
+        "items": [],
+        "scores": {},
+        "duplicates": {},
+    })
 
 
 def get_draft_items() -> list:
+    ctx = _get_ctx()
     result = []
-    for item in _ctx["items"]:
+    for item in ctx["items"]:
         iid = item.get("item_id", "")
-        score = _ctx["scores"].get(iid, 0.0)
-        dup = _ctx["duplicates"].get(iid, False)
+        score = ctx["scores"].get(iid, 0.0)
+        dup = ctx["duplicates"].get(iid, False)
         result.append(
             {
                 **item,
@@ -81,7 +86,7 @@ def search_passages(query: str) -> str:
     retriever = RAGRetriever(_get_store(), _get_embedder(), _get_reranker())
     results = []
 
-    col = _ctx["collection"]
+    col = _get_ctx()["collection"]
     if col:
         results = retriever.retrieve(query, col, top_k=3)
 
@@ -172,7 +177,7 @@ def save_item(question: str, options: list, answer: str, item_type: str, difficu
         "standard": standard,
     }
     _thread_local.last_id = item_id
-    _ctx["items"].append(item)
+    _get_ctx()["items"].append(item)
     return f"저장 완료 (item_id={item_id})"
 
 
@@ -183,7 +188,7 @@ def record_score(score: int) -> str:
     """
     item_id = getattr(_thread_local, "last_id", "")
     if item_id:
-        _ctx["scores"][item_id] = float(max(0, min(5, int(score))))
+        _get_ctx()["scores"][item_id] = float(max(0, min(5, int(score))))
     return f"품질 점수 {score}/5 기록됨"
 
 
@@ -199,24 +204,25 @@ def check_duplicate(question: str) -> str:
                 "scripts/index_past_exams.py를 실행한 뒤 다시 시도하세요."
             )
             if item_id:
-                _ctx["duplicates"][item_id] = False
+                _get_ctx()["duplicates"][item_id] = False
             return "False"
         q_vec = _get_embedder().embed([question])[0]
         results = _get_store().query("past_exams", q_vec, n_results=min(3, count))
         if not results:
             if item_id:
-                _ctx["duplicates"][item_id] = False
+                _get_ctx()["duplicates"][item_id] = False
             return "False"
         passages = [r["text"] for r in results]
         ranked = _get_reranker().rerank(question, passages, top_k=1)
         is_dup = ranked[0]["score"] > 0.8
         if item_id:
-            _ctx["duplicates"][item_id] = is_dup
+            _get_ctx()["duplicates"][item_id] = is_dup
         return str(is_dup)
     except Exception:
+        logger.warning("check_duplicate 예외 발생", exc_info=True)
         item_id = getattr(_thread_local, "last_id", "")
         if item_id:
-            _ctx["duplicates"][item_id] = False
+            _get_ctx()["duplicates"][item_id] = False
         return "False"
 
 

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import tempfile
@@ -76,8 +77,9 @@ async def exam(
         }
 
         graph = get_exam_graph()
-        state = graph.invoke(
-            {"spec": spec, "source_collection": col, "budget": 3}
+        state = await asyncio.to_thread(
+            graph.invoke,
+            {"spec": spec, "source_collection": col, "budget": 3},
         )
         items = get_draft_items()
         return {
