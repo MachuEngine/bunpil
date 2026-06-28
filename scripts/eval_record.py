@@ -188,7 +188,7 @@ def eval_hallucination(golden: list, chain: RecordChain, llm) -> dict:
     n = len(golden)
 
     for item in golden:
-        out = chain.run(item["memo"])
+        out = _run_async(chain.run(item["memo"]))
         polished = out["polished"]
 
         # (1) 금지 키워드 검사

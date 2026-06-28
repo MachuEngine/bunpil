@@ -2,6 +2,7 @@
 """Phase 5 생기부 모듈 통합 테스트.
 마스킹 동작 + 윤문 + 규정 위반 플래그 확인.
 """
+import asyncio
 import os
 import sys
 
@@ -83,7 +84,7 @@ def test_chain():
     for case in POLISH_CASES:
         print(f"\n  --- {case['desc']} ---")
         print(f"  메모  : {case['memo']}")
-        out = chain.run(case["memo"])
+        out = asyncio.run(chain.run(case["memo"]))
         print(f"  마스킹: {out['masked_memo']}")
         print(f"  PII   : {out['pii_found']}")
         print(f"  윤문  : {out['polished'][:120]}")

@@ -168,7 +168,9 @@ bunpil/
 │   │   └── record/       # 생기부 모듈 (수동 루프 Chain)
 │   ├── static/
 │   │   └── index.html    # 커스텀 웹 UI (HTML/CSS/Vanilla JS)
+│   ├── ui.py             # 레거시 Gradio UI (standalone, pip install gradio 필요)
 │   └── main.py           # FastAPI (UI 서빙 + /exam/stream + /record)
+├── frontend/             # Next.js UI (미연결 — 개발 중)
 ├── data/
 │   ├── regulations/      # 생기부 기재요령, 작성·관리지침
 │   ├── past_exams/       # 수능·모평 기출 PDF (사탐 과목)
