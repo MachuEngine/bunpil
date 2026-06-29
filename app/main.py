@@ -9,13 +9,10 @@ load_dotenv()
 
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
-
-_STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 
 app = FastAPI(title="분필 API", version="0.1.0")
 
@@ -30,11 +27,6 @@ app.add_middleware(
 @app.get("/health")
 async def health():
     return {"status": "ok"}
-
-
-@app.get("/")
-async def root():
-    return FileResponse(os.path.join(_STATIC_DIR, "index.html"))
 
 
 # ── 문항 출제: SSE 스트리밍 ──────────────────────────────────────────────
@@ -222,6 +214,3 @@ async def record(req: RecordRequest):
     result = await chain.run(req.memo)
     return result
 
-
-# ── static 서빙 (라우트 뒤에 마운트) ────────────────────────────────────
-app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
