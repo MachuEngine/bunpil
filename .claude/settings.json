@@ -1,0 +1,36 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/anjongmin/bunpil/.claude/hooks/pre_tool_use/guard.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/anjongmin/bunpil/.claude/hooks/post_tool_use/pii_check.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/anjongmin/bunpil/.claude/hooks/stop/verify.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
