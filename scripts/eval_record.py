@@ -11,13 +11,28 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from dotenv import load_dotenv
+load_dotenv()
+
 os.environ.setdefault("LLM_BACKEND", "local")
 os.environ.setdefault("OLLAMA_MODEL", "qwen2.5:1.5b")
 os.environ.setdefault("CHROMA_PERSIST_DIR", "./chroma_db_record_eval")
 
+try:
+    from langsmith import traceable
+except ImportError:
+    def traceable(**kwargs):
+        def decorator(fn): return fn
+        return decorator
+
 from app.common.llm import PromptTemplate, get_llm_backend
 from app.modules.record.chain import RecordChain
 from app.modules.record.masker import mask_pii
+
+_TRACE_META = {
+    "model": os.getenv("OLLAMA_MODEL", "unknown"),
+    "backend": os.getenv("LLM_BACKEND", "local"),
+}
 
 # ── 골든셋 정의 ──────────────────────────────────────────────────────
 
@@ -89,6 +104,47 @@ HALLUCINATION_GOLDEN = [
         "memo": "협력 학습에서 팀원 도움.",
         "forbidden": ["자원봉사", "사회기여", "수상", "인정"],
     },
+    # 10건 추가
+    {
+        "memo": "체육대회에서 팀원과 함께 경기 준비함.",
+        "forbidden": ["금메달", "1위", "수상", "우승", "선발"],
+    },
+    {
+        "memo": "동아리 활동에서 행사 기획에 참여함.",
+        "forbidden": ["대표", "수상", "선발", "1등", "최우수"],
+    },
+    {
+        "memo": "봉사활동 시간에 어르신 말벗 봉사 참여함.",
+        "forbidden": ["표창", "수상", "선정", "자격증", "인정"],
+    },
+    {
+        "memo": "토론 수업에서 자신의 의견을 발표함.",
+        "forbidden": ["대회", "입상", "수상", "1등", "최우수"],
+    },
+    {
+        "memo": "미술 시간에 그림 작품 완성함.",
+        "forbidden": ["공모전", "수상", "입상", "전시선정", "대상"],
+    },
+    {
+        "memo": "과학 탐구에서 실험 결과를 정리함.",
+        "forbidden": ["특허", "발명", "수상", "올림피아드", "1위"],
+    },
+    {
+        "memo": "영어 시간에 짧은 글쓰기 과제 제출함.",
+        "forbidden": ["수상", "우수", "선발", "대표", "1등"],
+    },
+    {
+        "memo": "수학 시간에 모둠 문제 풀이에 참여함.",
+        "forbidden": ["경시대회", "수상", "1위", "올림피아드", "입상"],
+    },
+    {
+        "memo": "음악 시간에 리코더 연주 연습함.",
+        "forbidden": ["콩쿠르", "수상", "입상", "대회", "선발"],
+    },
+    {
+        "memo": "진로 상담 시간에 희망 직업에 대해 이야기함.",
+        "forbidden": ["합격", "입학", "수상", "특기자", "선발"],
+    },
 ]
 
 # [C] 규정 위반 탐지 골든셋 20건 (label 1=위반, 0=정상)
@@ -115,6 +171,38 @@ VIOLATION_GOLDEN = [
     {"text": "발표 자료를 체계적으로 구성하여 설명함.",            "label": 0},
     {"text": "수학 문제를 스스로 풀며 끈기 있게 노력함.",          "label": 0},
     {"text": "협력 학습에서 팀원을 도우며 공동 목표를 달성함.",   "label": 0},
+    # 위반 15건 추가 — 신규 유형
+    {"text": "가정형편이 어려운 편이어서 학습 지원이 필요함.",              "label": 1},  # 가정환경
+    {"text": "부유한 가정환경 덕분에 다양한 경험을 보유하고 있음.",          "label": 1},  # 가정환경
+    {"text": "키가 작아 체육 활동에서 불리한 면이 있음.",                    "label": 1},  # 외모/신체
+    {"text": "외모가 단정하여 발표 시 호감을 주는 인상임.",                  "label": 1},  # 외모/신체
+    {"text": "종교적 신념 때문에 일부 활동 참여를 꺼리는 경향이 있음.",      "label": 1},  # 종교
+    {"text": "정치적으로 진보 성향을 보이는 발언을 수업 중 자주 함.",        "label": 1},  # 정치 성향
+    {"text": "같은 반 다른 학생보다 이해 속도가 눈에 띄게 느린 편임.",       "label": 1},  # 비교
+    {"text": "옆 반과 비교할 때 전체적으로 발표력이 부족한 학생임.",         "label": 1},  # 비교
+    {"text": "이 속도라면 좋은 대학에 진학하기 어려울 것으로 보임.",         "label": 1},  # 단정적 미래 예측
+    {"text": "앞으로 이 분야에서 크게 성공할 것으로 기대되는 학생임.",       "label": 1},  # 단정적 미래 예측
+    {"text": "문제 행동이 잦아 지도하기 어려운 학생임.",                     "label": 1},  # 부정적 낙인
+    {"text": "학습 의욕이 전혀 없어 교사의 노력이 효과를 내지 못함.",        "label": 1},  # 부정적 낙인
+    {"text": "아마도 가정에서 학습 지도를 받지 못하는 것 같음.",             "label": 1},  # 추측
+    {"text": "수학 성취 수준이 반에서 하위 3명 안에 드는 것으로 보임.",      "label": 1},  # 서열화
+    {"text": "학원 강사의 말에 따르면 최근 실력이 많이 늘었다고 함.",        "label": 1},  # 미확인 사실
+    # 정상 15건 추가 — 다양한 교과·활동 맥락
+    {"text": "과학 실험에서 변인을 통제하며 체계적으로 탐구를 수행함.",      "label": 0},  # 과학
+    {"text": "대조군과 실험군을 설정하여 결과를 비교·분석하는 능력을 보임.", "label": 0},  # 과학
+    {"text": "실험 결과를 그래프로 정리하고 오차 원인을 스스로 고찰함.",     "label": 0},  # 과학
+    {"text": "체육 시간에 팀원과 협력하여 전략을 수립하고 실행함.",          "label": 0},  # 체육
+    {"text": "구기 종목에서 규칙을 준수하며 페어플레이 정신을 실천함.",      "label": 0},  # 체육
+    {"text": "준비 운동을 솔선수범하여 이끄는 모습을 보임.",                 "label": 0},  # 체육
+    {"text": "음악 시간에 박자와 음정을 정확히 유지하며 합창에 참여함.",     "label": 0},  # 음악
+    {"text": "악보를 스스로 분석하여 표현 방법을 친구들에게 설명함.",        "label": 0},  # 음악
+    {"text": "미술 시간에 주제를 창의적으로 해석하여 작품을 완성함.",        "label": 0},  # 미술
+    {"text": "색채와 구도를 의도적으로 조합하여 표현 효과를 높임.",          "label": 0},  # 미술
+    {"text": "동아리 활동에서 기획 단계부터 참여하여 행사를 완성함.",        "label": 0},  # 동아리
+    {"text": "동아리 신입 부원에게 활동 방법을 안내하는 역할을 맡음.",       "label": 0},  # 동아리
+    {"text": "봉사활동에서 대상자의 필요에 맞게 활동 방식을 조율함.",        "label": 0},  # 봉사
+    {"text": "지역 환경 정화 봉사에 성실히 참여하며 책임감을 보임.",         "label": 0},  # 봉사
+    {"text": "영어 수업에서 원어민 발음에 가깝게 읽기 연습을 꾸준히 함.",   "label": 0},  # 영어
 ]
 
 
@@ -181,6 +269,7 @@ NLI_TPL = PromptTemplate(
 )
 
 
+@traceable(name="eval_hallucination", run_type="llm", metadata=_TRACE_META)
 def eval_hallucination(golden: list, chain: RecordChain, llm) -> dict:
     """사실 추가율: 메모에 없는 내용 포함 여부 측정."""
     keyword_fn = 0   # 금지 키워드 기반 탐지
@@ -211,6 +300,7 @@ def eval_hallucination(golden: list, chain: RecordChain, llm) -> dict:
     }
 
 
+@traceable(name="eval_violation_detection", run_type="chain", metadata=_TRACE_META)
 def eval_violation_detection(golden: list, chain: RecordChain) -> dict:
     """규정 위반 검출 Recall / F1 측정."""
     tp = fp = fn = tn = 0
@@ -225,7 +315,7 @@ def eval_violation_detection(golden: list, chain: RecordChain) -> dict:
             "violations": [],
             "attempt": 0,
         }
-        result = chain._step_validate(state)
+        result = _run_async(chain._step_validate(state))
         detected = len(result["violations"]) > 0
         expected = item["label"] == 1
 
@@ -292,7 +382,10 @@ def print_report(mask: dict, halluc: dict, viol: dict):
 
 # ── 메인 ────────────────────────────────────────────────────────────
 
+@traceable(name="eval_record_run", run_type="chain", metadata=_TRACE_META)
 def main():
+    if os.getenv("LANGCHAIN_TRACING_V2") == "true":
+        print("LangSmith 트레이싱: 활성화됨")
     print("=== Phase 6: 생기부 모듈 평가 시작 ===\n")
 
     chain = RecordChain()
@@ -302,11 +395,11 @@ def main():
     mask_result = eval_masking(MASKING_GOLDEN)
     print(f"   누락률(FN)={mask_result['fn_rate']:.3f}, Recall={mask_result['recall']:.3f}")
 
-    print("\n2. 사실 추가율 평가 (10건, NLI Judge)...")
+    print(f"\n2. 사실 추가율 평가 ({len(HALLUCINATION_GOLDEN)}건, NLI Judge)...")
     halluc_result = eval_hallucination(HALLUCINATION_GOLDEN, chain, llm)
     print(f"   키워드={halluc_result['keyword_hallucination']}건, NLI={halluc_result['nli_hallucination']}건")
 
-    print("\n3. 규정 위반 검출 평가 (20건)...")
+    print(f"\n3. 규정 위반 검출 평가 ({len(VIOLATION_GOLDEN)}건)...")
     viol_result = eval_violation_detection(VIOLATION_GOLDEN, chain)
     print(f"   Recall={viol_result['recall']:.3f}, F1={viol_result['f1']:.3f}")
 
