@@ -4,15 +4,18 @@ import logging
 import os
 import tempfile
 
+logger = logging.getLogger(__name__)
+
 from dotenv import load_dotenv
 load_dotenv()
+
+if os.getenv("LANGCHAIN_TRACING_V2") == "true":
+    logger.info("LangSmith tracing enabled (project: %s)", os.getenv("LANGCHAIN_PROJECT", "default"))
 
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-
-logger = logging.getLogger(__name__)
 
 app = FastAPI(title="분필 API", version="0.1.0")
 
