@@ -1,70 +1,27 @@
 #!/usr/bin/env python
 """Phase 4: 출제 모듈 평가 스크립트
 검색(Recall@5, MRR) / 문항 품질(LLM Judge) / 세트 제약 / Judge 신뢰도.
-데이터: 합성/공개 자료만 사용.
+검색 평가: 실제 standards/regulations/past_exams 컬렉션 기반 골든셋 사용.
 """
 import json
 import os
-import shutil
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 os.environ.setdefault("LLM_BACKEND", "local")
 os.environ.setdefault("OLLAMA_MODEL", "qwen2.5:1.5b")
-os.environ.setdefault("CHROMA_PERSIST_DIR", "./chroma_db_eval")
+os.environ.setdefault("CHROMA_PERSIST_DIR", "./chroma_db")
 
 from app.common.llm import PromptTemplate, get_llm_backend
 from app.common.rag import BGEEmbedder, BGEReranker, RAGRetriever, RAGStore
 
-# ── 합성 코퍼스 ──────────────────────────────────────────────────────
-CORPUS_TEXT = """\
-제1장 민주주의와 헌법
+_GOLDEN_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "golden", "retrieval_golden_final.json")
 
-민주주의는 국민이 주권을 갖고 스스로 나라를 다스리는 정치 체제이다.
-대한민국 헌법 제1조는 대한민국은 민주공화국이라고 명시한다.
-국민 주권 원리는 모든 권력이 국민으로부터 나온다는 뜻이다.
-기본권 보장은 개인의 자유와 평등을 국가가 보호함을 의미한다.
-권력 분립은 입법·행정·사법으로 국가 권력을 나누어 견제와 균형을 이룬다.
-법치주의는 법에 따라 국가 권력을 행사해야 한다는 원리다.
-
-제2장 시장 경제와 경제 원리
-
-시장 경제는 수요와 공급에 따라 자원이 배분되는 경제 체제다.
-가격은 생산자와 소비자의 결정을 조정하는 신호 역할을 한다.
-시장 실패는 외부효과·공공재·독과점·정보 비대칭으로 발생한다.
-정부는 시장 실패를 교정하기 위해 규제, 세금, 보조금 등을 사용한다.
-경제 성장은 생산성 향상, 자본 투자, 기술 혁신에 의해 촉진된다.
-국제 무역은 비교 우위에 따라 국가 간 분업과 교역을 촉진한다.
-
-제3장 사회 불평등과 복지
-
-사회 계층은 소득, 직업, 교육 수준 등에 따라 형성된다.
-기회의 평등은 모든 사람이 공정한 출발선에 설 수 있어야 함을 뜻한다.
-복지 정책은 빈곤을 줄이고 취약 계층을 보호하기 위한 제도다.
-교육은 사회 이동성을 높이고 세대 간 불평등을 줄이는 핵심 요인이다.
-사회 보험은 질병·실업·노령 등의 위험을 사회적으로 분담한다.
-세계화는 경제적 상호 의존을 증가시키지만 소득 격차도 확대한다.
-"""
-
-# ── 검색 골든셋 (합성, 질의 → 정답 키워드) ───────────────────────
-RETRIEVAL_GOLDEN = [
-    {"query": "민주주의 국민 주권 원리", "keywords": ["국민이 주권", "민주주의"]},
-    {"query": "헌법 민주공화국", "keywords": ["민주공화국", "헌법"]},
-    {"query": "기본권 자유 평등 보장", "keywords": ["기본권 보장", "자유와 평등"]},
-    {"query": "권력 분립 입법 행정 사법", "keywords": ["권력 분립", "입법·행정·사법"]},
-    {"query": "법치주의 국가 권력", "keywords": ["법치주의", "법에 따라"]},
-    {"query": "시장 경제 수요 공급", "keywords": ["수요와 공급", "시장 경제"]},
-    {"query": "가격 신호 생산자 소비자", "keywords": ["가격", "신호 역할"]},
-    {"query": "시장 실패 외부효과 공공재", "keywords": ["시장 실패", "외부효과"]},
-    {"query": "정부 규제 보조금 세금", "keywords": ["규제, 세금, 보조금", "시장 실패를 교정"]},
-    {"query": "경제 성장 생산성 기술혁신", "keywords": ["경제 성장", "생산성 향상"]},
-    {"query": "사회 계층 소득 직업", "keywords": ["사회 계층", "소득, 직업"]},
-    {"query": "복지 정책 빈곤 취약계층", "keywords": ["복지 정책", "빈곤을 줄이고"]},
-    {"query": "교육 사회 이동성 불평등", "keywords": ["교육", "사회 이동성"]},
-    {"query": "사회 보험 질병 실업", "keywords": ["사회 보험", "질병·실업·노령"]},
-    {"query": "세계화 소득 격차 무역", "keywords": ["세계화", "소득 격차"]},
-]
+def _load_retrieval_golden() -> list[dict]:
+    with open(_GOLDEN_PATH, encoding="utf-8") as f:
+        data = json.load(f)
+    return [item for item in data if item.get("reviewed")]
 
 # ── 합성 문항 골든셋 (품질 평가용) ────────────────────────────────
 ITEM_GOLDEN = [
@@ -156,10 +113,6 @@ SYNTHETIC_SET = [
     {"item_type": "서술형", "difficulty": "하", "standard": "민주주의 원리 이해", "is_duplicate": False, "status": "approved"},
 ]
 
-CHROMA_DIR = "./chroma_db_eval"
-COLLECTION = "eval_corpus"
-
-
 # ── 유틸리티 ────────────────────────────────────────────────────────
 
 def _run_async(coro):
@@ -183,18 +136,18 @@ def cohen_kappa(human: list, llm: list, threshold: int = 3) -> float:
 # ── 평가 함수 ────────────────────────────────────────────────────────
 
 def eval_retrieval(retriever: RAGRetriever, golden: list) -> dict:
-    """Recall@5, MRR 계산."""
+    """Recall@5, MRR 계산. chunk_preview substring 매칭으로 정답 판정."""
     hits_at_5 = 0
     rr_sum = 0.0
 
     for item in golden:
-        results = retriever.retrieve(item["query"], COLLECTION, top_k=5, n_candidates=5)
-        texts = [r["text"] for r in results]
-        combined = " ".join(texts).lower()
+        col = item["source_collection"]
+        results = retriever.retrieve(item["query"], col, top_k=5, n_candidates=20)
+        preview = item["chunk_preview"].strip()
 
         found_rank = None
-        for rank, text in enumerate(texts, 1):
-            if any(kw.lower() in text.lower() for kw in item["keywords"]):
+        for rank, r in enumerate(results, 1):
+            if preview and preview[:80] in r["text"]:
                 found_rank = rank
                 break
 
@@ -389,51 +342,37 @@ def print_report(retrieval: dict, quality: dict, constraints: dict, reliability:
 # ── 메인 ────────────────────────────────────────────────────────────
 
 def main():
-    shutil.rmtree(CHROMA_DIR, ignore_errors=True)
-
     print("=== Phase 4: 출제 모듈 평가 시작 ===\n")
 
-    # 코퍼스 구축 — 문장 단위 직접 적재 (PDF 파싱 공백 이슈 회피)
-    print("1. 합성 코퍼스 인덱싱...")
     store = RAGStore()
     embedder = BGEEmbedder()
     reranker = BGEReranker()
-    sentences = [
-        line.strip()
-        for line in CORPUS_TEXT.splitlines()
-        if line.strip() and not line.startswith("제")
-    ]
-    chunks = [{"text": s, "source": "synthetic", "year": 2024, "page": 1} for s in sentences]
-    vecs = embedder.embed([c["text"] for c in chunks])
-    store.add_chunks(COLLECTION, chunks, vecs)
-    print(f"   → {len(chunks)}개 청크 적재 완료")
+    retriever = RAGRetriever(store, embedder, reranker)
 
     # 1. 검색 평가
-    print("\n2. 검색 평가 (Recall@5, MRR)...")
-    retriever = RAGRetriever(store, embedder, reranker)
-    retrieval_result = eval_retrieval(retriever, RETRIEVAL_GOLDEN)
+    golden = _load_retrieval_golden()
+    print(f"1. 검색 평가 (Recall@5, MRR) — 골든셋 {len(golden)}개...")
+    retrieval_result = eval_retrieval(retriever, golden)
     print(f"   Recall@5={retrieval_result['recall_at_5']:.3f}, MRR={retrieval_result['mrr']:.3f}")
 
     # 2. 문항 품질 평가
-    print("\n3. 문항 품질 LLM Judge (8개 샘플)...")
+    print("\n2. 문항 품질 LLM Judge (8개 샘플)...")
     llm = get_llm_backend()
     quality_result = eval_item_quality(ITEM_GOLDEN, llm, limit=8)
     print(f"   종합평균={quality_result['avg_overall']:.2f}/5, 합격률={quality_result['pass_rate']*100:.0f}%")
 
     # 3. 세트 제약 검증
-    print("\n4. 세트 제약 함수 검증...")
+    print("\n3. 세트 제약 함수 검증...")
     constraints_result = eval_set_constraints(SYNTHETIC_SET, SPEC)
     print(f"   전체 통과: {constraints_result['all_pass']}")
 
     # 4. Judge 신뢰도
-    print("\n5. Judge 신뢰도 검증 (8개 샘플, 합성 사람 라벨)...")
+    print("\n4. Judge 신뢰도 검증 (8개 샘플, 합성 사람 라벨)...")
     reliability_result = eval_judge_reliability(ITEM_GOLDEN, llm, limit=8)
     print(f"   κ={reliability_result['cohen_kappa']:.3f}, ±1 일치율={reliability_result['agreement_within_1']:.3f}")
 
     # 리포트
     print_report(retrieval_result, quality_result, constraints_result, reliability_result)
-
-    shutil.rmtree(CHROMA_DIR, ignore_errors=True)
 
 
 if __name__ == "__main__":

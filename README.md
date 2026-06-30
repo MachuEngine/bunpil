@@ -12,11 +12,10 @@
 ## 아키텍처
 
 ```
-브라우저
+브라우저 (Next.js UI, frontend/)
   │
   ▼
 FastAPI (app/main.py)
-  ├─ GET  /               커스텀 웹 UI (app/static/index.html)
   ├─ POST /exam/stream    문항 출제 — SSE 스트리밍 (parsing → indexing → generating → done)
   ├─ POST /exam           문항 출제 — JSON 응답 (하위 호환)
   └─ POST /record         생기부 다듬기 — JSON 응답
@@ -77,13 +76,14 @@ data: {"status": "done",       "items": [...], "validation_passed": true}
 | 구분 | 기술 |
 |---|---|
 | 백엔드 | FastAPI (비동기) |
-| 프론트엔드 | HTML / CSS / Vanilla JS (FastAPI static 서빙) |
+| 프론트엔드 | Next.js (frontend/) |
 | 에이전트 | LangGraph (ReAct) |
 | 생기부 체인 | LangChain (수동 루프) |
 | 벡터스토어 | ChromaDB |
 | 임베딩 | BGE-M3 (CPU) |
 | 리랭킹 | BGE-reranker-base (CPU) |
 | LLM 서빙 | Ollama (개발) / RunPod vLLM (프로덕션) |
+| 트레이싱 | LangSmith (선택, `LANGCHAIN_TRACING_V2=true` 시 자동 활성화) |
 | 배포 | AWS EC2 t3.medium + EBS + RunPod 서버리스 + Caddy HTTPS |
 
 ---
@@ -166,25 +166,24 @@ bunpil/
 │   ├── modules/
 │   │   ├── exam/         # 출제 모듈 (LangGraph ReAct Agent, 7개 도구)
 │   │   └── record/       # 생기부 모듈 (수동 루프 Chain)
-│   ├── static/
-│   │   └── index.html    # 커스텀 웹 UI (HTML/CSS/Vanilla JS)
-│   ├── ui.py             # 레거시 Gradio UI (standalone, pip install gradio 필요)
-│   └── main.py           # FastAPI (UI 서빙 + /exam/stream + /record)
-├── frontend/             # Next.js UI (미연결 — 개발 중)
+│   └── main.py           # FastAPI (/exam/stream + /record)
+├── frontend/             # Next.js UI
 ├── data/
 │   ├── regulations/      # 생기부 기재요령, 작성·관리지침
 │   ├── past_exams/       # 수능·모평 기출 PDF (사탐 과목)
-│   └── standards/        # 사회과 교육과정 PDF
+│   ├── standards/        # 사회과 교육과정 PDF
+│   └── golden/           # 검색 평가 골든셋 (retrieval_golden_final.json)
 ├── scripts/
-│   ├── index_regulations.py  # regulations 컬렉션 인덱싱
-│   ├── index_past_exams.py   # past_exams 컬렉션 인덱싱
-│   ├── index_standards.py    # standards 컬렉션 인덱싱
-│   ├── test_llm.py           # LLM 추상화 레이어 검증
-│   ├── test_rag.py           # RAG 파이프라인 검증
-│   ├── test_exam.py          # 출제 모듈 통합 테스트
-│   ├── test_record.py        # 생기부 모듈 통합 테스트
-│   ├── eval_exam.py          # 출제 평가 (Recall@5, MRR, LLM Judge)
-│   └── eval_record.py        # 생기부 평가 (마스킹 FN, 사실추가율, 위반 Recall)
+│   ├── index_regulations.py      # regulations 컬렉션 인덱싱
+│   ├── index_past_exams.py       # past_exams 컬렉션 인덱싱
+│   ├── index_standards.py        # standards 컬렉션 인덱싱
+│   ├── gen_golden_retrieval.py   # 실제 컬렉션 기반 검색 골든셋 초안 생성
+│   ├── test_llm.py               # LLM 추상화 레이어 검증
+│   ├── test_rag.py               # RAG 파이프라인 검증
+│   ├── test_exam.py              # 출제 모듈 통합 테스트
+│   ├── test_record.py            # 생기부 모듈 통합 테스트
+│   ├── eval_exam.py              # 출제 평가 (Recall@5, MRR, LLM Judge)
+│   └── eval_record.py            # 생기부 평가 (마스킹 FN, 사실추가율, 위반 Recall)
 ├── runpod_handler/       # RunPod 서버리스 핸들러 (Qwen2.5-7B vLLM)
 ├── deploy/               # EC2·Caddy·빌링알람 프로비저닝 스크립트
 ├── Dockerfile
@@ -223,7 +222,7 @@ bunpil/
 
 > 1.5b 모델로 생성된 문항 품질(문장·정확도)은 낮을 수 있음. 파이프라인 로직 검증 목적.
 
-### 품질 평가 지표 (RunPod 7B 연결 후 수행)
+### 품질 평가 지표
 
 **출제 모듈**
 
@@ -231,12 +230,17 @@ bunpil/
 .venv/bin/python scripts/eval_exam.py
 ```
 
-| 지표 | 기준 |
-|---|---|
-| Recall@5 | ≥ 0.80 |
-| MRR | 참고값 |
-| 유형·난이도·성취기준 제약 | 통과 |
-| LLM Judge 종합평균 | ≥ 4.0 / 5 |
+검색 평가는 실제 `standards` / `regulations` / `past_exams` 컬렉션 기반 골든셋 30개(`data/golden/retrieval_golden_final.json`, 28개 검수 완료)를 사용합니다.
+
+| 지표 | 기준 | 1.5b 실측 |
+|---|---|---|
+| Recall@5 | ≥ 0.80 | 0.679 |
+| MRR | 참고값 | 0.494 |
+| 유형·난이도·성취기준 제약 | 통과 | ✓ |
+| LLM Judge 종합평균 | ≥ 4.0 / 5 | 2.92 (7B 재평가 필요) |
+
+> 검색 수치(Recall@5, MRR)는 LLM 모델과 무관하며 BGE-M3 + BGE-reranker 파이프라인 성능입니다.
+> LLM Judge 수치는 1.5b 한계로 낮음 — 7B(RunPod) 연결 후 재평가 권장.
 
 **생기부 모듈**
 
@@ -344,6 +348,9 @@ bash deploy/billing_alarm.sh   # 월 $10 초과 시 이메일 알람
 | `RUNPOD_API_KEY` | RunPod API 키 | — |
 | `RUNPOD_ENDPOINT_ID` | RunPod 엔드포인트 ID | — |
 | `CHROMA_PERSIST_DIR` | ChromaDB 저장 경로 | `/data/chroma_db` (EC2) / `./chroma_db` (로컬) |
+| `LANGCHAIN_TRACING_V2` | LangSmith 트레이싱 활성화 (`true` / `false`) | — (선택) |
+| `LANGCHAIN_API_KEY` | LangSmith API 키 | — (선택) |
+| `LANGCHAIN_PROJECT` | LangSmith 프로젝트명 | `bunpil` |
 
 ---
 
