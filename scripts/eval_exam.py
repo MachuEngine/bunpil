@@ -23,7 +23,7 @@ except ImportError:
         def decorator(fn): return fn
         return decorator
 
-from app.common.llm import PromptTemplate, get_llm_backend
+from app.common.llm import PromptTemplate, get_judge_backend, get_llm_backend
 from app.common.rag import BGEEmbedder, BGEReranker, RAGRetriever, RAGStore
 
 _TRACE_META = {
@@ -529,9 +529,14 @@ def main():
         s = it["human_score"]
         _dist[s] = _dist.get(s, 0) + 1
     print(f"\nhuman_score 분포: { {k: _dist[k] for k in sorted(_dist)} } (n={len(ITEM_GOLDEN)})")
-    print(f"\n2. 문항 품질 LLM Judge ({len(ITEM_GOLDEN)}개)...")
     llm = get_llm_backend()
-    quality_result = eval_item_quality(ITEM_GOLDEN, llm, limit=len(ITEM_GOLDEN))
+    judge_llm = get_judge_backend()
+    _gen_model = os.getenv("OLLAMA_MODEL", "qwen2.5:7b-instruct")
+    _judge_model = os.getenv("OLLAMA_JUDGE_MODEL")
+    _fallback = "(폴백)" if not _judge_model else ""
+    print(f"[LLM] 생성: {_gen_model} | Judge: {_judge_model or _gen_model} {_fallback}".rstrip())
+    print(f"\n2. 문항 품질 LLM Judge ({len(ITEM_GOLDEN)}개)...")
+    quality_result = eval_item_quality(ITEM_GOLDEN, judge_llm, limit=len(ITEM_GOLDEN))
     print(f"   종합평균={quality_result['avg_overall']:.2f}/5, 합격률={quality_result['pass_rate']*100:.0f}%")
 
     # 3. 세트 제약 검증
@@ -541,7 +546,7 @@ def main():
 
     # 4. Judge 신뢰도
     print(f"\n4. Judge 신뢰도 검증 ({len(ITEM_GOLDEN)}개, 합성 사람 라벨)...")
-    reliability_result = eval_judge_reliability(ITEM_GOLDEN, llm, limit=len(ITEM_GOLDEN))
+    reliability_result = eval_judge_reliability(ITEM_GOLDEN, judge_llm, limit=len(ITEM_GOLDEN))
     print(f"   κ={reliability_result['cohen_kappa']:.3f}, ±1 일치율={reliability_result['agreement_within_1']:.3f}")
 
     # 리포트

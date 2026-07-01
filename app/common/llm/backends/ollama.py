@@ -7,9 +7,9 @@ from ..base import LLMBackend
 
 
 class OllamaBackend(LLMBackend):
-    def __init__(self):
+    def __init__(self, model=None):
         self.base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-        self.model = os.getenv("OLLAMA_MODEL", "qwen2.5:7b-instruct")
+        self.model = model or os.getenv("OLLAMA_MODEL", "qwen2.5:7b-instruct")
 
     async def generate(self, messages: list[dict], **kwargs) -> str:
         # stream=True로 토큰 단위 수신 → CPU 느린 환경에서도 timeout 회피
