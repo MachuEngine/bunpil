@@ -82,10 +82,11 @@ LANGCHAIN_PROJECT=bunpil
 ```
 
 확인 사항:
-- [ ] LangSmith 가입 및 API 키 발급
-- [ ] `.env`에 위 3줄 추가
-- [ ] 실제 요청 후 LangSmith 대시보드에서 trace 확인
-- [ ] 각 노드 latency, token 수 확인
+- [x] LangSmith 가입 및 API 키 발급
+- [x] `.env`에 위 3줄 추가
+- [x] 실제 요청 후 LangSmith 대시보드에서 trace 확인
+- [x] 각 노드 latency, token 수 확인
+- [x] eval_exam.py, eval_record.py에 `@traceable` 데코레이터 추가
 
 ### 3-2. FastAPI 미들웨어 메트릭 (2~3일)
 
@@ -161,6 +162,26 @@ PR 생성
 - [ ] `.github/workflows/eval.yml` 작성
 - [ ] Ragas 연동 (faithfulness, answer_relevancy 표준 메트릭)
 - [ ] 점수 기준선(baseline) 설정 — 이하면 PR 실패 처리
+
+#### ✅ 완료 (2025.07 기준)
+
+- 골든셋 구축 완료
+  - retrieval_golden: 28개 (실제 standards/regulations/past_exams 컬렉션 기반, 사람 검수 완료)
+  - MASKING_GOLDEN: 20개
+  - VIOLATION_GOLDEN: 50개 (위반 25 + 정상 25)
+  - HALLUCINATION_GOLDEN: 20개
+  - ITEM_GOLDEN: 30개 (human_score 1~5점 분포 설계)
+- eval_exam.py 검색 평가: 가짜 합성 코퍼스 → 실제 컬렉션 기반으로 교체
+- Judge/생성 모델 분리 설정 완료
+  - 생성: `OLLAMA_MODEL` (qwen2.5:7b 예정)
+  - Judge 전용: `OLLAMA_JUDGE_MODEL` (qwen2.5:14b 예정)
+  - M5 MacBook 도착 후 즉시 실행 가능한 상태
+
+#### ⬜ 남은 작업
+
+- 7B/14B 전환 및 전체 재평가는 PC 확보된 이후에 진행 예정
+- Ragas 연동 (Faithfulness, Answer Relevancy)
+- GitHub Actions CI (eval 자동화)
 
 ---
 
