@@ -9,12 +9,27 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from dotenv import load_dotenv
+load_dotenv()
+
 os.environ.setdefault("LLM_BACKEND", "local")
 os.environ.setdefault("OLLAMA_MODEL", "qwen2.5:1.5b")
 os.environ.setdefault("CHROMA_PERSIST_DIR", "./chroma_db")
 
+try:
+    from langsmith import traceable
+except ImportError:
+    def traceable(**kwargs):
+        def decorator(fn): return fn
+        return decorator
+
 from app.common.llm import PromptTemplate, get_llm_backend
 from app.common.rag import BGEEmbedder, BGEReranker, RAGRetriever, RAGStore
+
+_TRACE_META = {
+    "model": os.getenv("OLLAMA_MODEL", "unknown"),
+    "backend": os.getenv("LLM_BACKEND", "local"),
+}
 
 _GOLDEN_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "golden", "retrieval_golden_final.json")
 
@@ -95,6 +110,152 @@ ITEM_GOLDEN = [
         "item_type": "객관식",
         "human_score": 1,
     },
+    # ── 추가 20건 (human_score: 사람이 미리 매긴 품질 점수 — LLM Judge와 일치율 검증용) ──
+    # 5점 × 5건 — 정답 유일, 오답 매력적, 교육과정 근거 명확
+    {
+        "question": "세계인권선언(1948)에서 선언한 내용으로 옳지 않은 것은?",
+        "options": ["①모든 사람은 생명권을 가진다", "②모든 사람은 교육받을 권리를 가진다", "③모든 사람은 특정 종교를 의무적으로 따라야 한다", "④모든 사람은 법 앞에 평등하다"],
+        "answer": "③",
+        "item_type": "객관식",
+        "human_score": 5,
+    },
+    {
+        "question": "비례대표제의 특징으로 옳은 것은?",
+        "options": ["①지역 대표성이 강하다", "②사표 발생이 적어 다양한 정당이 의석을 획득할 수 있다", "③선거구가 작아 후보자와 유권자의 접촉이 쉽다", "④소수 정당이 의석을 얻기 어렵다"],
+        "answer": "②",
+        "item_type": "객관식",
+        "human_score": 5,
+    },
+    {
+        "question": "국제법에서 조약의 효력에 대한 설명으로 옳은 것은?",
+        "options": ["①모든 국가에 자동으로 적용된다", "②서명한 당사국에만 구속력이 있다", "③국내법보다 항상 우선 적용된다", "④의회 비준 없이도 발효된다"],
+        "answer": "②",
+        "item_type": "객관식",
+        "human_score": 5,
+    },
+    {
+        "question": "누진세에 대한 설명으로 옳은 것은?",
+        "options": ["①소득이 높을수록 세율이 낮아진다", "②모든 납세자에게 동일한 세율이 적용된다", "③소득이 높을수록 세율이 높아진다", "④소비 활동에만 부과된다"],
+        "answer": "③",
+        "item_type": "객관식",
+        "human_score": 5,
+    },
+    {
+        "question": "문화 상대주의적 관점에 대한 설명으로 옳은 것은?",
+        "options": ["①자국 문화를 기준으로 타 문화를 평가한다", "②특정 문화가 다른 문화보다 우월하다고 본다", "③각 문화를 그 사회적 맥락에서 이해하고 존중한다", "④문화 간 우열을 명확히 구분할 수 있다고 본다"],
+        "answer": "③",
+        "item_type": "객관식",
+        "human_score": 5,
+    },
+    # 4점 × 5건 — 대체로 좋으나 오답 매력도 또는 근거성이 약간 아쉬움
+    {
+        "question": "국가 간 상호 의존의 사례로 가장 적절한 것은?",
+        "options": ["①한 나라가 모든 상품을 자국에서만 생산하는 것", "②한 나라의 금융 위기가 다른 나라 경제에 영향을 미치는 것", "③각국이 완전히 독립적인 경제 정책만 추구하는 것", "④한 나라가 외국과 일체의 무역을 하지 않는 것"],
+        "answer": "②",
+        "item_type": "객관식",
+        "human_score": 4,
+    },
+    {
+        "question": "우리나라 헌법에서 보장하는 사회권(사회적 기본권)의 사례로 적절한 것은?",
+        "options": ["①종교의 자유", "②언론·출판의 자유", "③교육받을 권리", "④집회·결사의 자유"],
+        "answer": "③",
+        "item_type": "객관식",
+        "human_score": 4,
+    },
+    {
+        "question": "소선거구제의 특징으로 옳은 것은?",
+        "options": ["①사표가 거의 발생하지 않는다", "②소수 정당이 의석을 얻기 쉽다", "③선거구가 작아 유권자가 후보자를 파악하기 쉽다", "④다양한 정치 세력이 고르게 대표된다"],
+        "answer": "③",
+        "item_type": "객관식",
+        "human_score": 4,
+    },
+    {
+        "question": "외부 불경제를 해소하기 위한 정부 정책으로 가장 적절한 것은?",
+        "options": ["①오염 유발 기업에 보조금 지급", "②생산량 강제 증가 명령", "③오염 유발 기업에 환경세 부과", "④시장 가격 인하 규제"],
+        "answer": "③",
+        "item_type": "객관식",
+        "human_score": 4,
+    },
+    {
+        "question": "사회 이동 유형 중 세대 내 이동의 사례로 옳은 것은?",
+        "options": ["①부모가 농부였는데 자녀가 의사가 된 경우", "②귀족 자녀가 귀족 지위를 그대로 유지한 경우", "③평사원이 같은 직장에서 임원으로 승진한 경우", "④중산층 부모를 둔 자녀가 중산층이 된 경우"],
+        "answer": "③",
+        "item_type": "객관식",
+        "human_score": 4,
+    },
+    # 3점 × 4건 — 정답은 맞지만 오답이 너무 쉽거나 문장이 단순
+    {
+        "question": "법의 지배 원리에 대한 설명으로 옳은 것은?",
+        "options": ["①지배자는 법의 적용을 받지 않는다", "②모든 사람은 법 앞에 평등하게 적용받는다", "③법은 권력자가 임의로 제정할 수 있다", "④국민 동의 없이도 법은 유효하다"],
+        "answer": "②",
+        "item_type": "객관식",
+        "human_score": 3,
+    },
+    {
+        "question": "시장 경제 체제의 특징이 아닌 것은?",
+        "options": ["①사유재산 보장", "②자유로운 경쟁", "③국가의 생산수단 소유", "④가격 메커니즘에 의한 자원 배분"],
+        "answer": "③",
+        "item_type": "객관식",
+        "human_score": 3,
+    },
+    {
+        "question": "복지 국가의 역할로 볼 수 없는 것은?",
+        "options": ["①사회보험 운영", "②공공부조 제공", "③사회 서비스 확대", "④기업의 이윤 극대화 지원"],
+        "answer": "④",
+        "item_type": "객관식",
+        "human_score": 3,
+    },
+    {
+        "question": "민주 선거의 4대 원칙에 해당하지 않는 것은?",
+        "options": ["①보통 선거", "②평등 선거", "③간접 선거", "④비밀 선거"],
+        "answer": "③",
+        "item_type": "객관식",
+        "human_score": 3,
+    },
+    # 2점 × 3건 — 정답이 모호하거나 복수 정답 가능
+    {  # 모든 선지가 헌법 기본권에 해당 → 정답유일성 낮음
+        "question": "다음 중 대한민국 헌법이 보장하는 기본권에 해당하는 것은?",
+        "options": ["①신체의 자유", "②교육받을 권리", "③직업 선택의 자유", "④환경권"],
+        "answer": "①",
+        "item_type": "객관식",
+        "human_score": 2,
+    },
+    {  # '긍정적 영향으로 보기 어려운 것'이 주관적 — ③ 외에도 논란 가능
+        "question": "세계화가 개발도상국에 미치는 긍정적 영향으로 보기 어려운 것은?",
+        "options": ["①선진 기술 도입 기회 확대", "②외국인 직접투자 유입 증가", "③전통 산업의 자생적 경쟁력 강화", "④경제 성장 가속화 가능성"],
+        "answer": "③",
+        "item_type": "객관식",
+        "human_score": 2,
+    },
+    {  # ④가 정답이나 산업혁명도 민주주의 발전 요인으로 볼 수 있어 해석 여지 있음
+        "question": "민주주의 발전에 직접적으로 기여한 역사적 사건으로 보기 어려운 것은?",
+        "options": ["①영국 마그나카르타(1215)", "②프랑스 대혁명(1789)", "③미국 독립선언(1776)", "④산업혁명에 의한 생산성 향상"],
+        "answer": "④",
+        "item_type": "객관식",
+        "human_score": 2,
+    },
+    # 1점 × 3건 — 선지 중복·교과 무관·무의미 문항
+    {  # 선지가 무의미하고 문항과 무관
+        "question": "다음 중 인권의 특징으로 옳은 것은?",
+        "options": ["①인권은 인권이다", "②인권은 인권이 아니다", "③인권은 중요하다", "④왕정"],
+        "answer": "①",
+        "item_type": "객관식",
+        "human_score": 1,
+    },
+    {  # 사회 교과 무관 내용
+        "question": "물의 끓는점은 몇 °C인가?",
+        "options": ["①50°C", "②100°C", "③150°C", "④200°C"],
+        "answer": "②",
+        "item_type": "객관식",
+        "human_score": 1,
+    },
+    {  # 오답이 너무 명확해 변별력 없음
+        "question": "사회란 무엇인가?",
+        "options": ["①사람들이 관계를 맺으며 함께 사는 집단", "②사람이 전혀 없는 공간", "③동물만 존재하는 환경", "④아무것도 없는 상태"],
+        "answer": "①",
+        "item_type": "객관식",
+        "human_score": 1,
+    },
 ]
 
 # ── 세트 제약 검증용 합성 세트 ─────────────────────────────────────
@@ -135,6 +296,7 @@ def cohen_kappa(human: list, llm: list, threshold: int = 3) -> float:
 
 # ── 평가 함수 ────────────────────────────────────────────────────────
 
+@traceable(name="eval_retrieval", run_type="chain", metadata=_TRACE_META)
 def eval_retrieval(retriever: RAGRetriever, golden: list) -> dict:
     """Recall@5, MRR 계산. chunk_preview substring 매칭으로 정답 판정."""
     hits_at_5 = 0
@@ -182,6 +344,7 @@ JUDGE_TPL = PromptTemplate(
 )
 
 
+@traceable(name="judge_one", run_type="llm", metadata=_TRACE_META)
 def judge_one(item: dict, llm) -> dict:
     item_str = json.dumps(
         {"question": item["question"], "options": item.get("options", []), "answer": item.get("answer", "")},
@@ -205,6 +368,7 @@ def judge_one(item: dict, llm) -> dict:
     }
 
 
+@traceable(name="eval_item_quality", run_type="chain", metadata=_TRACE_META)
 def eval_item_quality(items: list, llm, limit: int = 8) -> dict:
     """LLM Judge로 문항 품질 평가. limit: LLM 호출 수 제한."""
     subset = items[:limit]
@@ -266,6 +430,7 @@ def eval_set_constraints(items: list, spec: dict) -> dict:
     }
 
 
+@traceable(name="eval_judge_reliability", run_type="chain", metadata=_TRACE_META)
 def eval_judge_reliability(items_with_human: list, llm, limit: int = 8) -> dict:
     """LLM Judge 점수와 사람 라벨 일치율·kappa 측정."""
     subset = items_with_human[:limit]
@@ -341,7 +506,10 @@ def print_report(retrieval: dict, quality: dict, constraints: dict, reliability:
 
 # ── 메인 ────────────────────────────────────────────────────────────
 
+@traceable(name="eval_exam_run", run_type="chain", metadata=_TRACE_META)
 def main():
+    if os.getenv("LANGCHAIN_TRACING_V2") == "true":
+        print("LangSmith 트레이싱: 활성화됨")
     print("=== Phase 4: 출제 모듈 평가 시작 ===\n")
 
     store = RAGStore()
@@ -356,9 +524,14 @@ def main():
     print(f"   Recall@5={retrieval_result['recall_at_5']:.3f}, MRR={retrieval_result['mrr']:.3f}")
 
     # 2. 문항 품질 평가
-    print("\n2. 문항 품질 LLM Judge (8개 샘플)...")
+    _dist = {}
+    for it in ITEM_GOLDEN:
+        s = it["human_score"]
+        _dist[s] = _dist.get(s, 0) + 1
+    print(f"\nhuman_score 분포: { {k: _dist[k] for k in sorted(_dist)} } (n={len(ITEM_GOLDEN)})")
+    print(f"\n2. 문항 품질 LLM Judge ({len(ITEM_GOLDEN)}개)...")
     llm = get_llm_backend()
-    quality_result = eval_item_quality(ITEM_GOLDEN, llm, limit=8)
+    quality_result = eval_item_quality(ITEM_GOLDEN, llm, limit=len(ITEM_GOLDEN))
     print(f"   종합평균={quality_result['avg_overall']:.2f}/5, 합격률={quality_result['pass_rate']*100:.0f}%")
 
     # 3. 세트 제약 검증
@@ -367,8 +540,8 @@ def main():
     print(f"   전체 통과: {constraints_result['all_pass']}")
 
     # 4. Judge 신뢰도
-    print("\n4. Judge 신뢰도 검증 (8개 샘플, 합성 사람 라벨)...")
-    reliability_result = eval_judge_reliability(ITEM_GOLDEN, llm, limit=8)
+    print(f"\n4. Judge 신뢰도 검증 ({len(ITEM_GOLDEN)}개, 합성 사람 라벨)...")
+    reliability_result = eval_judge_reliability(ITEM_GOLDEN, llm, limit=len(ITEM_GOLDEN))
     print(f"   κ={reliability_result['cohen_kappa']:.3f}, ±1 일치율={reliability_result['agreement_within_1']:.3f}")
 
     # 리포트
