@@ -10,7 +10,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.common.llm import PromptTemplate, get_llm_backend
-from app.common.llm.backends.runpod import RunPodBackend
 
 # 모듈별 주입 예시: 사회 교과 전문가 Few-shot + CoT 템플릿
 SOCIAL_TEMPLATE = PromptTemplate(
