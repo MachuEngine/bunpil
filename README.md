@@ -108,8 +108,15 @@ cp .env.example .env   # 필요 시 값 수정
 
 ```bash
 # Ollama 설치: https://ollama.com
-ollama pull qwen2.5:1.5b   # 개발용 (빠른 테스트)
-# ollama pull qwen2.5:7b   # 품질 향상 시
+
+# 생성 전용 (OLLAMA_MODEL)
+ollama pull qwen2.5:7b
+
+# Judge 전용 (OLLAMA_JUDGE_MODEL) — eval_exam.py Judge 신뢰도 검증에 사용
+ollama pull qwen2.5:14b
+
+# 빠른 로직 테스트만 할 경우 (품질 낮음, 폴백 동작)
+# ollama pull qwen2.5:1.5b
 ```
 
 ### 3. RAG 데이터 인덱싱
@@ -133,11 +140,11 @@ ollama serve
 
 # 터미널 2 — FastAPI (UI + API 통합, 포트 8765)
 # Windows
-$env:LLM_BACKEND="local"; $env:OLLAMA_MODEL="qwen2.5:1.5b"
+$env:LLM_BACKEND="local"; $env:OLLAMA_MODEL="qwen2.5:7b"
 .venv\Scripts\python.exe -m uvicorn app.main:app --port 8765
 
 # macOS / Linux
-LLM_BACKEND=local OLLAMA_MODEL=qwen2.5:1.5b .venv/bin/python -m uvicorn app.main:app --port 8765
+LLM_BACKEND=local OLLAMA_MODEL=qwen2.5:7b .venv/bin/python -m uvicorn app.main:app --port 8765
 ```
 
 브라우저에서 **http://localhost:8765** 접속.
@@ -348,7 +355,7 @@ bash deploy/billing_alarm.sh   # 월 $10 초과 시 이메일 알람
 | 변수 | 설명 | 기본값 |
 |---|---|---|
 | `LLM_BACKEND` | `local` 또는 `runpod` | `local` |
-| `OLLAMA_MODEL` | 로컬 개발 모델명 | `qwen2.5:1.5b` |
+| `OLLAMA_MODEL` | 로컬 개발 모델명 | `qwen2.5:7b` |
 | `RUNPOD_API_KEY` | RunPod API 키 | — |
 | `RUNPOD_ENDPOINT_ID` | RunPod 엔드포인트 ID | — |
 | `CHROMA_PERSIST_DIR` | ChromaDB 저장 경로 | `/data/chroma_db` (EC2) / `./chroma_db` (로컬) |
