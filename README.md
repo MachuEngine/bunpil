@@ -37,8 +37,9 @@ FastAPI (app/main.py)
                      └─ validate     규칙 기반 + RAG 규정 검증
 
 LLM 백엔드
-  개발:       Ollama (qwen2.5:1.5b, 로컬)
-  프로덕션:   RunPod 서버리스 (Qwen2.5-7B-Instruct, vLLM)
+  개발(생성):  Ollama (qwen2.5:7b, 로컬) — M5 MacBook / RTX 4060 Ti
+  개발(Judge): Ollama (qwen2.5:14b, 로컬) — Judge 전용, OLLAMA_JUDGE_MODEL로 분리
+  프로덕션:    RunPod 서버리스 (Qwen2.5-7B-Instruct, vLLM)
 ```
 
 ### ReAct 에이전트 설계 원칙
