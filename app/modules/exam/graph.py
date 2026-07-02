@@ -49,8 +49,14 @@ def agent_node(state: ExamState) -> dict:
     standards = spec.get("standards") or [f"{spec['unit']} 핵심 개념 이해"]
 
     existing = get_draft_items()
-    # 이미 요청 개수만큼 저장됐으면 재시도 불필요
-    # pair 비교 대신 총 개수로 판단 — 소형 LLM이 난이도를 무시해도 루프 탈출 보장
+    # 조기 종료: 유형/난이도 분포가 아닌 총 개수만으로 판단.
+    # 소형 LLM(1.5b)은 유형/난이도 지시를 무시하고 엉뚱한 조합으로 문항을
+    # 생성하는 경우가 있어, target_pairs와 정확히 매칭시키려 하면 validate가
+    # 계속 실패하며 budget만 소진되고 루프가 끝나지 않는 문제가 있었다.
+    # 총 개수 기준으로 완화해 최소한 루프 탈출은 보장한다.
+    # 7B 이상 모델로 전환하면 지시 준수도가 올라가므로 유형/난이도 분포까지
+    # 체크하는 방향으로 다시 강화할 수 있다.
+    # TODO: 7B 전환 후 조기 종료 조건 재검토
     if len(existing) >= spec["num_items"]:
         return {"agent_messages": [], "budget": state["budget"] - 1}
 
