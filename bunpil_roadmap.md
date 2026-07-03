@@ -52,7 +52,11 @@
    - 동일 골든셋으로 3개 모델 eval 실행
    - 정량 비교 결과로 Qwen 채택 근거 확보 → 포트폴리오 서사에 활용
    - GPT-3.5는 API 비용 발생, 비교 후 즉시 종료
-6. **Ragas 연동** — Faithfulness, Answer Relevancy
+6. **Ragas 연동 + LangSmith Experiments 연동**
+   - Faithfulness, Answer Relevancy 지표 추가 (`eval_ragas.py` 신규 스크립트)
+   - eval 실행 시 결과가 LangSmith Experiments에 자동 기록되도록 연동
+   - 모델/프롬프트 변경 시 Experiments 탭에서 결과 비교 가능
+   - EVAL.md 결과 이력 수동 업데이트 → LangSmith 자동 기록으로 전환
 7. **GitHub Actions CI** — eval 자동화
 8. **문서화 및 포트폴리오 정리**
 
