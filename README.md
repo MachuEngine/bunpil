@@ -37,8 +37,9 @@ FastAPI (app/main.py)
                      └─ validate     규칙 기반 + RAG 규정 검증
 
 LLM 백엔드
-  개발(생성):  Ollama (qwen2.5:7b, 로컬) — M5 MacBook / RTX 4060 Ti
-  개발(Judge): Ollama (qwen2.5:14b, 로컬) — Judge 전용, OLLAMA_JUDGE_MODEL로 분리
+  개발(생성):  Ollama (qwen2.5:7b, 로컬)
+  개발(Judge): Ollama (qwen2.5:7b, 로컬) — 생성 모델과 동일. OLLAMA_JUDGE_MODEL로 분리 가능
+              (14B는 하드웨어 확보 후 별도 테스트 예정)
   프로덕션:    RunPod 서버리스 (Qwen2.5-7B-Instruct, vLLM)
 ```
 
@@ -112,8 +113,8 @@ cp .env.example .env   # 필요 시 값 수정
 # 생성 전용 (OLLAMA_MODEL)
 ollama pull qwen2.5:7b
 
-# Judge 전용 (OLLAMA_JUDGE_MODEL) — eval_exam.py Judge 신뢰도 검증에 사용
-ollama pull qwen2.5:14b
+# Judge 전용 (OLLAMA_JUDGE_MODEL) — 현재는 생성 모델과 동일한 7B 사용, 별도 pull 불필요
+# (14B는 하드웨어 확보 후 Judge 분리 테스트 예정)
 
 # 빠른 로직 테스트만 할 경우 (품질 낮음, 폴백 동작)
 # ollama pull qwen2.5:1.5b
@@ -212,8 +213,8 @@ bunpil/
 
 ### 현재 검증 환경
 
-- **LLM**: `qwen2.5:1.5b` (Ollama 로컬) — 로직 검증 전용
-- **품질 평가**: RunPod `Qwen2.5-7B` 연결 후 수행 예정
+- **LLM**: `qwen2.5:7b` (Ollama 로컬) — 생성·Judge 모두 동일 모델
+- **다음 단계**: 하드웨어 확보 후 `qwen2.5:14b`로 Judge 모델 분리 테스트 예정
 
 ### 기능 검증 결과 (qwen2.5:1.5b)
 
@@ -232,6 +233,8 @@ bunpil/
 
 ### 품질 평가 지표
 
+> 지표 전체 목록·골든셋 현황·결과 이력은 [EVAL.md](./EVAL.md)에서 계속 갱신합니다. 아래는 최신 스냅샷입니다.
+
 **출제 모듈**
 
 ```bash
@@ -240,15 +243,17 @@ bunpil/
 
 검색 평가는 실제 `standards` / `regulations` / `past_exams` 컬렉션 기반 골든셋 30개(`data/golden/retrieval_golden_final.json`, 28개 검수 완료)를 사용합니다.
 
-| 지표 | n | 기준 | 1.5b 실측 |
+| 지표 | n | 기준 | 7B 실측 |
 |---|---|---|---|
-| Recall@5 | 28 | ≥ 0.80 | 0.714 |
-| MRR | 28 | 참고값 | 0.530 |
+| Recall@5 | 28 | ≥ 0.80 | 0.679 ✗ |
+| MRR | 28 | 참고값 | 0.494 |
 | 유형·난이도·성취기준 제약 | — | 통과 | ✓ |
-| LLM Judge 종합평균 | — | ≥ 4.0 / 5 | 2.92 (7B 재평가 필요) |
+| LLM Judge 종합평균 | — | ≥ 4.0 / 5 | 3.68 ✗ |
+| Judge 신뢰도 (Cohen's kappa) | 30 | ≥ 0.4 | 0.328 ✗ |
+| Judge 신뢰도 (±1 일치율) | 30 | ≥ 0.7 | 0.800 ✓ |
 
 > 검색 수치(Recall@5, MRR)는 LLM 모델과 무관하며 BGE-M3 + BGE-reranker 파이프라인 성능입니다.
-> LLM Judge 수치는 1.5b 한계로 낮음 — 7B(RunPod) 연결 후 재평가 권장.
+> LLM Judge 종합평균 미달은 오답매력도(2.43/5)가 낮은 게 주 원인 — 출제 프롬프트 튜닝 예정(로드맵 참고).
 
 **생기부 모듈**
 
@@ -265,7 +270,7 @@ bunpil/
 | 규정 위반 F1 | 50 | 참고값 | 0.750 |
 
 > PII 마스킹·키워드 검사는 규칙 기반이라 소형 모델에서도 안정적.
-> NLI 사실추가율은 1.5b 판단 불안정, 규정 위반은 1.5b + 빈 regulations RAG 한계 — 7B(RunPod) + regulations 인덱싱 후 재평가 권장.
+> 7B 재평가 아직 미실행 (로드맵 남은 작업 참고) — 위 수치는 1.5b 기준.
 
 ### 프로덕션 검증 결과 (RunPod Qwen2.5-7B, RTX A5000)
 

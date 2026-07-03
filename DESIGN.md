@@ -73,7 +73,7 @@ budget:      남은 반복 횟수 (무한루프 방지)
 | 평가용 모델 | Ollama 소형 / OpenAI GPT-3.5 (합성 데이터 비교 전용) |
 | 검증 | LLM as a Judge |
 | 프롬프트 | Few-shot / CoT |
-| 프론트엔드 | Gradio (속도 우선) |
+| 프론트엔드 | Next.js (frontend/) |
 
 ※ 임베딩·리랭킹은 앱 팟(CPU)에서 수행(소규모 코퍼스라 충분), **생성·추론만 서버리스 GPU 호출** → GPU 호출 최소화.
 
@@ -146,12 +146,12 @@ budget:      남은 반복 횟수 (무한루프 방지)
 
 ```
 브라우저 ─→ [앱] AWS EC2 (t3.small, CPU)            ─→ [GPU] RunPod Serverless
-              FastAPI + Agent + ChromaDB + Gradio          Qwen2.5 7B / vLLM
+              FastAPI + Agent + ChromaDB                   Qwen2.5 7B / vLLM
               · PII 마스킹 후 추론 호출                     · 쓸 때만 과금, 유휴 시 0
               · ChromaDB는 EBS 볼륨에 저장                  · 콜드스타트 수초~수십초
 ```
 
-- **앱 = AWS EC2** (t3.small, ~2GB): FastAPI·agent·ChromaDB·Gradio 구동. ChromaDB는 EBS 볼륨에 영구 저장. **IAM·보안그룹·SSH·Docker 표준 배포 학습** (이력서 가치 높은 부분).
+- **앱 = AWS EC2** (t3.small, ~2GB): FastAPI·agent·ChromaDB 구동 (UI는 Next.js, `frontend/`). ChromaDB는 EBS 볼륨에 영구 저장. **IAM·보안그룹·SSH·Docker 표준 배포 학습** (이력서 가치 높은 부분).
 - **GPU = RunPod Serverless**: 추론만 요청당 과금, 유휴 시 0. 비싼 GPU 비용만 pay-per-use.
 - **HTTPS**: Caddy 리버스 프록시로 자동 발급(+도메인) → 표준 배포 실습 포함.
 - 요청 흐름: 브라우저 → EC2(마스킹·오케스트레이션) → RunPod 서버리스 호출 → 응답. 앱 로직 stateless, Chroma만 EBS 영구.
