@@ -151,13 +151,12 @@ budget:      남은 반복 횟수 (무한루프 방지)
               · ChromaDB는 EBS 볼륨에 저장                  · 콜드스타트 수초~수십초
 ```
 
-- **앱 = AWS EC2** (t3.small, ~2GB): FastAPI·agent·ChromaDB 구동 (UI는 Next.js, `frontend/`). ChromaDB는 EBS 볼륨에 영구 저장. **IAM·보안그룹·SSH·Docker 표준 배포 학습** (이력서 가치 높은 부분).
+- **앱 = AWS EC2** (t3.small, ~2GB): FastAPI·agent·ChromaDB 구동 (UI는 Next.js, `frontend/`). ChromaDB는 EBS 볼륨에 영구 저장. IAM·보안그룹·SSH·Docker 표준 배포 절차를 따른다.
 - **GPU = RunPod Serverless**: 추론만 요청당 과금, 유휴 시 0. 비싼 GPU 비용만 pay-per-use.
 - **HTTPS**: Caddy 리버스 프록시로 자동 발급(+도메인) → 표준 배포 실습 포함.
 - 요청 흐름: 브라우저 → EC2(마스킹·오케스트레이션) → RunPod 서버리스 호출 → 응답. 앱 로직 stateless, Chroma만 EBS 영구.
 - **billing alarm 필수**: EC2 종량제라 예산 알람 설정. t3는 CPU burst throttle 있으니 임베딩 인덱싱은 한 번에 몰아서.
 - **에이전트×서버리스 주의**: 출제 ReAct는 한 요청에 LLM을 여러 번 호출 → 첫 호출만 콜드스타트, 세션 중 워커 warm 유지로 후속 호출은 빠름. 긴 세션은 GPU 워밍 고려.
-- 포트폴리오 서사: "범용 앱은 AWS EC2 표준 배포, 비싼 GPU 추론만 서버리스로 분리 → 비용 0 수렴 + 민감 데이터 마스킹·비저장."
 
 **운영비 (1인 사용 추정 / 월)**
 
