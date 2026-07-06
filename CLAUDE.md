@@ -21,14 +21,14 @@
 
 - 모듈 분리: `common/rag`, `common/llm`, `modules/exam`, `modules/record`
 - LLM 호출은 **추상화 레이어 경유** (백엔드 env로 전환: 로컬 ↔ RunPod)
-- RAG: 영구 컬렉션 = 공개 자료만 / 업로드 지문 = **세션 임시 컬렉션 후 폐기**
+- RAG: 영구 컬렉션 = 공개 자료(성취기준·규정)만. 출제 예시 문제(`passage_text`)는 ChromaDB 미적재, 프롬프트에만 사용 후 폐기
 - 시크릿은 `.env`(.gitignore), 커밋 금지. `.env.example` 유지
 
 ## 🔴 보안 하드룰 (예외 없음)
 
 1. 실제 학생 데이터 미사용 — 전부 **합성/익명**
 2. 개인정보 마스킹은 외부/모델 호출 **이전**에
-3. 사용자 입력(생기부 메모·업로드 지문) **비저장**
+3. 사용자 입력(생기부 메모·출제 예시 문제) **비저장**
 4. 로그·캐시에 **PII 금지**
 5. 생기부: 메모에 없는 사실 **추가 금지**(생성 아닌 '다듬기'). 출력에 교사 책임 고지
 
@@ -72,5 +72,5 @@
 
 - **record 모듈**: `mask_pii → polish → validate` 순서 고정
 - **exam 모듈**: LangGraph 노드 순서 변경 시 반드시 설계 단계 승인 받을 것
-- **chroma_db**: 세션 임시 컬렉션은 반드시 `try/finally`로 폐기
+- **chroma_db**: 임시 컬렉션(`create_temp_collection`)을 쓰는 코드가 있다면 반드시 `try/finally`로 폐기 (2026.07 리디자인으로 출제 모듈은 더 이상 임시 컬렉션을 쓰지 않음 — `passage_text`는 ChromaDB 미적재)
 - **runpod_handler**: 변경 시 로컬 Ollama로 먼저 검증 후 RunPod 적용

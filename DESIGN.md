@@ -19,33 +19,39 @@
 
 ### 모듈 ② 출제 도우미 — ReAct Agent (LangGraph)
 
-과제 정의: *"문항 하나 생성"이 아니라 "다중 제약을 만족하는 균형 잡힌 문항 세트 구성"*.
-제약: 문항 수 · 유형 분포 · 난이도 분포 · 성취기준 커버리지 · 기출 비중복.
+과제 정의: *"교사가 붙여넣은 예시 문제의 구성(개수·유형·난이도)을 그대로 반영한 새 문항 세트 작성"*.
+(2026.07 리디자인, `FEEDBACK_DRIVEN_REDESIGN_v2.md` — 실사용 교사 피드백: PDF 업로드+유형/난이도/개수
+드롭다운 대신 ChatGPT처럼 예시 문제를 붙여넣는 사용 패턴이 실제와 더 맞았음. 2028 수능 개편으로 과목별
+구조가 곧 무의미해질 `past_exams`/`check_duplicate`도 이때 완전히 제거)
 
 ```
-출제 요청 → 세트 구성 계획 → Agent(ReAct) ↔ 도구 → 구성 충족 검증 → 교사 검토 세트
+예시 문제 붙여넣기(passage_text) → Agent(ReAct) ↔ 도구 → similarity_judge 구조 유사도 자체 평가
+  → 코드가 threshold 판정 → 미달 시 세트 전체 재시도(budget) → 교사 검토 세트
 ```
 
 **도구(Tools)**
 
 | 도구 | 역할 | 구현 |
 |---|---|---|
-| 지문·기준 RAG | 업로드 지문 + 성취기준 검색 | ChromaDB + Rerank |
-| 문항 생성 | 유형·난이도 지정 생성 | Few-shot / CoT |
-| 품질 검증 | 정답 유일성·오답 매력도·근거성·난이도 | LLM as Judge |
-| 중복 검증 | 기출 유사도 체크 | 기출 코퍼스 유사도 검색 (ChromaDB) |
+| 성취기준 검색 | `search_standards` — 성취기준 원문 검색 | ChromaDB + Rerank |
+| 법령 검색 | `search_regulations` — 교육과정 준수 사항 검색 | ChromaDB + Rerank |
+| 형식 검증 | `validate_item_format` — 문항 형식 자기교정 | 함수 |
+| 저장 | `save_item` — 검증 통과 문항 저장 | 함수 |
+| 자체 채점 | `record_score` — 품질 자체 평가 기록 | 함수 |
+| 구조 유사도 판단 | `similarity_judge` — 예시 문제와의 구조 유사도 자체 평가 | LLM as Judge |
 
 **State**
 
 ```
-spec:        { 단원, 문항수, 유형분포, 난이도분포, 대상(내신/수능형) }
-source:      검색된 지문 청크
-standards:   목표 성취기준 + 커버리지 맵 { 기준: 충족 문항수 }
-draft_items: [ { 문항, 유형, 난이도, judge결과, 중복여부, 상태 } ]
-budget:      남은 반복 횟수 (무한루프 방지)
+spec:                    { passage_text(예시 문제 원문), standards(성취기준, 선택) }
+draft_items:             [ { 문항, 유형, 난이도, judge_score, 상태 } ]
+similarity_judge_result: { count_match, type_ratio_score, difficulty_match, overall_score }
+budget:                  남은 재시도 횟수 (세트 전체 단위, 무한루프 방지)
 ```
 
-**Agent가 판단하는 것**: 특정 문항만 재생성 / 난이도 조정 / 커버리지 공백 보충 / 중복 폐기 / 종료 시점.
+**Agent(LLM)가 판단하는 것**: 문항 세트 작성, 형식 자기수정, 구조 유사도 자체 평가(`similarity_judge` 호출).
+**코드가 판단하는 것**: `similarity_judge` 결과의 threshold 통과 여부, 재시도 여부.
+→ "판단은 LLM, 통과/재시도 결정은 코드"라는 원칙은 리디자인 이후에도 그대로 유지.
 
 ### 모듈 ③ 생기부 윤문 도우미 — 검증 Chain (LCEL)
 
@@ -85,9 +91,8 @@ budget:      남은 반복 횟수 (무한루프 방지)
 |---|---|---|---|
 | 생기부 기재요령 | 학교생활기록부 종합지원포털(star.moe.go.kr) 자료실 | PDF 다운로드 | 규정 RAG 핵심 |
 | 학생부 작성·관리 지침(훈령) | 동 포털 | PDF | 규정 RAG |
-| 수능·모평 기출(사탐) | 평가원(suneung.re.kr) 자료실 | PDF | **저작권: 참고용 인덱싱만, 재배포·노출 금지** |
-| 사회과 성취기준 | 국가교육과정정보센터(NCIC) | 문서 조회 | 커버리지용 |
-| 교과 지문·단원 | 교사 런타임 업로드 | 0 | — |
+| 사회과 성취기준 | 국가교육과정정보센터(NCIC) | 문서 조회 | `search_standards` RAG |
+| 교사가 붙여넣은 예시 문제 | 교사 런타임 입력(`passage_text`) | 0 | ChromaDB 미적재, 프롬프트에만 사용 후 폐기 |
 | 윤문 Few-shot 예시 | 직접 합성 | 가상 시나리오 | 실데이터 금지 |
 | 규정 위반 테스트 문장 | 직접 합성 | 위반 일부 심기 | 평가용 |
 
@@ -107,11 +112,11 @@ budget:      남은 반복 횟수 (무한루프 방지)
 |---|---|---|---|
 | 검색 | Recall@5, MRR | 함수 | R@5 ≥ 0.8 |
 | 문항 | 정답 유일성·오답 매력도·근거성 | LLM Judge | 5점 척도 평균 ≥ 4.0 (보정 후 확정) |
-| 세트 | 유형/난이도 분포·커버리지·중복률 | 함수 | 커버리지 100% |
+| 구조 유사도 | count_match·type_ratio_score·difficulty_match·overall_score | LLM Judge (사람 라벨 STRUCTURE_GOLDEN과 대조) | 미정 (부트스트랩 단계) |
 | 과정 | 평균 반복수·미충족 실패율·latency | 함수 | 예산 내 수렴 |
 | 종단 | 수정 없는 교사 채택률 | 사람 | 북극성 |
 
-검색 골든셋(`data/golden/retrieval_golden_final.json`): `standards` / `regulations` / `past_exams` 실제 컬렉션에서 샘플링한 30개 청크, 사람이 검수한 쿼리 28개 포함. `scripts/gen_golden_retrieval.py`로 초안 생성 후 검수.
+검색 골든셋(`data/golden/retrieval_golden_final.json`): `standards` / `regulations` 실제 컬렉션에서 샘플링한 22개 청크(reviewed 21개). `scripts/gen_golden_retrieval.py`로 초안 생성 후 검수. (2026.07 리디자인으로 `past_exams` 참조 8개 제거, 30→22)
 
 ### 생기부 Chain (안전 지표 우선)
 
@@ -125,17 +130,17 @@ budget:      남은 반복 횟수 (무한루프 방지)
 
 **모델 채택 근거**: 위 평가셋을 Qwen2.5 vs GPT-3.5 vs Ollama로 돌려 정량 비교 → Qwen 채택 근거 확보.
 
-**골든셋 현황**: 출제 검색 30개(28개 검수 완료) / 생기부(위반문장 50 + 마스킹 20 + 메모→윤문 20).
+**골든셋 현황**: 출제 검색 22개(21개 검수 완료) + STRUCTURE_GOLDEN 3개(Claude 합성 부트스트랩, 실제 라벨 보강 필요) / 생기부(위반문장 50 + 마스킹 20 + 메모→윤문 20).
 
 ---
 
 ## 6. 보안 · 개인정보 (Claude Code는 반드시 준수)
 
 - 개인정보 **마스킹은 입력 단계**에서, 외부/모델 호출 전에 수행
-- 사용자 입력(생기부 메모·업로드 지문)은 **비저장 처리** — 영구 저장은 공개 코퍼스뿐
+- 사용자 입력(생기부 메모·교사가 붙여넣은 예시 문제)은 **비저장 처리** — 영구 저장은 공개 코퍼스뿐
 - **로그·캐시에 PII 금지**
 - 실데이터 미사용, 전부 합성
-- ChromaDB **영구 컬렉션은 공개 자료(규정·기출·성취기준)만**. 교사 업로드 지문은 **세션 한정 임시 컬렉션**으로 처리 후 폐기. 학생 개인정보는 어디에도 미적재
+- ChromaDB **영구 컬렉션은 공개 자료(규정·성취기준)만**. 교사가 붙여넣은 예시 문제(`passage_text`)는 ChromaDB에 전혀 적재되지 않고 요청 처리 중 프롬프트에만 사용된 후 폐기. 학생 개인정보는 어디에도 미적재
 - 생기부 출력에 "교사 최종 책임(보조수단)" 고지 표시
 
 ---
@@ -176,7 +181,7 @@ budget:      남은 반복 횟수 (무한루프 방지)
 
 ## 8. 빌드 순서 (MVP)
 
-1. **출제 모듈** — 데이터 부담 0(교사 업로드), RAG·Judge·Recall@5 바로 적용 → 가장 빠른 데모
+1. **출제 모듈** — 데이터 부담 0(교사가 예시 문제 붙여넣기), RAG·Judge·Recall@5 바로 적용 → 가장 빠른 데모
 2. **생기부 모듈** — 규정 RAG + 마스킹 + 사실보존 검증
 3. **배포** — AWS EC2(앱) + RunPod 서버리스(GPU)
 
