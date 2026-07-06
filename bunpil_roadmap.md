@@ -181,13 +181,15 @@ PR 생성
 
 - PDF 업로드 + 유형/난이도/개수 드롭다운 → `passage_text` 붙여넣기 단일 입력으로 전면 교체
 - `check_duplicate`/`past_exams` 컬렉션 완전 제거 (2028 수능 개편으로 과목별 구조 무의미해짐), `similarity_judge`(구조 유사도 LLM Judge)로 대체
-- retrieval_golden: past_exams 참조 8개(`ret_023`~`ret_030`) 제거 → 30개 → 22개(standards 12 + regulations 10)
-- 신규 STRUCTURE_GOLDEN 골든셋 스키마만 준비(`data/golden/structure_golden.json`, entries 비어 있음) — 실제 라벨링은 미착수
+- retrieval_golden: past_exams 참조 8개(`ret_023`~`ret_030`) 제거 → 30개 → 22개(standards 12 + regulations 10), Recall@5/MRR 재측정 완료(0.905/0.659, n=21 — 이전 0.714/0.530보다 상승)
+- STRUCTURE_GOLDEN 부트스트랩 3개(str_001~003) 추가 — Claude가 만든 합성 데이터, eval 스캐폴딩 검증용(`eval_structure_judge()` 동작 확인 완료)
+- standards 컬렉션 조회 도구(`search_standards`) 재도입
+- 로컬 Ollama `num_predict` 캡 누락 버그 수정 (RunPod과 동일하게 2048 캡 — 폭주 생성 방지)
 
 #### ⬜ 남은 작업
 
-- 7B/14B 전환 및 전체 재평가는 PC 확보된 이후에 진행 예정
-- STRUCTURE_GOLDEN 실제 라벨링(사람이 예시 문제별 구조 정답 부여) 후 `eval_structure_judge()` 재실행
+- 7B/14B 전환 및 전체 재평가는 PC 확보된 이후에 진행 예정 (문항 품질 LLM Judge, STRUCTURE_GOLDEN 실제 라벨, eval_record.py 재평가 전부 포함)
+- STRUCTURE_GOLDEN 실제 모델 출력 기반 라벨 보강(현재 3개는 합성 부트스트랩)
 - Ragas 연동 (Faithfulness, Answer Relevancy)
 - GitHub Actions CI (eval 자동화)
 
