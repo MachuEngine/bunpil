@@ -22,23 +22,21 @@ def _get_ctx() -> dict:
     return _request_ctx.get()
 
 
-def init_session(collection: str) -> None:
+def init_session() -> None:
     # LangGraph는 각 노드를 context.run()으로 격리 실행하므로
     # plan_node 내에서 set()한 새 dict가 agent_node에 전파되지 않는다.
     # 해결: asyncio.to_thread 호출 전 main.py에서 먼저 set()으로 dict를 생성하고,
     # 이후 호출(plan_node)에서는 같은 dict를 in-place로 초기화해 모든 노드가 공유한다.
     try:
         ctx = _request_ctx.get()
-        ctx["collection"] = collection
         ctx["items"] = []
         ctx["scores"] = {}
-        ctx["duplicates"] = {}
+        ctx["judge_result"] = {}
     except LookupError:
         _request_ctx.set({
-            "collection": collection,
             "items": [],
             "scores": {},
-            "duplicates": {},
+            "judge_result": {},
         })
 
 
@@ -48,16 +46,18 @@ def get_draft_items() -> list:
     for item in ctx["items"]:
         iid = item.get("item_id", "")
         score = ctx["scores"].get(iid, 0.0)
-        dup = ctx["duplicates"].get(iid, False)
         result.append(
             {
                 **item,
                 "judge_score": score,
-                "is_duplicate": dup,
-                "status": "approved" if score >= 3 and not dup else "rejected",
+                "status": "approved" if score >= 3 else "rejected",
             }
         )
     return result
+
+
+def get_judge_result() -> dict:
+    return _get_ctx().get("judge_result", {})
 
 
 # ── 싱글턴 인프라 ──
@@ -92,28 +92,6 @@ def _get_reranker() -> BGEReranker:
 # 추론과 생성은 에이전트(LLM)가 직접 담당한다.
 
 @tool
-def search_passages(query: str) -> str:
-    """성취기준 관련 내용을 검색합니다. query: 검색 키워드"""
-    retriever = RAGRetriever(_get_store(), _get_embedder(), _get_reranker())
-    results = []
-
-    col = _get_ctx()["collection"]
-    if col:
-        results = retriever.retrieve(query, col, top_k=3)
-
-    if _get_store().count("standards") > 0:
-        std_results = retriever.retrieve(query, "standards", top_k=3)
-        if std_results:
-            all_texts = [r["text"] for r in results + std_results]
-            ranked = _get_reranker().rerank(query, all_texts, top_k=3)
-            results = [{"text": all_texts[r["index"]], "score": r["score"]} for r in ranked]
-
-    if not results:
-        return "관련 성취기준 없음"
-    return "\n\n".join(f"[{i+1}] {r['text'][:400]}" for i, r in enumerate(results))
-
-
-@tool
 def search_regulations(query: str) -> str:
     """교육과정 법령·지침에서 관련 내용을 검색합니다. query: 검색 키워드"""
     count = _get_store().count("regulations")
@@ -125,20 +103,6 @@ def search_regulations(query: str) -> str:
     if not results:
         return "관련 규정 없음"
     return "\n\n".join(f"[{i+1}] {r['text'][:300]}" for i, r in enumerate(results))
-
-
-@tool
-def get_past_item_examples(concept: str) -> str:
-    """기출문제에서 유사 문항을 참조합니다. 출제 스타일 벤치마킹 및 차별화에 활용하세요."""
-    count = _get_store().count("past_exams")
-    if count == 0:
-        logger.warning("past_exams 컬렉션이 비어있습니다.")
-        return "기출문제 데이터 없음"
-    retriever = RAGRetriever(_get_store(), _get_embedder(), _get_reranker())
-    results = retriever.retrieve(concept, "past_exams", top_k=2)
-    if not results:
-        return "관련 기출문제 없음"
-    return "\n\n".join(f"[기출 {i+1}] {r['text'][:400]}" for i, r in enumerate(results))
 
 
 @tool
@@ -204,45 +168,34 @@ def record_score(score: int) -> str:
 
 
 @tool
-def check_duplicate(question: str) -> str:
-    """기출 문제와 중복 여부를 확인합니다. 중복이면 True, 아니면 False 반환."""
-    try:
-        count = _get_store().count("past_exams")
-        item_id = getattr(_thread_local, "last_id", "")
-        if count == 0:
-            logger.warning(
-                "past_exams 컬렉션이 비어있습니다. "
-                "scripts/index_past_exams.py를 실행한 뒤 다시 시도하세요."
-            )
-            if item_id:
-                _get_ctx()["duplicates"][item_id] = False
-            return "False"
-        q_vec = _get_embedder().embed([question])[0]
-        results = _get_store().query("past_exams", q_vec, n_results=min(3, count))
-        if not results:
-            if item_id:
-                _get_ctx()["duplicates"][item_id] = False
-            return "False"
-        passages = [r["text"] for r in results]
-        ranked = _get_reranker().rerank(question, passages, top_k=1)
-        is_dup = ranked[0]["score"] > 0.8
-        if item_id:
-            _get_ctx()["duplicates"][item_id] = is_dup
-        return str(is_dup)
-    except Exception:
-        logger.warning("check_duplicate 예외 발생", exc_info=True)
-        item_id = getattr(_thread_local, "last_id", "")
-        if item_id:
-            _get_ctx()["duplicates"][item_id] = False
-        return "False"
+def similarity_judge(
+    count_match: bool,
+    type_ratio_score: float,
+    difficulty_match: bool,
+    overall_score: int,
+) -> str:
+    """예시 문제와 방금 작성한 문항 세트의 구조적 유사도를 기록합니다.
+    문항 세트 작성을 모두 마친 뒤, 스스로 판단한 평가 결과를 인자로 전달해 호출하세요.
+    (통과/재시도 여부는 이 도구가 아니라 이후 로직이 threshold로 결정합니다.)
+    count_match: 문항 개수가 예시 문제와 일치하는가
+    type_ratio_score: 유형(객관식/서술형) 구성 비율의 유사도 (0.0~1.0)
+    difficulty_match: 난이도 수준 구성이 예시 문제와 부합하는가
+    overall_score: 종합 평가 점수 (0~5, 5=매우 유사)
+    """
+    result = {
+        "count_match": bool(count_match),
+        "type_ratio_score": float(max(0.0, min(1.0, type_ratio_score))),
+        "difficulty_match": bool(difficulty_match),
+        "overall_score": int(max(0, min(5, overall_score))),
+    }
+    _get_ctx()["judge_result"] = result
+    return f"구조 유사도 평가 기록됨: {result}"
 
 
 TOOLS = [
-    search_passages,
     search_regulations,
-    get_past_item_examples,
     validate_item_format,
     save_item,
     record_score,
-    check_duplicate,
+    similarity_judge,
 ]

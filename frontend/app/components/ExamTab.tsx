@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Slider } from "@/components/ui/slider";
+
+const MAX_PASSAGE_LENGTH = 8000;
 
 interface ExamItem {
   item_id: string;
@@ -15,16 +16,13 @@ interface ExamItem {
   difficulty: "상" | "중" | "하";
   standard: string;
   judge_score: number;
-  is_duplicate: boolean;
   status: "approved" | "rejected";
 }
 
 const LOADING_STEPS = [
-  "PDF 파싱 중...",
-  "임베딩 생성 중...",
-  "문항 생성 중...",
-  "품질 검사 중...",
-  "중복 확인 중...",
+  "예시 문제를 분석하고 있습니다...",
+  "문항 세트를 생성하고 있습니다...",
+  "구조적 유사도를 평가하고 있습니다...",
 ];
 
 function ItemCard({ item }: { item: ExamItem }) {
@@ -46,9 +44,6 @@ function ItemCard({ item }: { item: ExamItem }) {
         <Badge variant={item.status === "approved" ? "approved" : "rejected"}>
           {item.status === "approved" ? "✓ 승인" : "✗ 반려"}
         </Badge>
-        {item.is_duplicate && (
-          <Badge className="bg-yellow-100 text-yellow-700">중복 의심</Badge>
-        )}
       </div>
 
       <p className="text-[14px] text-[#1A1A1A] line-clamp-2 mb-3">
@@ -93,50 +88,14 @@ function ItemCard({ item }: { item: ExamItem }) {
   );
 }
 
-function SliderRow({
-  label,
-  value,
-  onChange,
-  min = 0,
-  max = 10,
-}: {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-  min?: number;
-  max?: number;
-}) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-[13px] text-[#6B6B6B] w-28 shrink-0">{label}</span>
-      <Slider
-        min={min}
-        max={max}
-        step={1}
-        value={[value]}
-        onValueChange={([v]) => onChange(v)}
-        className="flex-1"
-      />
-      <span className="text-[13px] font-medium text-[#1A1A1A] w-5 text-right">{value}</span>
-    </div>
-  );
-}
-
 export default function ExamTab() {
-  const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [unit, setUnit] = useState("");
-  const [numMc, setNumMc] = useState(5);
-  const [numSa, setNumSa] = useState(2);
-  const [numHard, setNumHard] = useState(2);
-  const [numMed, setNumMed] = useState(3);
-  const [numEasy, setNumEasy] = useState(2);
+  const [passageText, setPassageText] = useState("");
   const [standards, setStandards] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [stepMsg, setStepMsg] = useState("");
   const [items, setItems] = useState<ExamItem[]>([]);
   const [error, setError] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [truncated, setTruncated] = useState(false);
   const stepRef = useRef(0);
 
   useEffect(() => {
@@ -150,29 +109,16 @@ export default function ExamTab() {
     return () => clearInterval(id);
   }, [isLoading]);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file?.type === "application/pdf") setPdfFile(file);
-  }, []);
-
   const handleGenerate = async () => {
-    if (!pdfFile) { setError("PDF 파일을 업로드하세요."); return; }
-    if (!unit.trim()) { setError("단원명을 입력하세요."); return; }
+    if (!passageText.trim()) { setError("예시 문제를 붙여넣어 주세요."); return; }
     setError("");
     setItems([]);
+    setTruncated(false);
     setIsLoading(true);
 
     try {
       const fd = new FormData();
-      fd.append("pdf", pdfFile);
-      fd.append("unit", unit.trim());
-      fd.append("num_mc", String(numMc));
-      fd.append("num_sa", String(numSa));
-      fd.append("num_hard", String(numHard));
-      fd.append("num_med", String(numMed));
-      fd.append("num_easy", String(numEasy));
+      fd.append("passage_text", passageText.trim());
       fd.append("standards", standards);
 
       const res = await fetch("/api/exam", { method: "POST", body: fd });
@@ -181,6 +127,7 @@ export default function ExamTab() {
         setError(data.error ?? "문항 생성에 실패했습니다.");
       } else {
         setItems(data.items ?? []);
+        setTruncated(Boolean(data.truncated));
       }
     } catch {
       setError("서버 연결 오류가 발생했습니다.");
@@ -190,83 +137,34 @@ export default function ExamTab() {
   };
 
   const approved = items.filter((i) => i.status === "approved").length;
+  const overLimit = passageText.length > MAX_PASSAGE_LENGTH;
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 h-full">
       {/* 좌측: 컨트롤 */}
       <div className="lg:w-80 xl:w-96 shrink-0 space-y-5">
-        {/* PDF 업로드 */}
+        {/* 예시 문제 붙여넣기 */}
         <div>
-          <label className="block text-[13px] font-medium text-[#6B6B6B] mb-1.5">
-            수업 지문 PDF
-          </label>
-          <div
-            className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${
-              isDragging
-                ? "border-[#D97706] bg-[#FEF3C7]"
-                : "border-[#E5E3DE] hover:border-[#D97706] hover:bg-[#F0EEE9]"
-            }`}
-            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) setPdfFile(f);
-              }}
-            />
-            {pdfFile ? (
-              <div>
-                <p className="text-[14px] font-medium text-[#D97706]">
-                  {pdfFile.name}
-                </p>
-                <p className="text-[13px] text-[#6B6B6B] mt-0.5">
-                  {(pdfFile.size / 1024).toFixed(0)} KB
-                </p>
-              </div>
-            ) : (
-              <div>
-                <p className="text-[14px] text-[#6B6B6B]">
-                  PDF를 드래그하거나 클릭해서 업로드
-                </p>
-              </div>
-            )}
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-[13px] font-medium text-[#6B6B6B]">
+              예시 문제
+            </label>
+            <span className={`text-[12px] ${overLimit ? "text-red-600" : "text-[#6B6B6B]"}`}>
+              {passageText.length.toLocaleString()} / {MAX_PASSAGE_LENGTH.toLocaleString()}자
+            </span>
           </div>
-        </div>
-
-        {/* 단원명 */}
-        <div>
-          <label className="block text-[13px] font-medium text-[#6B6B6B] mb-1.5">
-            단원명
-          </label>
-          <input
-            type="text"
-            placeholder="예: 민주주의와 헌법"
-            value={unit}
-            onChange={(e) => setUnit(e.target.value)}
-            className="w-full rounded-lg border border-[#E5E3DE] bg-white px-3 py-2 text-[14px] text-[#1A1A1A] placeholder:text-[#6B6B6B] focus:outline-none focus:border-[#D97706] transition-colors"
+          <textarea
+            rows={12}
+            placeholder="참고할 예시 문제를 그대로 붙여넣어 주세요. 문항 수, 유형(객관식/서술형), 난이도 구성을 그대로 파악해 새 문항 세트를 만듭니다."
+            value={passageText}
+            onChange={(e) => setPassageText(e.target.value)}
+            className="w-full rounded-lg border border-[#E5E3DE] bg-white px-3 py-2 text-[13px] text-[#1A1A1A] placeholder:text-[#6B6B6B] focus:outline-none focus:border-[#D97706] transition-colors resize-none"
           />
-        </div>
-
-        {/* 문항 유형 */}
-        <div className="space-y-3">
-          <p className="text-[13px] font-medium text-[#6B6B6B]">문항 유형</p>
-          <SliderRow label="객관식" value={numMc} onChange={setNumMc} max={10} />
-          <SliderRow label="서술형" value={numSa} onChange={setNumSa} max={5} />
-        </div>
-
-        {/* 난이도 배분 */}
-        <div className="space-y-3">
-          <p className="text-[13px] font-medium text-[#6B6B6B]">난이도 배분</p>
-          <SliderRow label="상" value={numHard} onChange={setNumHard} max={10} />
-          <SliderRow label="중" value={numMed} onChange={setNumMed} max={10} />
-          <SliderRow label="하" value={numEasy} onChange={setNumEasy} max={10} />
+          {overLimit && (
+            <p className="text-[12px] text-red-600 mt-1">
+              8,000자를 초과하면 앞부분만 반영됩니다.
+            </p>
+          )}
         </div>
 
         {/* 성취기준 */}
@@ -310,13 +208,18 @@ export default function ExamTab() {
         {!isLoading && items.length === 0 && (
           <div className="flex items-center justify-center h-48">
             <p className="text-[14px] text-[#6B6B6B]">
-              좌측에서 설정 후 문항 생성 버튼을 눌러주세요.
+              좌측에 예시 문제를 붙여넣고 문항 생성 버튼을 눌러주세요.
             </p>
           </div>
         )}
 
         {!isLoading && items.length > 0 && (
           <div>
+            {truncated && (
+              <p className="text-[13px] text-[#D97706] bg-[#FEF3C7] rounded-lg px-3 py-2 mb-3">
+                입력이 길어 앞부분만 반영되었습니다.
+              </p>
+            )}
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-[14px] font-semibold text-[#1A1A1A]">
                 생성된 문항 ({items.length}개)

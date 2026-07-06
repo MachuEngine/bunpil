@@ -1,5 +1,3 @@
-import contextvars
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Literal
 
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
@@ -7,167 +5,99 @@ from langgraph.graph import END, START, StateGraph
 
 from .llm import get_langchain_model
 from .state import ExamState
-from .tools import TOOLS, get_draft_items, init_session
-
-
-def _build_target_pairs(spec: dict) -> list[tuple]:
-    """(item_type, difficulty) 쌍의 목표 리스트를 생성한다.
-    type_dist와 difficulty_dist를 순서대로 짝지으며, 길이가 다르면 짧은 쪽을 순환한다."""
-    type_items: list[str] = []
-    for itype, cnt in spec["type_dist"].items():
-        type_items.extend([itype] * cnt)
-    diff_items: list[str] = []
-    for diff, cnt in spec["difficulty_dist"].items():
-        diff_items.extend([diff] * cnt)
-    n = max(len(type_items), len(diff_items))
-    return [
-        (type_items[i % len(type_items)], diff_items[i % len(diff_items)])
-        for i in range(n)
-    ]
+from .tools import TOOLS, get_draft_items, get_judge_result, init_session
 
 
 def plan_node(state: ExamState) -> dict:
-    """spec 분석, 세션 초기화, coverage_map 설정."""
-    spec = state["spec"]
-    standards = spec.get("standards") or [f"{spec['unit']} 핵심 개념 이해"]
-    init_session(state["source_collection"])
+    """초기 상태를 리셋한다. 세션 초기화는 재시도마다 반복되어야 하므로 agent_node가 담당한다."""
     return {
-        "coverage_map": {s: 0 for s in standards},
-        "draft_items": [],
         "validation_passed": False,
+        "similarity_judge_result": {},
         "error": "",
     }
 
 
 def agent_node(state: ExamState) -> dict:
-    """ReAct 에이전트로 문항을 병렬 생성한다.
+    """ReAct 에이전트가 예시 문제를 분석해 문항 세트 전체를 한 번에 생성한다.
 
-    remaining 목록의 각 (type, difficulty) 쌍을 ThreadPoolExecutor로 동시에 처리한다.
-    last_id / last_passage는 threading.local()로 스레드별 분리된다.
+    세트 전체 단위로 재시도하므로(should_retry), 매 호출마다 세션을 초기화해
+    이전 시도의 문항이 이번 결과에 섞이지 않도록 한다.
     """
+    init_session()
+
     spec = state["spec"]
-    standards = spec.get("standards") or [f"{spec['unit']} 핵심 개념 이해"]
+    passage_text = spec.get("passage_text", "")
+    standards = spec.get("standards") or []
 
-    existing = get_draft_items()
-    # 조기 종료: 유형/난이도 분포가 아닌 총 개수만으로 판단.
-    # 소형 LLM(1.5b)은 유형/난이도 지시를 무시하고 엉뚱한 조합으로 문항을
-    # 생성하는 경우가 있어, target_pairs와 정확히 매칭시키려 하면 validate가
-    # 계속 실패하며 budget만 소진되고 루프가 끝나지 않는 문제가 있었다.
-    # 총 개수 기준으로 완화해 최소한 루프 탈출은 보장한다.
-    # 7B 이상 모델로 전환하면 지시 준수도가 올라가므로 유형/난이도 분포까지
-    # 체크하는 방향으로 다시 강화할 수 있다.
-    # TODO: 7B 전환 후 조기 종료 조건 재검토
-    if len(existing) >= spec["num_items"]:
-        return {"agent_messages": [], "budget": state["budget"] - 1}
-
-    target_pairs = _build_target_pairs(spec)
-    remaining = target_pairs[len(existing):]  # 아직 생성 안 된 슬롯만
+    system_prompt = (
+        "당신은 한국 고등학교 사회 문항 출제 전문가 에이전트입니다. 한국어로만 응답하세요.\n\n"
+        "다음은 교사가 참고용으로 제시한 예시 문제입니다.\n\n"
+        f"[예시 문제]\n{passage_text}\n\n"
+        "위 예시의 문항 수, 유형(객관식/서술형) 구성, 난이도 수준을 그대로 파악하여 "
+        "동일한 개수·구성·난이도의 새 문항 세트를 작성하세요.\n\n"
+        "문항마다 다음 순서로 도구를 호출하세요:\n"
+        "1. [선택] search_regulations — 교육과정 준수 사항 확인\n"
+        "2. validate_item_format — 직접 구성한 문항의 형식 검증\n"
+        "   (오류가 있으면 수정 후 재검증, 통과할 때까지 반복)\n"
+        "3. save_item — 검증 통과한 문항 저장\n"
+        "4. record_score — 품질 자체 평가 (0~5점)\n\n"
+        "문항 세트 작성이 모두 끝나면 similarity_judge 도구를 호출해 "
+        "예시 문제와의 구조적 유사도(문항 개수·유형 비율·난이도 구성)를 스스로 평가하세요.\n\n"
+        "문항은 당신이 직접 작성합니다. "
+        "객관식 선지는 반드시 ①②③④ 형식으로 4개 작성하세요."
+    )
+    user_content = "위 지침에 따라 예시 문제와 동일한 구성의 문항 세트를 작성하세요."
+    if standards:
+        user_content += f"\n\n참고 성취기준: {', '.join(standards)}"
 
     tool_map = {t.name: t for t in TOOLS}
     llm = get_langchain_model().bind_tools(TOOLS)
+    messages = [SystemMessage(content=system_prompt), HumanMessage(content=user_content)]
 
-    def _run_item(itype: str, diff: str, std: str) -> list:
-        passage_text = spec.get("passage_text", "")
-        system_prompt = (
-            "당신은 한국 고등학교 사회 문항 출제 전문가 에이전트입니다. 한국어로만 응답하세요.\n\n"
-            "다음 순서대로 도구를 호출해 문항을 출제하세요:\n"
-            "1. search_passages — 성취기준 관련 내용 검색\n"
-            "2. [선택] get_past_item_examples — 기출 스타일 참조\n"
-            "3. [선택] search_regulations — 교육과정 준수 사항 확인\n"
-            "4. validate_item_format — 직접 구성한 문항의 형식 검증\n"
-            "   (오류가 있으면 수정 후 재검증, 통과할 때까지 반복)\n"
-            "5. save_item — 검증 통과한 문항 저장\n"
-            "6. record_score — 품질 자체 평가 (0~5점)\n"
-            "7. check_duplicate — 기출 중복 확인\n\n"
-            "문항은 당신이 직접 작성합니다. "
-            "객관식 선지는 반드시 ①②③④ 형식으로 4개 작성하세요."
-        )
-        user_content = (
-            f"단원 '{spec['unit']}'에서 문항을 출제하세요.\n"
-            f"유형: {itype}, 난이도: {diff}, 성취기준: {std}"
-            + (f"\n\n[지문]\n{passage_text[:3000]}" if passage_text else "")
-        )
-        messages = [SystemMessage(content=system_prompt), HumanMessage(content=user_content)]
-        item_messages = []
+    for _ in range(14):
+        response = llm.invoke(messages)
+        messages.append(response)
 
-        for _ in range(14):
-            response = llm.invoke(messages)
-            messages.append(response)
-            item_messages.append(response)
+        if not getattr(response, "tool_calls", []):
+            break
 
-            if not getattr(response, "tool_calls", []):
-                break
-
-            done = False
-            for tc in response.tool_calls:
-                fn = tool_map.get(tc["name"])
-                result_content = str(fn.invoke(tc["args"])) if fn else f"Unknown tool: {tc['name']}"
-                tm = ToolMessage(content=result_content, tool_call_id=tc["id"])
-                messages.append(tm)
-                item_messages.append(tm)
-                if tc["name"] == "check_duplicate":
-                    done = True
-            if done:
-                break
-
-        return item_messages
-
-    # contextvars 컨텍스트를 worker 스레드에 복사해 _request_ctx(세션 dict)가 전파되도록 한다.
-    ctx_snapshot = contextvars.copy_context()
-    all_messages = []
-    with ThreadPoolExecutor(max_workers=len(remaining)) as executor:
-        futures = {
-            executor.submit(ctx_snapshot.run, _run_item, itype, diff, standards[idx % len(standards)]): idx
-            for idx, (itype, diff) in enumerate(remaining)
-        }
-        for future in as_completed(futures):
-            all_messages.extend(future.result())
+        judged = False
+        for tc in response.tool_calls:
+            fn = tool_map.get(tc["name"])
+            if not fn:
+                result_content = f"Unknown tool: {tc['name']}"
+            else:
+                try:
+                    result_content = str(fn.invoke(tc["args"]))
+                except Exception as e:
+                    # 소형 LLM이 인자 타입을 틀리는 경우가 있어(예: 리스트 대신 문자열 필드에
+                    # 리스트를 채움), 예외로 전체 루프를 죽이지 않고 에이전트가 스스로
+                    # 고칠 수 있도록 오류를 도구 응답 형태로 되돌려준다.
+                    result_content = f"도구 호출 오류 — 인자 형식을 확인하고 다시 호출하세요: {e}"
+            messages.append(ToolMessage(content=result_content, tool_call_id=tc["id"]))
+            if tc["name"] == "similarity_judge":
+                judged = True
+        if judged:
+            break
 
     return {
-        "agent_messages": all_messages,
+        "agent_messages": messages,
+        "similarity_judge_result": get_judge_result(),
         "budget": state["budget"] - 1,
     }
 
 
 def validate_node(state: ExamState) -> dict:
-    """생성된 문항이 spec 제약을 만족하는지 검증한다."""
-    spec = state["spec"]
-    items = get_draft_items()
-    approved = [it for it in items if it.get("status") == "approved"]
-
-    # 유형 분포 충족 여부
-    type_counts: dict = {}
-    for it in approved:
-        t = it.get("item_type", "")
-        type_counts[t] = type_counts.get(t, 0) + 1
-    type_ok = all(type_counts.get(k, 0) >= v for k, v in spec["type_dist"].items())
-
-    # 난이도 분포 충족 여부
-    diff_counts: dict = {}
-    for it in approved:
-        d = it.get("difficulty", "")
-        diff_counts[d] = diff_counts.get(d, 0) + 1
-    diff_ok = all(diff_counts.get(k, 0) >= v for k, v in spec["difficulty_dist"].items())
-
-    # 성취기준 커버리지
-    standards = spec.get("standards") or []
-    coverage_map = {s: 0 for s in standards}
-    for it in approved:
-        s = it.get("standard", "")
-        if s in coverage_map:
-            coverage_map[s] += 1
-    coverage_ok = all(v > 0 for v in coverage_map.values()) if coverage_map else True
-
+    """similarity_judge 결과를 threshold로 판정한다."""
+    judge = state.get("similarity_judge_result", {})
     passed = (
-        len(approved) >= spec["num_items"]
-        and type_ok
-        and diff_ok
-        and coverage_ok
+        judge.get("count_match", False)
+        and judge.get("type_ratio_score", 0) >= 0.7
+        and judge.get("difficulty_match", False)
+        and judge.get("overall_score", 0) >= 4
     )
-
     return {
-        "draft_items": items,
-        "coverage_map": coverage_map,
+        "draft_items": get_draft_items(),
         "validation_passed": passed,
     }
 

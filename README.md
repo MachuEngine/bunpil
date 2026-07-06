@@ -2,7 +2,7 @@
 
 고등학교 사회 교사용 AI 어시스턴트. 두 가지 기능을 제공합니다.
 
-- **문항 출제** — 지문 PDF 업로드 → 유형·난이도·성취기준 지정 → 1문항 자동 출제
+- **문항 출제** — 예시 문제 텍스트 붙여넣기 → 동일 구성(개수·유형·난이도)의 새 문항 세트 자동 출제
 - **생기부 다듬기** — 교사 관찰 메모 → PII 마스킹 → 학교생활기록부 문체 교정 → 규정 위반 플래그
 
 > 포트폴리오 목적 + 지인 사회 교사 1인 실사용.
@@ -16,20 +16,18 @@
   │
   ▼
 FastAPI (app/main.py)
-  ├─ POST /exam/stream    문항 출제 — SSE 스트리밍 (parsing → indexing → generating → done)
+  ├─ POST /exam/stream    문항 출제 — SSE 스트리밍 (generating → done)
   ├─ POST /exam           문항 출제 — JSON 응답 (하위 호환)
   └─ POST /record         생기부 다듬기 — JSON 응답
   │
-  ├─ 출제 모듈 ─── LangGraph ReAct Agent
+  ├─ 출제 모듈 ─── LangGraph ReAct Agent (passage_text 세트 전체를 한 번에 생성)
   │                  │
   │                  │  [도구 — 모두 LLM 없는 순수 계산/검색/저장]
-  │                  ├─ search_passages       성취기준 RAG 검색
   │                  ├─ search_regulations    교육과정 법령 RAG 검색
-  │                  ├─ get_past_item_examples 기출 스타일 참조
   │                  ├─ validate_item_format  형식 자기교정
   │                  ├─ save_item             에이전트가 직접 생성한 문항 저장
   │                  ├─ record_score          에이전트 자체 품질 평가 기록
-  │                  └─ check_duplicate       기출 중복 유사도 검사
+  │                  └─ similarity_judge      예시 문제와의 구조 유사도 자체 평가
   │
   └─ 생기부 모듈 ── Chain (수동 루프)
                      ├─ mask_pii     regex 기반, 모델 호출 전 처리
@@ -47,11 +45,12 @@ LLM 백엔드
 에이전트(LLM)가 추론과 문항 생성을 **직접** 담당합니다. 도구는 검색·저장·검증의 **순수 계산**만 수행하며 내부 LLM 호출이 없습니다. 이를 통해 도구 내부에 LLM을 중첩하는 안티패턴을 제거했습니다.
 
 ```
-에이전트 실행 흐름 (1문항 기준)
-search_passages → [선택: get_past_item_examples, search_regulations]
+에이전트 실행 흐름 (세트 전체, 문항마다 반복)
+[선택: search_regulations]
 → validate_item_format (형식 오류 시 자기수정 후 재검증)
-→ save_item → record_score → check_duplicate
-                                      └─ 호출 즉시 루프 종료 (중복 save_item 방지)
+→ save_item → record_score
+세트 작성 완료 후
+→ similarity_judge (예시 문제와의 구조 유사도 자체 평가, 호출 즉시 루프 종료)
 ```
 
 ### 동시성 설계
@@ -64,10 +63,9 @@ search_passages → [선택: get_past_item_examples, search_regulations]
 `/exam/stream`은 `text/event-stream`으로 진행 상황을 클라이언트에 실시간 전달합니다.
 
 ```
-data: {"status": "parsing",    "msg": "PDF를 분석하고 있습니다..."}
-data: {"status": "indexing",   "msg": "텍스트를 인덱싱하고 있습니다..."}
+data: {"status": "truncated",  "msg": "입력이 길어 앞부분만 반영되었습니다."}  # 8,000자 초과 시만
 data: {"status": "generating", "msg": "AI가 문항을 생성하고 있습니다..."}
-data: {"status": "done",       "items": [...], "validation_passed": true}
+data: {"status": "done",       "items": [...], "validation_passed": true, "truncated": false}
 ```
 
 ---
@@ -124,7 +122,6 @@ ollama pull qwen2.5:14b
 ```bash
 # data/ 경로에 PDF를 넣은 뒤 아래 순서대로 실행
 .venv/bin/python scripts/index_regulations.py   # 생기부 기재요령·훈령
-.venv/bin/python scripts/index_past_exams.py    # 수능·모평 기출 (사탐)
 .venv/bin/python scripts/index_standards.py     # 사회과 교육과정 성취기준
 ```
 
@@ -156,10 +153,9 @@ LLM_BACKEND=local OLLAMA_MODEL=qwen2.5:7b .venv/bin/python -m uvicorn app.main:a
 | 컬렉션 | 경로 | 출처 | 용도 |
 |---|---|---|---|
 | `regulations` | `data/regulations/` | 학교생활기록부 종합지원포털 | 생기부 규정 위반 검증 + 출제 시 교육과정 법령 참조 |
-| `past_exams` | `data/past_exams/` | 한국교육과정평가원 | 출제 시 기출 중복 체크 + 스타일 참조 |
-| `standards` | `data/standards/` | 국가교육과정정보센터(NCIC) | 출제 시 성취기준 검색 |
+| `standards` | `data/standards/` | 국가교육과정정보센터(NCIC) | 성취기준 검색용 인덱스 (현재 출제 에이전트에서 직접 조회하는 도구는 없음 — `search_passages` 제거로 미사용, 정리 여부 검토 중) |
 
-> **저작권**: 수능·모평 기출은 참고용 인덱싱만 허용 — 재배포·노출 금지.
+> `past_exams` 컬렉션(수능·모평 기출)은 리디자인으로 완전히 제거됨 — `check_duplicate` 폐기, 2028 수능 개편으로 과목별 구조 자체가 무의미해짐.
 
 ---
 
@@ -172,25 +168,23 @@ bunpil/
 │   │   ├── llm/          # LLM 추상화 (OllamaBackend / RunPodBackend / ChatRunPod)
 │   │   └── rag/          # PDF 파싱, 임베딩, 리랭킹, ChromaDB
 │   ├── modules/
-│   │   ├── exam/         # 출제 모듈 (LangGraph ReAct Agent, 7개 도구)
+│   │   ├── exam/         # 출제 모듈 (LangGraph ReAct Agent, 5개 도구)
 │   │   └── record/       # 생기부 모듈 (수동 루프 Chain)
 │   └── main.py           # FastAPI (/exam/stream + /record)
 ├── frontend/             # Next.js UI
 ├── data/
 │   ├── regulations/      # 생기부 기재요령, 작성·관리지침
-│   ├── past_exams/       # 수능·모평 기출 PDF (사탐 과목)
 │   ├── standards/        # 사회과 교육과정 PDF
-│   └── golden/           # 검색 평가 골든셋 (retrieval_golden_final.json)
+│   └── golden/           # 검색·구조 평가 골든셋 (retrieval_golden_final.json, structure_golden.json)
 ├── scripts/
 │   ├── index_regulations.py      # regulations 컬렉션 인덱싱
-│   ├── index_past_exams.py       # past_exams 컬렉션 인덱싱
 │   ├── index_standards.py        # standards 컬렉션 인덱싱
 │   ├── gen_golden_retrieval.py   # 실제 컬렉션 기반 검색 골든셋 초안 생성
 │   ├── test_llm.py               # LLM 추상화 레이어 검증
 │   ├── test_rag.py               # RAG 파이프라인 검증
-│   ├── test_exam.py              # 출제 모듈 통합 테스트
+│   ├── test_exam.py              # 출제 모듈 통합 테스트 (passage_text 리디자인 반영)
 │   ├── test_record.py            # 생기부 모듈 통합 테스트
-│   ├── eval_exam.py              # 출제 평가 (Recall@5, MRR, LLM Judge)
+│   ├── eval_exam.py              # 출제 평가 (Recall@5, MRR, LLM Judge, 구조 유사도 Judge 신뢰도)
 │   └── eval_record.py            # 생기부 평가 (마스킹 FN, 사실추가율, 위반 Recall)
 ├── runpod_handler/       # RunPod 서버리스 핸들러 (Qwen2.5-7B vLLM)
 ├── deploy/               # EC2·Caddy·빌링알람 프로비저닝 스크립트
@@ -223,7 +217,7 @@ bunpil/
 | `test_rag.py` | 검색 + BGE-reranker 재정렬 | ✅ |
 | `test_llm.py` | Ollama 응답 수신 | ✅ |
 | `test_llm.py` | local → RunPod 백엔드 전환 | ✅ |
-| `test_exam.py` | 지문 업로드 → 에이전트 문항 생성 → 저장 → 중복 검증 흐름 | ✅ |
+| `test_exam.py` | passage_text 입력 → 에이전트 세트 생성 → 저장 → similarity_judge 흐름(그래프 무크래시, 도구 오류 자기수정) | ✅ (1.5b는 지시 미준수로 문항 0개 생성 — 7B 이상에서 검증 필요) |
 | `test_record.py` | PII 마스킹 4케이스 (전화번호·주민번호·학교명·이메일) | ✅ |
 | `test_record.py` | 관찰 메모 → 생기부 문체 교정 | ✅ |
 | `test_record.py` | 교사 책임 고지 출력 | ✅ |
@@ -238,17 +232,17 @@ bunpil/
 .venv/bin/python scripts/eval_exam.py
 ```
 
-검색 평가는 실제 `standards` / `regulations` / `past_exams` 컬렉션 기반 골든셋 30개(`data/golden/retrieval_golden_final.json`, 28개 검수 완료)를 사용합니다.
+검색 평가는 실제 `standards` / `regulations` 컬렉션 기반 골든셋 22개(`data/golden/retrieval_golden_final.json`, past_exams 참조 8개 제거 후)를 사용합니다.
 
-| 지표 | n | 기준 | 1.5b 실측 |
+| 지표 | n | 기준 | 실측 |
 |---|---|---|---|
-| Recall@5 | 28 | ≥ 0.80 | 0.714 |
-| MRR | 28 | 참고값 | 0.530 |
-| 유형·난이도·성취기준 제약 | — | 통과 | ✓ |
-| LLM Judge 종합평균 | — | ≥ 4.0 / 5 | 2.92 (7B 재평가 필요) |
+| Recall@5 | 22 | ≥ 0.80 | 리디자인(past_exams 제거) 후 재실행 필요 |
+| MRR | 22 | 참고값 | 리디자인 후 재실행 필요 |
+| 구조 유사도 Judge 신뢰도 (STRUCTURE_GOLDEN) | 0 | count/difficulty 일치율, overall MAE | 라벨링 전 — `eval_structure_judge()` 파이프라인만 준비됨 |
+| LLM Judge 종합평균 | — | ≥ 4.0 / 5 | 2.92 (구 파이프라인 1.5b 실측, 재평가 필요) |
 
-> 검색 수치(Recall@5, MRR)는 LLM 모델과 무관하며 BGE-M3 + BGE-reranker 파이프라인 성능입니다.
-> LLM Judge 수치는 1.5b 한계로 낮음 — 7B(RunPod) 연결 후 재평가 권장.
+> 검색 수치(Recall@5, MRR)는 LLM 모델과 무관하며 BGE-M3 + BGE-reranker 파이프라인 성능입니다. golden set에서 past_exams 항목이 제거돼 n이 28→22로 줄었으므로 수치 재측정이 필요합니다.
+> 세트 제약(유형·난이도·중복률) 검증은 리디자인으로 폐기되고 구조 유사도 Judge 신뢰도 검증으로 대체되었으나, STRUCTURE_GOLDEN 라벨링이 아직 없어 수치는 비어 있습니다.
 
 **생기부 모듈**
 
@@ -272,12 +266,12 @@ bunpil/
 | 항목 | 결과 |
 |---|---|
 | 에이전트 tool calling (ChatRunPod → vLLM) | ✅ |
-| 1문항 출제 (save_item → record_score → check_duplicate) | ✅ |
+| 세트 출제 (save_item → record_score → similarity_judge) | 리디자인 후 RunPod 재검증 필요 |
 | validate_item_format 자기교정 루프 | ✅ |
-| RAG 인덱싱 (3개 컬렉션) | ✅ regulations 510 / past_exams 124 / standards 573 청크 |
+| RAG 인덱싱 (규정·성취기준 2개 컬렉션) | ✅ regulations 510 / standards 573 청크 (past_exams 제거) |
 | EBS 영구 저장 | ✅ 컨테이너 재시작 후 재인덱싱 불필요 |
-| 업로드 PDF 인덱싱 제거 | ✅ 텍스트 직접 삽입으로 대기 시간 제거 |
-| 추론 속도 (1문항) | ~2–3분 (RTX A5000, min workers=1) |
+| 업로드 PDF 인덱싱 제거 | ✅ passage_text 붙여넣기로 인덱싱 자체가 불필요해짐 |
+| 추론 속도 (세트) | 리디자인 후 재측정 필요 (구 수치: ~2–3분/1문항, RTX A5000, min workers=1) |
 
 ---
 
@@ -285,7 +279,7 @@ bunpil/
 
 - 실제 학생 데이터 미사용 — 전부 합성/익명
 - PII 마스킹은 모델 호출 **이전**에 수행
-- 사용자 입력(메모·업로드 지문) **비저장** (업로드 PDF는 메모리에서만 처리 후 폐기)
+- 사용자 입력(메모·붙여넣은 예시 문제) **비저장** (요청 처리 중에만 메모리에 존재, 응답 후 폐기)
 - 로그·캐시에 **PII 기록 금지**
 - 생기부: 메모에 없는 사실 **추가 금지**. 출력에 교사 책임 고지 표시
 
@@ -336,7 +330,6 @@ docker run -d --name bunpil \
 
 # RAG 인덱싱 (처음 한 번 — EBS에 영구 저장됨)
 docker exec bunpil python scripts/index_regulations.py
-docker exec bunpil python scripts/index_past_exams.py
 docker exec bunpil python scripts/index_standards.py
 ```
 

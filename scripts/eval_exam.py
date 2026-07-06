@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-"""Phase 4: 출제 모듈 평가 스크립트
-검색(Recall@5, MRR) / 문항 품질(LLM Judge) / 세트 제약 / Judge 신뢰도.
-검색 평가: 실제 standards/regulations/past_exams 컬렉션 기반 골든셋 사용.
+"""출제 모듈 평가 스크립트
+검색(Recall@5, MRR) / 문항 품질(LLM Judge) / 구조 유사도 Judge 신뢰도 / Judge 신뢰도.
+검색 평가: 실제 standards/regulations 컬렉션 기반 골든셋 사용.
 """
 import json
 import os
@@ -258,21 +258,14 @@ ITEM_GOLDEN = [
     },
 ]
 
-# ── 세트 제약 검증용 합성 세트 ─────────────────────────────────────
-SPEC = {
-    "num_items": 5,
-    "type_dist": {"객관식": 4, "서술형": 1},
-    "difficulty_dist": {"상": 1, "중": 2, "하": 2},
-    "standards": ["민주주의 원리 이해", "시장 경제 원리 이해"],
-}
+_STRUCTURE_GOLDEN_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "golden", "structure_golden.json")
 
-SYNTHETIC_SET = [
-    {"item_type": "객관식", "difficulty": "상", "standard": "민주주의 원리 이해", "is_duplicate": False, "status": "approved"},
-    {"item_type": "객관식", "difficulty": "중", "standard": "시장 경제 원리 이해", "is_duplicate": False, "status": "approved"},
-    {"item_type": "객관식", "difficulty": "중", "standard": "민주주의 원리 이해", "is_duplicate": False, "status": "approved"},
-    {"item_type": "객관식", "difficulty": "하", "standard": "시장 경제 원리 이해", "is_duplicate": False, "status": "approved"},
-    {"item_type": "서술형", "difficulty": "하", "standard": "민주주의 원리 이해", "is_duplicate": False, "status": "approved"},
-]
+
+def _load_structure_golden() -> list[dict]:
+    with open(_STRUCTURE_GOLDEN_PATH, encoding="utf-8") as f:
+        data = json.load(f)
+    return data.get("entries", [])
+
 
 # ── 유틸리티 ────────────────────────────────────────────────────────
 
@@ -390,43 +383,41 @@ def eval_item_quality(items: list, llm, limit: int = 8) -> dict:
     }
 
 
-def eval_set_constraints(items: list, spec: dict) -> dict:
-    """유형·난이도 분포, 커버리지, 중복률 함수 검증."""
-    approved = [it for it in items if it.get("status") == "approved"]
+@traceable(name="eval_structure_judge", run_type="chain", metadata=_TRACE_META)
+def eval_structure_judge(golden: list, limit: int = 8) -> dict:
+    """STRUCTURE_GOLDEN 항목을 실제로 출제 그래프에 태워 similarity_judge 결과를
+    사람 라벨(human_label)과 비교한다. 골든셋이 비어 있으면(라벨링 전) 빈 결과를 반환한다."""
+    subset = golden[:limit]
+    if not subset:
+        return {"n": 0, "note": "STRUCTURE_GOLDEN이 비어 있습니다 — 라벨링 후 재실행하세요."}
 
-    type_counts: dict = {}
-    for it in approved:
-        t = it.get("item_type", "")
-        type_counts[t] = type_counts.get(t, 0) + 1
+    from app.modules.exam import get_exam_graph
+    from app.modules.exam.tools import init_session
 
-    diff_counts: dict = {}
-    for it in approved:
-        d = it.get("difficulty", "")
-        diff_counts[d] = diff_counts.get(d, 0) + 1
+    graph = get_exam_graph()
+    count_match_hits = []
+    difficulty_match_hits = []
+    overall_diffs = []
 
-    coverage_map = {s: 0 for s in spec.get("standards", [])}
-    for it in approved:
-        s = it.get("standard", "")
-        if s in coverage_map:
-            coverage_map[s] += 1
+    for entry in subset:
+        init_session()
+        state = graph.invoke({
+            "spec": {"passage_text": entry["passage_text"], "standards": entry.get("standards", [])},
+            "budget": entry.get("budget", 2),
+        })
+        judge = state.get("similarity_judge_result", {})
+        human = entry["human_label"]
 
-    dup_count = sum(1 for it in approved if it.get("is_duplicate"))
+        count_match_hits.append(judge.get("count_match") == human["count_match"])
+        difficulty_match_hits.append(judge.get("difficulty_match") == human["difficulty_match"])
+        overall_diffs.append(abs(judge.get("overall_score", 0) - human["overall_score"]))
 
-    type_ok = all(type_counts.get(k, 0) >= v for k, v in spec["type_dist"].items())
-    diff_ok = all(diff_counts.get(k, 0) >= v for k, v in spec["difficulty_dist"].items())
-    coverage_ok = all(v > 0 for v in coverage_map.values()) if coverage_map else True
-
+    n = len(subset)
     return {
-        "type_dist": type_counts,
-        "type_ok": type_ok,
-        "diff_dist": diff_counts,
-        "diff_ok": diff_ok,
-        "coverage_map": coverage_map,
-        "coverage_ok": coverage_ok,
-        "dup_count": dup_count,
-        "dup_rate": round(dup_count / max(len(approved), 1), 2),
-        "total_approved": len(approved),
-        "all_pass": type_ok and diff_ok and coverage_ok,
+        "n": n,
+        "count_match_agreement": round(sum(count_match_hits) / n, 3),
+        "difficulty_match_agreement": round(sum(difficulty_match_hits) / n, 3),
+        "overall_score_mae": round(sum(overall_diffs) / n, 3),
     }
 
 
@@ -464,7 +455,7 @@ def check(ok: bool) -> str:
     return "✓" if ok else "✗"
 
 
-def print_report(retrieval: dict, quality: dict, constraints: dict, reliability: dict):
+def print_report(retrieval: dict, quality: dict, structure: dict, reliability: dict):
     print("\n" + "=" * 55)
     print("  분필 출제 모듈 평가 리포트")
     print("=" * 55)
@@ -482,12 +473,13 @@ def print_report(retrieval: dict, quality: dict, constraints: dict, reliability:
     print(f"  종합평균    : {quality['avg_overall']:.2f}  {check(quality['avg_overall'] >= 4.0)} (기준 ≥ 4.0)")
     print(f"  합격률(≥4.0): {quality['pass_rate']*100:.0f}%")
 
-    print(f"\n[3] 세트 제약 검증")
-    print(f"  유형 분포   : {constraints['type_dist']}  {check(constraints['type_ok'])}")
-    print(f"  난이도 분포 : {constraints['diff_dist']}  {check(constraints['diff_ok'])}")
-    print(f"  커버리지    : {constraints['coverage_map']}  {check(constraints['coverage_ok'])}")
-    print(f"  중복률      : {constraints['dup_rate']*100:.0f}%  {check(constraints['dup_rate'] == 0.0)}")
-    print(f"  전체 통과   : {check(constraints['all_pass'])}")
+    print(f"\n[3] 구조 유사도 Judge 신뢰도 (STRUCTURE_GOLDEN, n={structure['n']})")
+    if structure["n"] == 0:
+        print(f"  {structure.get('note', '')}")
+    else:
+        print(f"  count_match 일치율      : {structure['count_match_agreement']:.3f}")
+        print(f"  difficulty_match 일치율 : {structure['difficulty_match_agreement']:.3f}")
+        print(f"  overall_score MAE       : {structure['overall_score_mae']:.3f}")
 
     print(f"\n[4] Judge 신뢰도 (n={reliability['n']})")
     k = reliability["cohen_kappa"]
@@ -539,10 +531,11 @@ def main():
     quality_result = eval_item_quality(ITEM_GOLDEN, judge_llm, limit=len(ITEM_GOLDEN))
     print(f"   종합평균={quality_result['avg_overall']:.2f}/5, 합격률={quality_result['pass_rate']*100:.0f}%")
 
-    # 3. 세트 제약 검증
-    print("\n3. 세트 제약 함수 검증...")
-    constraints_result = eval_set_constraints(SYNTHETIC_SET, SPEC)
-    print(f"   전체 통과: {constraints_result['all_pass']}")
+    # 3. 구조 유사도 Judge 신뢰도
+    structure_golden = _load_structure_golden()
+    print(f"\n3. 구조 유사도 Judge 신뢰도 검증 (STRUCTURE_GOLDEN {len(structure_golden)}개)...")
+    structure_result = eval_structure_judge(structure_golden, limit=len(structure_golden) or 1)
+    print(f"   n={structure_result['n']}")
 
     # 4. Judge 신뢰도
     print(f"\n4. Judge 신뢰도 검증 ({len(ITEM_GOLDEN)}개, 합성 사람 라벨)...")
@@ -550,7 +543,7 @@ def main():
     print(f"   κ={reliability_result['cohen_kappa']:.3f}, ±1 일치율={reliability_result['agreement_within_1']:.3f}")
 
     # 리포트
-    print_report(retrieval_result, quality_result, constraints_result, reliability_result)
+    print_report(retrieval_result, quality_result, structure_result, reliability_result)
 
 
 if __name__ == "__main__":
