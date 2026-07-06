@@ -12,6 +12,7 @@ def get_langchain_model():
         return ChatOllama(
             base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
             model=os.getenv("OLLAMA_MODEL", "qwen2.5:1.5b"),
+            num_predict=2048,  # RunPod 백엔드(max_tokens=2048)와 동일 캡 — 미설정 시 폭주 생성 위험
         )
     if backend == "runpod":
         return ChatRunPod()

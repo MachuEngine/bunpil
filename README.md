@@ -233,16 +233,16 @@ bunpil/
 .venv/bin/python scripts/eval_exam.py
 ```
 
-검색 평가는 실제 `standards` / `regulations` 컬렉션 기반 골든셋 22개(`data/golden/retrieval_golden_final.json`, past_exams 참조 8개 제거 후)를 사용합니다.
+검색 평가는 실제 `standards` / `regulations` 컬렉션 기반 골든셋 22개 중 `reviewed: true` 21개(`data/golden/retrieval_golden_final.json`, past_exams 참조 8개 제거 후)를 사용합니다.
 
 | 지표 | n | 기준 | 실측 |
 |---|---|---|---|
-| Recall@5 | 22 | ≥ 0.80 | 리디자인(past_exams 제거) 후 재실행 필요 |
-| MRR | 22 | 참고값 | 리디자인 후 재실행 필요 |
+| Recall@5 | 21 | ≥ 0.80 | 0.905 ✓ |
+| MRR | 21 | 참고값 | 0.659 |
 | 구조 유사도 Judge 신뢰도 (STRUCTURE_GOLDEN) | 3 | count/difficulty 일치율, overall MAE | count 0.667 / difficulty 0.667 / overall MAE 1.333 (1.5b, 부트스트랩 3개 기준 — 실제 모델 라벨 보강 필요) |
 | LLM Judge 종합평균 | — | ≥ 4.0 / 5 | 2.92 (구 파이프라인 1.5b 실측, 재평가 필요) |
 
-> 검색 수치(Recall@5, MRR)는 LLM 모델과 무관하며 BGE-M3 + BGE-reranker 파이프라인 성능입니다. golden set에서 past_exams 항목이 제거돼 n이 28→22로 줄었으므로 수치 재측정이 필요합니다.
+> 검색 수치(Recall@5, MRR)는 LLM 모델과 무관하며 BGE-M3 + BGE-reranker 파이프라인 성능입니다. past_exams 제거 후 n이 28→21(reviewed 기준)로 줄면서 Recall@5가 0.714→0.905로 상승 — past_exams 항목이 상대적으로 검색 난도가 높았던 것으로 보입니다.
 > 세트 제약(유형·난이도·중복률) 검증은 리디자인으로 폐기되고 구조 유사도 Judge 신뢰도 검증으로 대체됨. STRUCTURE_GOLDEN 3개는 Claude가 만든 합성 부트스트랩 데이터(실제 모델 생성 결과 아님, `data/golden/structure_golden.json`의 `_schema.provenance` 참고)로 eval 스캐폴딩 검증용 — 실제 모델(7B 이상) 출력 기반 라벨로 교체·보강 필요.
 
 **생기부 모듈**
