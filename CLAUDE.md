@@ -14,7 +14,7 @@
 - LangGraph(출제 agent) / LCEL(생기부 chain)
 - ChromaDB + BGE-reranker, 임베딩 BGE-M3 — **임베딩·리랭킹은 CPU**
 - LLM: Qwen2.5 7B (vLLM, 배포는 RunPod 서버리스). GPT-3.5/Ollama는 **합성 데이터 평가 전용**
-- UI: Gradio
+- UI: Next.js (frontend/)
 - 배포: AWS EC2(앱) + RunPod 서버리스(GPU), Caddy HTTPS
 
 ## 핵심 컨벤션

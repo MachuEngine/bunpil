@@ -36,8 +36,9 @@ FastAPI (app/main.py)
                      └─ validate     규칙 기반 + RAG 규정 검증
 
 LLM 백엔드
-  개발(생성):  Ollama (qwen2.5:7b, 로컬) — M5 MacBook / RTX 4060 Ti
-  개발(Judge): Ollama (qwen2.5:14b, 로컬) — Judge 전용, OLLAMA_JUDGE_MODEL로 분리
+  개발(생성):  Ollama (qwen2.5:7b, 로컬)
+  개발(Judge): Ollama (qwen2.5:7b, 로컬) — 생성 모델과 동일. OLLAMA_JUDGE_MODEL로 분리 가능
+              (14B는 하드웨어 확보 후 별도 테스트 예정)
   프로덕션:    RunPod 서버리스 (Qwen2.5-7B-Instruct, vLLM)
 ```
 
@@ -111,8 +112,8 @@ cp .env.example .env   # 필요 시 값 수정
 # 생성 전용 (OLLAMA_MODEL)
 ollama pull qwen2.5:7b
 
-# Judge 전용 (OLLAMA_JUDGE_MODEL) — eval_exam.py Judge 신뢰도 검증에 사용
-ollama pull qwen2.5:14b
+# Judge 전용 (OLLAMA_JUDGE_MODEL) — 현재는 생성 모델과 동일한 7B 사용, 별도 pull 불필요
+# (14B는 하드웨어 확보 후 Judge 분리 테스트 예정)
 
 # 빠른 로직 테스트만 할 경우 (품질 낮음, 폴백 동작)
 # ollama pull qwen2.5:1.5b
@@ -207,8 +208,8 @@ bunpil/
 
 ### 현재 검증 환경
 
-- **LLM**: `qwen2.5:1.5b` (Ollama 로컬) — 로직 검증 전용
-- **품질 평가**: RunPod `Qwen2.5-7B` 연결 후 수행 예정
+- **LLM**: `qwen2.5:7b` (Ollama 로컬) — 생성·Judge 모두 동일 모델
+- **다음 단계**: 하드웨어 확보 후 `qwen2.5:14b`로 Judge 모델 분리 테스트 예정
 
 ### 기능 검증 결과 (qwen2.5:1.5b)
 
@@ -227,6 +228,8 @@ bunpil/
 
 ### 품질 평가 지표
 
+> 지표 전체 목록·골든셋 현황·결과 이력은 [EVAL.md](./EVAL.md)에서 계속 갱신합니다. 아래는 최신 스냅샷입니다.
+
 **출제 모듈**
 
 ```bash
@@ -240,9 +243,12 @@ bunpil/
 | Recall@5 | 21 | ≥ 0.80 | 0.905 ✓ |
 | MRR | 21 | 참고값 | 0.659 |
 | 구조 유사도 Judge 신뢰도 (STRUCTURE_GOLDEN) | 3 | count/difficulty 일치율, overall MAE | count 0.667 / difficulty 0.667 / overall MAE 1.333 (1.5b, 부트스트랩 3개 기준 — 실제 모델 라벨 보강 필요) |
-| LLM Judge 종합평균 | — | ≥ 4.0 / 5 | 2.92 (구 파이프라인 1.5b 실측, 재평가 필요) |
+| LLM Judge 종합평균 | 30 | ≥ 4.0 / 5 | 3.68 ✗ (7B, 리디자인 이전 측정) |
+| Judge 신뢰도 (Cohen's kappa) | 30 | ≥ 0.4 | 0.328 ✗ (7B) |
+| Judge 신뢰도 (±1 일치율) | 30 | ≥ 0.7 | 0.800 ✓ (7B) |
 
-> 검색 수치(Recall@5, MRR)는 LLM 모델과 무관하며 BGE-M3 + BGE-reranker 파이프라인 성능입니다. past_exams 제거 후 n이 28→21(reviewed 기준)로 줄면서 Recall@5가 0.714→0.905로 상승 — past_exams 항목이 상대적으로 검색 난도가 높았던 것으로 보입니다.
+> 검색 수치(Recall@5, MRR)는 LLM 모델과 무관하며 BGE-M3 + BGE-reranker 파이프라인 성능입니다. past_exams 제거 후 n이 28→21(reviewed 기준)로 줄면서 Recall@5가 0.679→0.905로 상승 — past_exams 항목이 상대적으로 검색 난도가 높았던 것으로 보입니다.
+> LLM Judge/신뢰도 수치(3.68/0.328/0.800)는 리디자인 이전 7B 실측치 — ITEM_GOLDEN 기반 문항 품질 평가 자체는 이번 리디자인으로 바뀌지 않아 여전히 유효함. 미달 원인은 오답매력도(2.43/5)가 낮은 것 — 출제 프롬프트 튜닝 예정(로드맵 참고).
 > 세트 제약(유형·난이도·중복률) 검증은 리디자인으로 폐기되고 구조 유사도 Judge 신뢰도 검증으로 대체됨. STRUCTURE_GOLDEN 3개는 Claude가 만든 합성 부트스트랩 데이터(실제 모델 생성 결과 아님, `data/golden/structure_golden.json`의 `_schema.provenance` 참고)로 eval 스캐폴딩 검증용 — 실제 모델(7B 이상) 출력 기반 라벨로 교체·보강 필요.
 
 **생기부 모듈**
@@ -251,16 +257,16 @@ bunpil/
 .venv/bin/python scripts/eval_record.py
 ```
 
-| 지표 | n | 기준 | 1.5b 실측 |
+| 지표 | n | 기준 | 7B 실측 |
 |---|---|---|---|
 | PII 마스킹 FN율 | 20 | = 0 | 0.000 ✓ |
 | 키워드 사실추가율 | 20 | = 0 | 0.000 ✓ |
-| NLI 사실추가율 | 20 | = 0 | 0.700~0.900 ✗ |
-| 규정 위반 Recall | 50 | ≥ 0.95 | 0.600 ✗ |
-| 규정 위반 F1 | 50 | 참고값 | 0.750 |
+| NLI 사실추가율 | 20 | = 0 | 0.100 ✗ |
+| 규정 위반 Recall | 50 | ≥ 0.95 | 0.840 ✗ |
+| 규정 위반 F1 | 50 | 참고값 | 0.857 |
 
 > PII 마스킹·키워드 검사는 규칙 기반이라 소형 모델에서도 안정적.
-> NLI 사실추가율은 1.5b 판단 불안정, 규정 위반은 1.5b + 빈 regulations RAG 한계 — 7B(RunPod) + regulations 인덱싱 후 재평가 권장.
+> NLI 사실추가율·규정 위반 Recall은 1.5b 대비 크게 개선(각각 0.7~0.9→0.1, 0.6→0.84)됐으나 아직 기준 미달 — 위반 탐지 프롬프트·규정 RAG 보강 예정(로드맵 참고). 수치는 qwen2.5:7b 기준.
 
 ### 프로덕션 검증 결과 (RunPod Qwen2.5-7B, RTX A5000)
 
