@@ -24,6 +24,7 @@ FastAPI (app/main.py)
   │                  │
   │                  │  [도구 — 모두 LLM 없는 순수 계산/검색/저장]
   │                  ├─ search_regulations    교육과정 법령 RAG 검색
+  │                  ├─ search_standards      성취기준 원문 RAG 검색
   │                  ├─ validate_item_format  형식 자기교정
   │                  ├─ save_item             에이전트가 직접 생성한 문항 저장
   │                  ├─ record_score          에이전트 자체 품질 평가 기록
@@ -46,7 +47,7 @@ LLM 백엔드
 
 ```
 에이전트 실행 흐름 (세트 전체, 문항마다 반복)
-[선택: search_regulations]
+[선택: search_standards, search_regulations]
 → validate_item_format (형식 오류 시 자기수정 후 재검증)
 → save_item → record_score
 세트 작성 완료 후
@@ -153,7 +154,7 @@ LLM_BACKEND=local OLLAMA_MODEL=qwen2.5:7b .venv/bin/python -m uvicorn app.main:a
 | 컬렉션 | 경로 | 출처 | 용도 |
 |---|---|---|---|
 | `regulations` | `data/regulations/` | 학교생활기록부 종합지원포털 | 생기부 규정 위반 검증 + 출제 시 교육과정 법령 참조 |
-| `standards` | `data/standards/` | 국가교육과정정보센터(NCIC) | 성취기준 검색용 인덱스 (현재 출제 에이전트에서 직접 조회하는 도구는 없음 — `search_passages` 제거로 미사용, 정리 여부 검토 중) |
+| `standards` | `data/standards/` | 국가교육과정정보센터(NCIC) | 출제 시 성취기준 원문 검색 (`search_standards` 도구) |
 
 > `past_exams` 컬렉션(수능·모평 기출)은 리디자인으로 완전히 제거됨 — `check_duplicate` 폐기, 2028 수능 개편으로 과목별 구조 자체가 무의미해짐.
 
@@ -168,7 +169,7 @@ bunpil/
 │   │   ├── llm/          # LLM 추상화 (OllamaBackend / RunPodBackend / ChatRunPod)
 │   │   └── rag/          # PDF 파싱, 임베딩, 리랭킹, ChromaDB
 │   ├── modules/
-│   │   ├── exam/         # 출제 모듈 (LangGraph ReAct Agent, 5개 도구)
+│   │   ├── exam/         # 출제 모듈 (LangGraph ReAct Agent, 6개 도구)
 │   │   └── record/       # 생기부 모듈 (수동 루프 Chain)
 │   └── main.py           # FastAPI (/exam/stream + /record)
 ├── frontend/             # Next.js UI

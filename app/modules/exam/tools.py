@@ -106,6 +106,21 @@ def search_regulations(query: str) -> str:
 
 
 @tool
+def search_standards(query: str) -> str:
+    """성취기준 관련 내용을 사회과 교육과정(2022 개정) standards 컬렉션에서 검색합니다.
+    query: 검색 키워드 (예: 성취기준명)"""
+    count = _get_store().count("standards")
+    if count == 0:
+        logger.warning("standards 컬렉션이 비어있습니다.")
+        return "교육과정 성취기준 자료 없음"
+    retriever = RAGRetriever(_get_store(), _get_embedder(), _get_reranker())
+    results = retriever.retrieve(query, "standards", top_k=3)
+    if not results:
+        return "관련 성취기준 없음"
+    return "\n\n".join(f"[{i+1}] {r['text'][:400]}" for i, r in enumerate(results))
+
+
+@tool
 def validate_item_format(question: str, options: list, answer: str, item_type: str) -> str:
     """문항 형식을 검증합니다. 오류가 있으면 구체적인 수정 지침을 반환합니다.
     question: 문제 질문
@@ -194,6 +209,7 @@ def similarity_judge(
 
 TOOLS = [
     search_regulations,
+    search_standards,
     validate_item_format,
     save_item,
     record_score,
