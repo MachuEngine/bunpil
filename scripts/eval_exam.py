@@ -383,34 +383,68 @@ def eval_item_quality(items: list, llm, limit: int = 8) -> dict:
     }
 
 
+STRUCTURE_JUDGE_TPL = PromptTemplate(
+    system=(
+        "예시 문제와 새로 생성된 문항 세트를 비교해 구조적 유사도를 평가하세요.\n"
+        "다음 4가지를 JSON으로만 응답하세요.\n"
+        "기준: count_match(문항 개수 일치, true/false), type_ratio_score(유형 구성 비율 유사도, 0.0~1.0), "
+        "difficulty_match(난이도 구성 부합, true/false), overall_score(종합 유사도, 0~5 정수)\n"
+        '형식: {"count_match": true/false, "type_ratio_score": 실수, "difficulty_match": true/false, "overall_score": 정수}'
+    ),
+    few_shots=[
+        {
+            "user": '{"예시_문제": "1문항(객관식)", "생성된_세트": [{"item_type":"객관식","difficulty":"중"}]}',
+            "assistant": '{"count_match": true, "type_ratio_score": 1.0, "difficulty_match": true, "overall_score": 5}',
+        },
+        {
+            "user": '{"예시_문제": "3문항(객관식2+서술형1)", "생성된_세트": [{"item_type":"객관식","difficulty":"하"}]}',
+            "assistant": '{"count_match": false, "type_ratio_score": 0.5, "difficulty_match": false, "overall_score": 1}',
+        },
+    ],
+)
+
+
+@traceable(name="judge_structure_one", run_type="llm", metadata=_TRACE_META)
+def judge_structure_one(entry: dict, llm) -> dict:
+    content = json.dumps(
+        {"예시_문제": entry["passage_text"], "생성된_세트": entry["generated_items"]},
+        ensure_ascii=False,
+    )
+    messages = STRUCTURE_JUDGE_TPL.build(content)
+    raw = _run_async(llm.generate(messages))
+    try:
+        s, e = raw.find("{"), raw.rfind("}") + 1
+        scores = json.loads(raw[s:e]) if s >= 0 and e > s else {}
+    except Exception:
+        scores = {}
+    return {
+        "count_match": bool(scores.get("count_match", False)),
+        "type_ratio_score": float(scores.get("type_ratio_score", 0.0)),
+        "difficulty_match": bool(scores.get("difficulty_match", False)),
+        "overall_score": int(scores.get("overall_score", 0)),
+    }
+
+
 @traceable(name="eval_structure_judge", run_type="chain", metadata=_TRACE_META)
-def eval_structure_judge(golden: list, limit: int = 8) -> dict:
-    """STRUCTURE_GOLDEN 항목을 실제로 출제 그래프에 태워 similarity_judge 결과를
-    사람 라벨(human_label)과 비교한다. 골든셋이 비어 있으면(라벨링 전) 빈 결과를 반환한다."""
+def eval_structure_judge(golden: list, llm, limit: int = 8) -> dict:
+    """STRUCTURE_GOLDEN의 고정된 (passage_text, generated_items) 쌍에 대해 LLM에게
+    구조 유사도 판단만 다시 시켜 사람 라벨(human_label)과 대조한다.
+    골든셋이 비어 있으면(라벨링 전) 빈 결과를 반환한다."""
     subset = golden[:limit]
     if not subset:
         return {"n": 0, "note": "STRUCTURE_GOLDEN이 비어 있습니다 — 라벨링 후 재실행하세요."}
 
-    from app.modules.exam import get_exam_graph
-    from app.modules.exam.tools import init_session
-
-    graph = get_exam_graph()
     count_match_hits = []
     difficulty_match_hits = []
     overall_diffs = []
 
     for entry in subset:
-        init_session()
-        state = graph.invoke({
-            "spec": {"passage_text": entry["passage_text"], "standards": entry.get("standards", [])},
-            "budget": entry.get("budget", 2),
-        })
-        judge = state.get("similarity_judge_result", {})
+        judge = judge_structure_one(entry, llm)
         human = entry["human_label"]
 
-        count_match_hits.append(judge.get("count_match") == human["count_match"])
-        difficulty_match_hits.append(judge.get("difficulty_match") == human["difficulty_match"])
-        overall_diffs.append(abs(judge.get("overall_score", 0) - human["overall_score"]))
+        count_match_hits.append(judge["count_match"] == human["count_match"])
+        difficulty_match_hits.append(judge["difficulty_match"] == human["difficulty_match"])
+        overall_diffs.append(abs(judge["overall_score"] - human["overall_score"]))
 
     n = len(subset)
     return {
@@ -534,7 +568,7 @@ def main():
     # 3. 구조 유사도 Judge 신뢰도
     structure_golden = _load_structure_golden()
     print(f"\n3. 구조 유사도 Judge 신뢰도 검증 (STRUCTURE_GOLDEN {len(structure_golden)}개)...")
-    structure_result = eval_structure_judge(structure_golden, limit=len(structure_golden) or 1)
+    structure_result = eval_structure_judge(structure_golden, judge_llm, limit=len(structure_golden) or 1)
     print(f"   n={structure_result['n']}")
 
     # 4. Judge 신뢰도

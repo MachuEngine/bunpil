@@ -239,11 +239,11 @@ bunpil/
 |---|---|---|---|
 | Recall@5 | 22 | ≥ 0.80 | 리디자인(past_exams 제거) 후 재실행 필요 |
 | MRR | 22 | 참고값 | 리디자인 후 재실행 필요 |
-| 구조 유사도 Judge 신뢰도 (STRUCTURE_GOLDEN) | 0 | count/difficulty 일치율, overall MAE | 라벨링 전 — `eval_structure_judge()` 파이프라인만 준비됨 |
+| 구조 유사도 Judge 신뢰도 (STRUCTURE_GOLDEN) | 3 | count/difficulty 일치율, overall MAE | count 0.667 / difficulty 0.667 / overall MAE 1.333 (1.5b, 부트스트랩 3개 기준 — 실제 모델 라벨 보강 필요) |
 | LLM Judge 종합평균 | — | ≥ 4.0 / 5 | 2.92 (구 파이프라인 1.5b 실측, 재평가 필요) |
 
 > 검색 수치(Recall@5, MRR)는 LLM 모델과 무관하며 BGE-M3 + BGE-reranker 파이프라인 성능입니다. golden set에서 past_exams 항목이 제거돼 n이 28→22로 줄었으므로 수치 재측정이 필요합니다.
-> 세트 제약(유형·난이도·중복률) 검증은 리디자인으로 폐기되고 구조 유사도 Judge 신뢰도 검증으로 대체되었으나, STRUCTURE_GOLDEN 라벨링이 아직 없어 수치는 비어 있습니다.
+> 세트 제약(유형·난이도·중복률) 검증은 리디자인으로 폐기되고 구조 유사도 Judge 신뢰도 검증으로 대체됨. STRUCTURE_GOLDEN 3개는 Claude가 만든 합성 부트스트랩 데이터(실제 모델 생성 결과 아님, `data/golden/structure_golden.json`의 `_schema.provenance` 참고)로 eval 스캐폴딩 검증용 — 실제 모델(7B 이상) 출력 기반 라벨로 교체·보강 필요.
 
 **생기부 모듈**
 
