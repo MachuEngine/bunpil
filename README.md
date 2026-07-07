@@ -3,11 +3,11 @@
 ![Skills](https://skillicons.dev/icons?i=python,fastapi,typescript,nextjs,tailwind,docker,react)
 
 ![LangChain](https://img.shields.io/badge/LangChain-1C3C3C?logo=langchain&logoColor=white)
-![LangGraph](https://img.shields.io/badge/LangGraph-000000?logo=langgraph&logoColor=white)
+![LangGraph](https://img.shields.io/badge/LangGraph-30363D?logo=langgraph&logoColor=white)
 ![ChromaDB](https://img.shields.io/badge/ChromaDB-1A5FB4)
-![Ollama](https://img.shields.io/badge/Ollama-000000?logo=ollama&logoColor=white)
+![Ollama](https://img.shields.io/badge/Ollama-2B2B2B?logo=ollama&logoColor=white)
 ![RunPod](https://img.shields.io/badge/RunPod-5D29F0)
-![LangSmith](https://img.shields.io/badge/LangSmith-030710)
+![LangSmith](https://img.shields.io/badge/LangSmith-1B2733)
 
 문제 생성과 생기부 작성에 도움을 주는 AI 어시스턴트
 
