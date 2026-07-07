@@ -429,10 +429,14 @@ bash deploy/billing_alarm.sh   # 월 $10 초과 시 이메일 알람
 | 변수 | 설명 | 기본값 |
 |---|---|---|
 | `LLM_BACKEND` | `local` 또는 `runpod` | `local` |
-| `OLLAMA_MODEL` | 로컬 개발 모델명 | `qwen2.5:7b` |
+| `OLLAMA_MODEL` | 로컬 개발 생성 모델명 | `qwen2.5:7b` |
+| `OLLAMA_JUDGE_MODEL` | 로컬 개발 Judge 모델명 (미설정 시 `OLLAMA_MODEL`로 폴백) | — (선택, 현재 생성 모델과 동일 7B) |
+| `OLLAMA_BASE_URL` | Ollama 서버 주소 | `http://localhost:11434` |
 | `RUNPOD_API_KEY` | RunPod API 키 | — |
 | `RUNPOD_ENDPOINT_ID` | RunPod 엔드포인트 ID | — |
 | `CHROMA_PERSIST_DIR` | ChromaDB 저장 경로 | `/data/chroma_db` (EC2) / `./chroma_db` (로컬) |
+| `BGE_EMBED_MODEL` | 임베딩 모델명 | `BAAI/bge-m3` |
+| `BGE_RERANK_MODEL` | 리랭킹 모델명 | `BAAI/bge-reranker-base` |
 | `LANGCHAIN_TRACING_V2` | LangSmith 트레이싱 활성화 (`true` / `false`) | — (선택) |
 | `LANGCHAIN_API_KEY` | LangSmith API 키 | — (선택) |
 | `LANGCHAIN_PROJECT` | LangSmith 프로젝트명 | `bunpil` |
