@@ -12,46 +12,39 @@
 ## 아키텍처
 
 ```mermaid
-flowchart TD
-    Browser["🌐 브라우저<br/><small>Next.js UI · frontend/</small>"] --> API
+flowchart LR
+    Browser["🌐 브라우저<br/>Next.js UI"]
 
     subgraph API["⚙️ FastAPI · app/main.py"]
-        direction LR
-        E1["POST /exam/stream<br/><small>SSE · UI 기본 경로<br/>노드 단위 진행 이벤트</small>"]
-        E2["POST /exam<br/><small>JSON 단발 (대안)</small>"]
-        E3["POST /record<br/><small>JSON 단발</small>"]
+        E1["POST /exam/stream<br/>SSE"]
+        E2["POST /exam<br/>JSON"]
+        E3["POST /record<br/>JSON"]
     end
 
+    ExamMod["📝 출제 모듈<br/>LangGraph ReAct Agent"]
+    RecordMod["✍️ 생기부 모듈<br/>Chain · 3단계"]
+    LLM["🧠 LLM 백엔드<br/>Ollama / RunPod"]
+
+    Browser --> API
     E1 --> ExamMod
     E2 --> ExamMod
     E3 --> RecordMod
-
-    subgraph ExamMod["📝 출제 모듈 — LangGraph ReAct Agent"]
-        direction LR
-        T1["search_regulations<br/><small>법령 RAG 검색</small>"]
-        T2["search_standards<br/><small>성취기준 RAG 검색</small>"]
-        T3["validate_item_format<br/><small>형식 자기교정</small>"]
-        T4["save_item<br/><small>문항 저장</small>"]
-        T5["record_score<br/><small>자체 품질 평가</small>"]
-        T6["similarity_judge<br/><small>구조 유사도 평가</small>"]
-    end
-
-    subgraph RecordMod["✍️ 생기부 모듈 — Chain (수동 루프)"]
-        direction LR
-        M1["mask_pii<br/><small>regex, 모델 호출 전</small>"] --> M2["polish<br/><small>Few-shot 문체 교정</small>"] --> M3["validate<br/><small>규칙 + RAG 규정 검증</small>"]
-    end
-
     ExamMod --> LLM
     RecordMod --> LLM
 
-    subgraph LLM["🧠 LLM 백엔드"]
-        direction LR
-        Dev["개발<br/><small>Ollama qwen2.5:7b (로컬)</small>"]
-        Prod["프로덕션<br/><small>RunPod 서버리스<br/>Qwen2.5-7B-Instruct, vLLM</small>"]
-    end
+    class Browser,E1,E2,E3,LLM neutral
+    class ExamMod exam
+    class RecordMod record
+    style API fill:#FAFAF8,stroke:#C3C2B7,stroke-width:1px
+
+    classDef neutral fill:#F5F4F1,stroke:#8A8880,stroke-width:1px,color:#1A1A1A
+    classDef exam fill:#FEF3C7,stroke:#D97706,stroke-width:1.5px,color:#1A1A1A
+    classDef record fill:#ECFEFF,stroke:#0891B2,stroke-width:1.5px,color:#1A1A1A
 ```
 
-- **출제 모듈**: `passage_text`(예시 문제 원문)를 받아 에이전트가 세트 전체를 한 번에 생성. 도구는 모두 검색/저장/검증만 수행하는 순수 계산(내부 LLM 호출 없음)
+- **엔드포인트**: `/exam/stream`(SSE, UI 기본 경로) · `/exam`(JSON 단발, 대안) · `/record`(JSON 단발)
+- **출제 모듈 도구**: `search_regulations`(법령 RAG) · `search_standards`(성취기준 RAG) · `validate_item_format`(형식 자기교정) · `save_item`(문항 저장) · `record_score`(자체 품질 평가) · `similarity_judge`(구조 유사도 평가) — `passage_text`(예시 문제 원문)를 받아 에이전트가 세트 전체를 한 번에 생성, 도구는 모두 순수 계산(내부 LLM 호출 없음)
+- **생기부 모듈 체인**: `mask_pii`(regex, 모델 호출 전) → `polish`(Few-shot 문체 교정) → `validate`(규칙 + RAG 규정 검증)
 - **LLM 백엔드**: 개발 환경은 생성·Judge 모두 `qwen2.5:7b`(Ollama) 동일 모델 사용 — `OLLAMA_JUDGE_MODEL`로 분리 가능(14B는 하드웨어 확보 후 별도 테스트 예정)
 
 ### ReAct 에이전트 설계 원칙
@@ -60,14 +53,28 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    Start(("문항 시작")) --> Search["🔍 search_standards<br/>search_regulations<br/><small>(선택)</small>"]
-    Search --> Validate{"validate_item_format"}
-    Validate -- "형식 오류 시 자기수정" --> Validate
-    Validate -- "통과" --> Save["save_item"] --> Score["record_score"]
+    Start(["문항 시작"])
+    Search["🔍 search_standards<br/>search_regulations"]
+    Validate{"validate_item_format"}
+    Save["save_item"]
+    Score["record_score"]
+    Judge["🎯 similarity_judge"]
+    End(["루프 종료"])
+
+    Start --> Search --> Validate
+    Validate -- "형식 오류" --> Validate
+    Validate -- "통과" --> Save --> Score
     Score -.->|"문항마다 반복"| Search
-    Score --> Judge["🎯 similarity_judge<br/><small>세트 작성 완료 후<br/>구조 유사도 자체 평가</small>"]
-    Judge --> End(("호출 즉시<br/>루프 종료"))
+    Score --> Judge --> End
+
+    class Start,End,Validate neutral
+    class Search,Save,Score,Judge exam
+
+    classDef neutral fill:#F5F4F1,stroke:#8A8880,stroke-width:1px,color:#1A1A1A
+    classDef exam fill:#FEF3C7,stroke:#D97706,stroke-width:1.5px,color:#1A1A1A
 ```
+
+`similarity_judge`는 세트 작성이 모두 끝난 뒤 한 번 호출되며(예시 문제와의 구조 유사도 자체 평가), 호출 즉시 루프가 종료됩니다.
 
 ### 동시성 설계
 
@@ -80,14 +87,24 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    START(["START"]) --> plan["plan<br/><small>상태 초기화</small>"]
-    plan --> agent["agent<br/><small>ReAct 에이전트<br/>문항 세트 생성</small>"]
-    agent --> validate{"validate<br/><small>similarity_judge<br/>threshold 판정</small>"}
-    validate -- "미달 & budget > 0<br/>(재시도, 최대 5회)" --> agent
-    validate -- "통과 또는 budget 소진" --> END(["END"])
+    START(["START"])
+    plan["plan<br/>상태 초기화"]
+    agent["agent<br/>문항 세트 생성"]
+    validate{"validate"}
+    END(["END"])
+
+    START --> plan --> agent --> validate
+    validate -- "미달 & budget > 0" --> agent
+    validate -- "통과 또는 소진" --> END
+
+    class START,END,validate neutral
+    class plan,agent exam
+
+    classDef neutral fill:#F5F4F1,stroke:#8A8880,stroke-width:1px,color:#1A1A1A
+    classDef exam fill:#FEF3C7,stroke:#D97706,stroke-width:1.5px,color:#1A1A1A
 ```
 
-노드가 완료될 때마다 아래처럼 진행 이벤트 하나씩 전송됩니다.
+`validate`는 `similarity_judge` 결과를 threshold로 판정합니다(미달 시 최대 5회까지 `agent`로 재시도). 노드가 완료될 때마다 아래처럼 진행 이벤트 하나씩 전송됩니다.
 
 ```
 data: {"status": "truncated", "msg": "입력이 길어 앞부분만 반영되었습니다."}  # 8,000자 초과 시만
@@ -327,10 +344,18 @@ bunpil/
 
 ```mermaid
 flowchart LR
-    Browser["🌐 브라우저"] --> Caddy["🔒 Caddy<br/><small>HTTPS 리버스 프록시</small>"]
-    Caddy --> EC2["🖥️ EC2 t3.medium<br/><small>FastAPI + ChromaDB</small>"]
-    EC2 --> RunPod["⚡ RunPod 서버리스<br/><small>Qwen2.5-7B, vLLM</small>"]
-    EC2 -.-> EBS[("💾 EBS 10GB<br/><small>ChromaDB 영구 저장</small>")]
+    Browser["🌐 브라우저"]
+    Caddy["🔒 Caddy<br/>HTTPS 프록시"]
+    EC2["🖥️ EC2 t3.medium<br/>FastAPI + ChromaDB"]
+    RunPod["⚡ RunPod 서버리스<br/>Qwen2.5-7B, vLLM"]
+    EBS[("💾 EBS 10GB<br/>ChromaDB 저장")]
+
+    Browser --> Caddy --> EC2 --> RunPod
+    EC2 -.-> EBS
+
+    class Browser,Caddy,EC2,RunPod,EBS neutral
+
+    classDef neutral fill:#F5F4F1,stroke:#8A8880,stroke-width:1px,color:#1A1A1A
 ```
 
 ### RunPod 서버리스 설정
