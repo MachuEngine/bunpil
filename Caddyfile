@@ -1,6 +1,9 @@
 # 분필 Caddy 리버스 프록시
 # your-domain.com → EC2 내부 FastAPI(8765) 포트로 전달
 # TLS: Let's Encrypt 자동 발급 (도메인 DNS가 이 서버 IP를 가리켜야 함)
+#
+# 주의: 이 설정은 FastAPI(API 전용)만 프록시합니다. frontend/(Next.js)는
+# 별도 배포 대상이며 이 파일에 포함돼 있지 않습니다 — README.md '배포 (프로덕션)' 참고.
 
 your-domain.com {
     # 타임아웃: LLM 생성이 길므로 넉넉히 설정

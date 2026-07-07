@@ -195,22 +195,27 @@ ollama pull qwen2.5:7b
 
 ### 4. 서버 실행
 
-터미널 2개를 사용합니다.
+터미널 3개를 사용합니다. `app/main.py`는 정적 파일을 서빙하지 않으므로, UI를 보려면 프론트엔드(Next.js)도 별도로 띄워야 합니다.
 
 ```bash
 # 터미널 1 — Ollama LLM 서버
 ollama serve
 
-# 터미널 2 — FastAPI (UI + API 통합, 포트 8765)
+# 터미널 2 — FastAPI (API 전용, 포트 8765)
 # Windows
 $env:LLM_BACKEND="local"; $env:OLLAMA_MODEL="qwen2.5:7b"
 .venv\Scripts\python.exe -m uvicorn app.main:app --port 8765
 
 # macOS / Linux
 LLM_BACKEND=local OLLAMA_MODEL=qwen2.5:7b .venv/bin/python -m uvicorn app.main:app --port 8765
+
+# 터미널 3 — 프론트엔드 (Next.js, 포트 3000)
+cd frontend
+npm install    # 최초 1회
+BACKEND_URL=http://localhost:8765 npm run dev
 ```
 
-브라우저에서 **http://localhost:8765** 접속.
+브라우저에서 **http://localhost:3000** 접속(프론트엔드 포트 — `frontend/app/api/*/route.ts`가 `BACKEND_URL`로 FastAPI에 프록시). `BACKEND_URL` 미설정 시 기본값은 `http://localhost:8000`이라 위처럼 8765로 맞춰줘야 합니다.
 
 ---
 
@@ -373,6 +378,8 @@ flowchart LR
 
     classDef neutral fill:#F5F4F1,stroke:#8A8880,stroke-width:1px,color:#1A1A1A
 ```
+
+> ⚠️ **프론트엔드 배포 미완료**: 위 파이프라인(`Dockerfile`·`docker-compose.yml`·`Caddyfile`)은 FastAPI(API 전용, 8765)만 EC2에 올립니다. `frontend/`(Next.js)는 빌드·배포 대상에 포함돼 있지 않아, 현재 이 파이프라인만으로는 브라우저에서 접근 가능한 UI가 없습니다. 과거 Gradio 기반 UI(`app/ui.py`)를 FastAPI가 직접 서빙하던 시절의 흔적이 일부 남아있었으나(→ Next.js 전환 후 `app/ui.py` 자체는 삭제됨), 전환 후 프론트엔드 배포 단계가 아직 이 저장소에 반영되지 않았습니다. 프로덕션에 띄우려면 Next.js를 별도 호스팅(Vercel 등)하며 `BACKEND_URL`을 EC2 도메인으로 설정하거나, EC2에서 `next build && next start`를 상시 프로세스로 돌리고 Caddy에 경로별 리버스 프록시를 추가하는 작업이 필요합니다.
 
 ### RunPod 서버리스 설정
 

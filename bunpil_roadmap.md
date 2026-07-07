@@ -50,23 +50,24 @@
 
 ## ⬜ 남은 작업 (우선순위 순)
 
-1. **오답매력도 개선** — 현재 2.43 (출제 프롬프트 튜닝, 리디자인 이전 측정치라 재검증 필요)
-2. **STRUCTURE_GOLDEN 실제 모델 라벨 보강** — 현재 3개는 Claude 합성 부트스트랩, 7B 이상 실제 출력 기반 라벨 필요
-3. **생기부 모듈 eval 개선**
+1. **프론트엔드 프로덕션 배포** — Next.js 전환(Gradio `app/ui.py` 대체) 이후 `Dockerfile`·`docker-compose.yml`·`Caddyfile`에 `frontend/` 빌드·서빙이 반영되지 않아, 현재 배포 파이프라인만으로는 EC2에서 UI 접근 불가(FastAPI API만 서빙됨, 2026-07-08 확인). Vercel 등 별도 호스팅 + `BACKEND_URL`로 EC2 연결, 또는 EC2 상시 `next start` 프로세스 + Caddy 경로별 프록시 추가 중 택1
+2. **오답매력도 개선** — 현재 2.43 (출제 프롬프트 튜닝, 리디자인 이전 측정치라 재검증 필요)
+3. **STRUCTURE_GOLDEN 실제 모델 라벨 보강** — 현재 3개는 Claude 합성 부트스트랩, 7B 이상 실제 출력 기반 라벨 필요
+4. **생기부 모듈 eval 개선**
    - 규정 위반 Recall 0.840 → 0.95 목표 (위반 탐지 프롬프트 튜닝 또는 규정 RAG 보강)
    - NLI 사실추가율 오탐 2건 원인 분석 (골든셋 검수 or Judge 프롬프트 개선)
-4. **모델 비교 실험** — Qwen2.5-7B vs GPT-3.5 vs Ollama 소형 모델
+5. **모델 비교 실험** — Qwen2.5-7B vs GPT-3.5 vs Ollama 소형 모델
    - 동일 골든셋으로 3개 모델 eval 실행
    - 정량 비교 결과로 Qwen 채택 근거 확보
    - GPT-3.5는 API 비용 발생, 비교 후 즉시 종료
-5. **Ragas 연동 + LangSmith Experiments 연동**
+6. **Ragas 연동 + LangSmith Experiments 연동**
    - Faithfulness, Answer Relevancy 지표 추가 (`eval_ragas.py` 신규 스크립트)
    - eval 실행 시 결과가 LangSmith Experiments에 자동 기록되도록 연동
    - 모델/프롬프트 변경 시 Experiments 탭에서 결과 비교 가능
    - EVAL.md 결과 이력 수동 업데이트 → LangSmith 자동 기록으로 전환
    - **완료 직후 코드 리뷰 1건 추가**: `eval_ragas.py`는 완전 신규 스크립트라 "핵심 구조를 설명할 수 있는 수준" 원칙상 리뷰 필요. STRUCTURE_GOLDEN용 스크립트나 모델 비교 실험 코드는 기존 `graph.py`/`eval_exam.py` 호출 재사용 수준이라 작성하면서 바로 이해되므로 별도 리뷰 라운드 불필요 — `eval_ragas.py` 하나만 핵심으로 본다.
-6. **GitHub Actions CI** — eval 자동화
-7. **문서화 및 포트폴리오 정리**
+7. **GitHub Actions CI** — eval 자동화
+8. **문서화 및 포트폴리오 정리**
 
 ---
 
