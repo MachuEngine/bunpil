@@ -11,48 +11,62 @@
 
 ## 아키텍처
 
-```
-브라우저 (Next.js UI, frontend/)
-  │
-  ▼
-FastAPI (app/main.py)
-  ├─ POST /exam/stream    문항 출제 — SSE 스트리밍 (UI 기본 사용, 노드 단위 진행 이벤트)
-  ├─ POST /exam           문항 출제 — JSON 응답 (하위 호환)
-  └─ POST /record         생기부 다듬기 — JSON 응답
-  │
-  ├─ 출제 모듈 ─── LangGraph ReAct Agent (passage_text 세트 전체를 한 번에 생성)
-  │                  │
-  │                  │  [도구 — 모두 LLM 없는 순수 계산/검색/저장]
-  │                  ├─ search_regulations    교육과정 법령 RAG 검색
-  │                  ├─ search_standards      성취기준 원문 RAG 검색
-  │                  ├─ validate_item_format  형식 자기교정
-  │                  ├─ save_item             에이전트가 직접 생성한 문항 저장
-  │                  ├─ record_score          에이전트 자체 품질 평가 기록
-  │                  └─ similarity_judge      예시 문제와의 구조 유사도 자체 평가
-  │
-  └─ 생기부 모듈 ── Chain (수동 루프)
-                     ├─ mask_pii     regex 기반, 모델 호출 전 처리
-                     ├─ polish       Few-shot LLM 문체 교정
-                     └─ validate     규칙 기반 + RAG 규정 검증
+```mermaid
+flowchart TD
+    Browser["🌐 브라우저<br/><small>Next.js UI · frontend/</small>"] --> API
 
-LLM 백엔드
-  개발(생성):  Ollama (qwen2.5:7b, 로컬)
-  개발(Judge): Ollama (qwen2.5:7b, 로컬) — 생성 모델과 동일. OLLAMA_JUDGE_MODEL로 분리 가능
-              (14B는 하드웨어 확보 후 별도 테스트 예정)
-  프로덕션:    RunPod 서버리스 (Qwen2.5-7B-Instruct, vLLM)
+    subgraph API["⚙️ FastAPI · app/main.py"]
+        direction LR
+        E1["POST /exam/stream<br/><small>SSE · UI 기본 경로<br/>노드 단위 진행 이벤트</small>"]
+        E2["POST /exam<br/><small>JSON 단발 (대안)</small>"]
+        E3["POST /record<br/><small>JSON 단발</small>"]
+    end
+
+    E1 --> ExamMod
+    E2 --> ExamMod
+    E3 --> RecordMod
+
+    subgraph ExamMod["📝 출제 모듈 — LangGraph ReAct Agent"]
+        direction LR
+        T1["search_regulations<br/><small>법령 RAG 검색</small>"]
+        T2["search_standards<br/><small>성취기준 RAG 검색</small>"]
+        T3["validate_item_format<br/><small>형식 자기교정</small>"]
+        T4["save_item<br/><small>문항 저장</small>"]
+        T5["record_score<br/><small>자체 품질 평가</small>"]
+        T6["similarity_judge<br/><small>구조 유사도 평가</small>"]
+    end
+
+    subgraph RecordMod["✍️ 생기부 모듈 — Chain (수동 루프)"]
+        direction LR
+        M1["mask_pii<br/><small>regex, 모델 호출 전</small>"] --> M2["polish<br/><small>Few-shot 문체 교정</small>"] --> M3["validate<br/><small>규칙 + RAG 규정 검증</small>"]
+    end
+
+    ExamMod --> LLM
+    RecordMod --> LLM
+
+    subgraph LLM["🧠 LLM 백엔드"]
+        direction LR
+        Dev["개발<br/><small>Ollama qwen2.5:7b (로컬)</small>"]
+        Prod["프로덕션<br/><small>RunPod 서버리스<br/>Qwen2.5-7B-Instruct, vLLM</small>"]
+    end
 ```
+
+- **출제 모듈**: `passage_text`(예시 문제 원문)를 받아 에이전트가 세트 전체를 한 번에 생성. 도구는 모두 검색/저장/검증만 수행하는 순수 계산(내부 LLM 호출 없음)
+- **LLM 백엔드**: 개발 환경은 생성·Judge 모두 `qwen2.5:7b`(Ollama) 동일 모델 사용 — `OLLAMA_JUDGE_MODEL`로 분리 가능(14B는 하드웨어 확보 후 별도 테스트 예정)
 
 ### ReAct 에이전트 설계 원칙
 
 에이전트(LLM)가 추론과 문항 생성을 **직접** 담당합니다. 도구는 검색·저장·검증의 **순수 계산**만 수행하며 내부 LLM 호출이 없습니다. 이를 통해 도구 내부에 LLM을 중첩하는 안티패턴을 제거했습니다.
 
-```
-에이전트 실행 흐름 (세트 전체, 문항마다 반복)
-[선택: search_standards, search_regulations]
-→ validate_item_format (형식 오류 시 자기수정 후 재검증)
-→ save_item → record_score
-세트 작성 완료 후
-→ similarity_judge (예시 문제와의 구조 유사도 자체 평가, 호출 즉시 루프 종료)
+```mermaid
+flowchart LR
+    Start(("문항 시작")) --> Search["🔍 search_standards<br/>search_regulations<br/><small>(선택)</small>"]
+    Search --> Validate{"validate_item_format"}
+    Validate -- "형식 오류 시 자기수정" --> Validate
+    Validate -- "통과" --> Save["save_item"] --> Score["record_score"]
+    Score -.->|"문항마다 반복"| Search
+    Score --> Judge["🎯 similarity_judge<br/><small>세트 작성 완료 후<br/>구조 유사도 자체 평가</small>"]
+    Judge --> End(("호출 즉시<br/>루프 종료"))
 ```
 
 ### 동시성 설계
@@ -63,6 +77,17 @@ LLM 백엔드
 ### SSE 스트리밍
 
 `/exam/stream`은 프론트엔드가 실제로 사용하는 기본 경로입니다. `graph.stream(stream_mode="updates")`로 LangGraph 노드(`plan`→`agent`→`validate`, 재시도 시 `agent`→`validate` 반복) 완료 시점마다 진행 이벤트를 `text/event-stream`으로 전달합니다. POST 요청이라 브라우저 네이티브 `EventSource`(GET 전용) 대신 프론트엔드에서 `fetch` + `ReadableStream`을 수동 파싱합니다.
+
+```mermaid
+flowchart LR
+    START(["START"]) --> plan["plan<br/><small>상태 초기화</small>"]
+    plan --> agent["agent<br/><small>ReAct 에이전트<br/>문항 세트 생성</small>"]
+    agent --> validate{"validate<br/><small>similarity_judge<br/>threshold 판정</small>"}
+    validate -- "미달 & budget > 0<br/>(재시도, 최대 5회)" --> agent
+    validate -- "통과 또는 budget 소진" --> END(["END"])
+```
+
+노드가 완료될 때마다 아래처럼 진행 이벤트 하나씩 전송됩니다.
 
 ```
 data: {"status": "truncated", "msg": "입력이 길어 앞부분만 반영되었습니다."}  # 8,000자 초과 시만
@@ -300,10 +325,12 @@ bunpil/
 
 ## 배포 (프로덕션)
 
-```
-브라우저 → Caddy (HTTPS) → EC2 t3.medium (FastAPI + ChromaDB) → RunPod 서버리스 (Qwen2.5-7B)
-                                    │
-                              EBS 10GB (ChromaDB 영구 저장)
+```mermaid
+flowchart LR
+    Browser["🌐 브라우저"] --> Caddy["🔒 Caddy<br/><small>HTTPS 리버스 프록시</small>"]
+    Caddy --> EC2["🖥️ EC2 t3.medium<br/><small>FastAPI + ChromaDB</small>"]
+    EC2 --> RunPod["⚡ RunPod 서버리스<br/><small>Qwen2.5-7B, vLLM</small>"]
+    EC2 -.-> EBS[("💾 EBS 10GB<br/><small>ChromaDB 영구 저장</small>")]
 ```
 
 ### RunPod 서버리스 설정
