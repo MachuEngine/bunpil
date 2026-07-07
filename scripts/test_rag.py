@@ -84,13 +84,7 @@ def main():
         store.add_chunks(COLLECTION, chunks, embeddings)
         print(f"   → '{COLLECTION}' 컬렉션에 {len(chunks)}개 저장")
 
-        print("\n6. 세션 임시 컬렉션 생성 및 폐기 (업로드 지문 시뮬레이션)...")
-        temp_name = store.create_temp_collection()
-        store.add_chunks(temp_name, chunks[:2], embedder.embed(texts[:2]))
-        store.delete_collection(temp_name)
-        print(f"   → 임시 컬렉션 '{temp_name[:20]}...' 폐기 완료")
-
-        print("\n7. 검색 + rerank 테스트...")
+        print("\n6. 검색 + rerank 테스트...")
         retriever = RAGRetriever(store, embedder, reranker)
         query = "What is the role of government in a market economy?"
         results = retriever.retrieve(query, COLLECTION, top_k=3)

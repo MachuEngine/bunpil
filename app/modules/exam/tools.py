@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 from langchain_core.tools import tool
 
-from app.common.rag import BGEEmbedder, BGEReranker, RAGRetriever, RAGStore
+from app.common.rag import get_retriever, get_store
 
 # ── 세션 컨텍스트 ──
 # _request_ctx: 요청별 독립 dict. asyncio.to_thread + contextvars.copy_context()로
@@ -60,33 +60,6 @@ def get_judge_result() -> dict:
     return _get_ctx().get("judge_result", {})
 
 
-# ── 싱글턴 인프라 ──
-_store: RAGStore = None
-_embedder: BGEEmbedder = None
-_reranker: BGEReranker = None
-
-
-def _get_store() -> RAGStore:
-    global _store
-    if _store is None:
-        _store = RAGStore()
-    return _store
-
-
-def _get_embedder() -> BGEEmbedder:
-    global _embedder
-    if _embedder is None:
-        _embedder = BGEEmbedder()
-    return _embedder
-
-
-def _get_reranker() -> BGEReranker:
-    global _reranker
-    if _reranker is None:
-        _reranker = BGEReranker()
-    return _reranker
-
-
 # ── 도구 정의 ──
 # 모든 도구는 LLM 호출 없이 순수 계산/검색/저장만 수행한다.
 # 추론과 생성은 에이전트(LLM)가 직접 담당한다.
@@ -94,12 +67,11 @@ def _get_reranker() -> BGEReranker:
 @tool
 def search_regulations(query: str) -> str:
     """교육과정 법령·지침에서 관련 내용을 검색합니다. query: 검색 키워드"""
-    count = _get_store().count("regulations")
+    count = get_store().count("regulations")
     if count == 0:
         logger.warning("regulations 컬렉션이 비어있습니다.")
         return "교육과정 자료 없음"
-    retriever = RAGRetriever(_get_store(), _get_embedder(), _get_reranker())
-    results = retriever.retrieve(query, "regulations", top_k=3)
+    results = get_retriever().retrieve(query, "regulations", top_k=3)
     if not results:
         return "관련 규정 없음"
     return "\n\n".join(f"[{i+1}] {r['text'][:300]}" for i, r in enumerate(results))
@@ -109,12 +81,11 @@ def search_regulations(query: str) -> str:
 def search_standards(query: str) -> str:
     """성취기준 관련 내용을 사회과 교육과정(2022 개정) standards 컬렉션에서 검색합니다.
     query: 검색 키워드 (예: 성취기준명)"""
-    count = _get_store().count("standards")
+    count = get_store().count("standards")
     if count == 0:
         logger.warning("standards 컬렉션이 비어있습니다.")
         return "교육과정 성취기준 자료 없음"
-    retriever = RAGRetriever(_get_store(), _get_embedder(), _get_reranker())
-    results = retriever.retrieve(query, "standards", top_k=3)
+    results = get_retriever().retrieve(query, "standards", top_k=3)
     if not results:
         return "관련 성취기준 없음"
     return "\n\n".join(f"[{i+1}] {r['text'][:400]}" for i, r in enumerate(results))

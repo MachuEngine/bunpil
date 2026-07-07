@@ -16,7 +16,7 @@
   │
   ▼
 FastAPI (app/main.py)
-  ├─ POST /exam/stream    문항 출제 — SSE 스트리밍 (generating → done)
+  ├─ POST /exam/stream    문항 출제 — SSE 스트리밍 (UI 기본 사용, 노드 단위 진행 이벤트)
   ├─ POST /exam           문항 출제 — JSON 응답 (하위 호환)
   └─ POST /record         생기부 다듬기 — JSON 응답
   │
@@ -58,17 +58,23 @@ LLM 백엔드
 ### 동시성 설계
 
 - **요청 간 세션 격리**: 출제 요청별 컨텍스트를 `contextvars.ContextVar`로 분리. `asyncio.to_thread` + `contextvars.copy_context()`로 worker 스레드에 전파.
-- **이벤트 루프 비블로킹**: `/exam/stream`은 `asyncio.to_thread`로 LangGraph 실행. `/record`는 Chain 전체가 async이므로 `await chain.run()`으로 직접 호출.
+- **이벤트 루프 비블로킹**: `/exam`은 `asyncio.to_thread`로 LangGraph 실행. `/exam/stream`은 `graph.stream()`(동기 제너레이터)을 executor 스레드에서 돌리며 `asyncio.Queue`로 이벤트만 이벤트 루프에 전달. `/record`는 Chain 전체가 async이므로 `await chain.run()`으로 직접 호출.
 
 ### SSE 스트리밍
 
-`/exam/stream`은 `text/event-stream`으로 진행 상황을 클라이언트에 실시간 전달합니다.
+`/exam/stream`은 프론트엔드가 실제로 사용하는 기본 경로입니다. `graph.stream(stream_mode="updates")`로 LangGraph 노드(`plan`→`agent`→`validate`, 재시도 시 `agent`→`validate` 반복) 완료 시점마다 진행 이벤트를 `text/event-stream`으로 전달합니다. POST 요청이라 브라우저 네이티브 `EventSource`(GET 전용) 대신 프론트엔드에서 `fetch` + `ReadableStream`을 수동 파싱합니다.
 
 ```
-data: {"status": "truncated",  "msg": "입력이 길어 앞부분만 반영되었습니다."}  # 8,000자 초과 시만
-data: {"status": "generating", "msg": "AI가 문항을 생성하고 있습니다..."}
-data: {"status": "done",       "items": [...], "validation_passed": true, "truncated": false}
+data: {"status": "truncated", "msg": "입력이 길어 앞부분만 반영되었습니다."}  # 8,000자 초과 시만
+data: {"status": "progress",  "msg": "준비 중..."}
+data: {"status": "progress",  "msg": "AI가 문항을 생성하고 있습니다. 수 분 소요됩니다..."}
+data: {"status": "progress",  "msg": "생성된 문항의 구조적 유사도를 검증하고 있습니다..."}
+data: {"status": "progress",  "msg": "문항 세트를 다시 생성하고 있습니다 (2번째 시도)..."}  # 검증 실패 시 재시도(최대 5회)마다 반복
+data: {"status": "done",      "items": [...], "validation_passed": true, "truncated": false}
+data: {"status": "error",     "msg": "...", "detail": "..."}  # 예외 발생 시
 ```
+
+`/exam`은 동일 로직을 JSON 단발 응답으로 제공하는 대안 엔드포인트입니다(curl 등 비-브라우저 클라이언트용).
 
 ---
 

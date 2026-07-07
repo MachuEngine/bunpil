@@ -7,7 +7,7 @@ import logging
 from typing import List, TypedDict
 
 from app.common.llm import get_llm_backend
-from app.common.rag import BGEEmbedder, BGEReranker, RAGRetriever, RAGStore
+from app.common.rag import get_retriever, get_store
 
 from .masker import mask_pii
 from .prompts import POLISH_TPL, VALIDATE_TPL
@@ -63,10 +63,8 @@ class RecordOutput(TypedDict):
 
 class RecordChain:
     def __init__(self):
-        self._store = RAGStore()
-        self._embedder = BGEEmbedder()
-        self._reranker = BGEReranker()
-        self._retriever = RAGRetriever(self._store, self._embedder, self._reranker)
+        self._store = get_store()
+        self._retriever = get_retriever()
         self._llm = get_llm_backend()
         if self._store.count(REGULATION_COLLECTION) == 0:
             logger.warning(

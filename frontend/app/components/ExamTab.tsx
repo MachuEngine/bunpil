@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -18,12 +18,6 @@ interface ExamItem {
   judge_score: number;
   status: "approved" | "rejected";
 }
-
-const LOADING_STEPS = [
-  "예시 문제를 분석하고 있습니다...",
-  "문항 세트를 생성하고 있습니다...",
-  "구조적 유사도를 평가하고 있습니다...",
-];
 
 function ItemCard({ item }: { item: ExamItem }) {
   const [expanded, setExpanded] = useState(false);
@@ -96,18 +90,6 @@ export default function ExamTab() {
   const [items, setItems] = useState<ExamItem[]>([]);
   const [error, setError] = useState("");
   const [truncated, setTruncated] = useState(false);
-  const stepRef = useRef(0);
-
-  useEffect(() => {
-    if (!isLoading) return;
-    stepRef.current = 0;
-    setStepMsg(LOADING_STEPS[0]);
-    const id = setInterval(() => {
-      stepRef.current = (stepRef.current + 1) % LOADING_STEPS.length;
-      setStepMsg(LOADING_STEPS[stepRef.current]);
-    }, 2500);
-    return () => clearInterval(id);
-  }, [isLoading]);
 
   const handleGenerate = async () => {
     if (!passageText.trim()) { setError("예시 문제를 붙여넣어 주세요."); return; }
@@ -115,19 +97,48 @@ export default function ExamTab() {
     setItems([]);
     setTruncated(false);
     setIsLoading(true);
+    setStepMsg("준비 중...");
 
     try {
       const fd = new FormData();
       fd.append("passage_text", passageText.trim());
       fd.append("standards", standards);
 
-      const res = await fetch("/api/exam", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "문항 생성에 실패했습니다.");
-      } else {
-        setItems(data.items ?? []);
-        setTruncated(Boolean(data.truncated));
+      const res = await fetch("/api/exam/stream", { method: "POST", body: fd });
+      if (!res.ok || !res.body) {
+        setError("문항 생성에 실패했습니다.");
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let sepIndex;
+        while ((sepIndex = buffer.indexOf("\n\n")) !== -1) {
+          const frame = buffer.slice(0, sepIndex);
+          buffer = buffer.slice(sepIndex + 2);
+
+          const line = frame.split("\n").find((l) => l.startsWith("data: "));
+          if (!line) continue;
+          const data = JSON.parse(line.slice("data: ".length));
+
+          if (data.status === "progress") {
+            setStepMsg(data.msg ?? "");
+          } else if (data.status === "truncated") {
+            setTruncated(true);
+          } else if (data.status === "done") {
+            setItems(data.items ?? []);
+            setTruncated(Boolean(data.truncated));
+          } else if (data.status === "error") {
+            setError(data.msg ?? "문항 생성에 실패했습니다.");
+          }
+        }
       }
     } catch {
       setError("서버 연결 오류가 발생했습니다.");

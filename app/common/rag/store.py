@@ -1,5 +1,4 @@
 import os
-import uuid
 
 import chromadb
 
@@ -14,14 +13,6 @@ class RAGStore:
             name=name,
             metadata={"hnsw:space": "cosine"},
         )
-
-    def create_temp_collection(self) -> str:
-        name = f"tmp_{uuid.uuid4().hex}"
-        self._collection(name)
-        return name
-
-    def delete_collection(self, name: str):
-        self.client.delete_collection(name)
 
     def add_chunks(
         self,
