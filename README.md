@@ -1,6 +1,6 @@
 # 분필 (bunpil)
 
-![Skills](https://skillicons.dev/icons?i=python,fastapi,typescript,nextjs,tailwind,docker,react)
+![Skills](https://skillicons.dev/icons?i=python,fastapi,typescript,nextjs,tailwind,docker,react,aws)
 
 ![LangChain](https://img.shields.io/badge/LangChain-1C3C3C?logo=langchain&logoColor=white)
 ![LangGraph](https://img.shields.io/badge/LangGraph-30363D?logo=langgraph&logoColor=white)
@@ -8,6 +8,8 @@
 ![Ollama](https://img.shields.io/badge/Ollama-2B2B2B?logo=ollama&logoColor=white)
 ![RunPod](https://img.shields.io/badge/RunPod-5D29F0)
 ![LangSmith](https://img.shields.io/badge/LangSmith-1B2733)
+![vLLM](https://img.shields.io/badge/vLLM-1B76C4?logo=vllm&logoColor=white)
+![Caddy](https://img.shields.io/badge/Caddy-175F8C?logo=caddy&logoColor=white)
 
 문제 생성과 생기부 작성에 도움을 주는 AI 어시스턴트
 
