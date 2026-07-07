@@ -54,27 +54,34 @@ flowchart LR
 ```mermaid
 flowchart LR
     Start(["문항 시작"])
-    Search["🔍 search_standards<br/>search_regulations"]
-    Validate{"validate_item_format"}
-    Save["save_item"]
-    Score["record_score"]
-    Judge["🎯 similarity_judge"]
+
+    subgraph Loop["🔁 문항마다 반복"]
+        direction LR
+        Search["🔍 search_standards<br/>search_regulations"]
+        Validate{"validate_item_format"}
+        Save["save_item"]
+        Score["record_score"]
+
+        Search --> Validate
+        Validate -- "형식 오류" --> Validate
+        Validate -- "통과" --> Save --> Score
+        Score -.-> Search
+    end
+
+    Judge["🎯 similarity_judge<br/>세트 전체 구조 유사도"]
     End(["루프 종료"])
 
-    Start --> Search --> Validate
-    Validate -- "형식 오류" --> Validate
-    Validate -- "통과" --> Save --> Score
-    Score -.->|"문항마다 반복"| Search
-    Score --> Judge --> End
+    Start --> Loop --> Judge --> End
 
     class Start,End,Validate neutral
     class Search,Save,Score,Judge exam
+    style Loop fill:#FAFAF8,stroke:#C3C2B7,stroke-width:1px
 
     classDef neutral fill:#F5F4F1,stroke:#8A8880,stroke-width:1px,color:#1A1A1A
     classDef exam fill:#FEF3C7,stroke:#D97706,stroke-width:1.5px,color:#1A1A1A
 ```
 
-`similarity_judge`는 세트 작성이 모두 끝난 뒤 한 번 호출되며(예시 문제와의 구조 유사도 자체 평가), 호출 즉시 루프가 종료됩니다.
+문항별 루프가 세트 전체에 대해 반복되다가 작성이 모두 끝나면 `similarity_judge`가 예시 문제와의 구조 유사도를 한 번만 평가하고, 호출 즉시 루프가 종료됩니다.
 
 ### 동시성 설계
 
