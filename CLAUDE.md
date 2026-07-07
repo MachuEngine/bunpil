@@ -72,5 +72,5 @@
 
 - **record 모듈**: `mask_pii → polish → validate` 순서 고정
 - **exam 모듈**: LangGraph 노드 순서 변경 시 반드시 설계 단계 승인 받을 것
-- **chroma_db**: 임시 컬렉션(`create_temp_collection`)을 쓰는 코드가 있다면 반드시 `try/finally`로 폐기 (2026.07 리디자인으로 출제 모듈은 더 이상 임시 컬렉션을 쓰지 않음 — `passage_text`는 ChromaDB 미적재)
+- **chroma_db**: `RAGStore`에 임시 컬렉션 생성/폐기 메서드 없음(2026.07 리디자인으로 완전 제거됨 — `passage_text`는 ChromaDB 미적재). 되살리는 경우 반드시 `try/finally`로 폐기할 것
 - **runpod_handler**: 변경 시 로컬 Ollama로 먼저 검증 후 RunPod 적용

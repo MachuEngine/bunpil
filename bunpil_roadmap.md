@@ -2,8 +2,7 @@
 
 ## 진행 상태 요약
 
-- ✅ 완료: 배포, LangSmith 트레이싱, 골든셋 구축, eval 스크립트 실데이터 전환, Judge/생성 모델 분리, 7B 전환 및 첫 eval 실행, 코드 리뷰 일부(`chat_runpod.py`), 출제 모듈 passage_text 리디자인(2026.07, FEEDBACK_DRIVEN_REDESIGN_v2.md)
-- 🔄 진행 중: 코드 리뷰 (`graph.py`·`tools.py` — 리디자인으로 구조가 바뀌어 재검토 필요 → `store.py`+`retriever.py` → `chain.py`)
+- ✅ 완료: 배포, LangSmith 트레이싱, 골든셋 구축, eval 스크립트 실데이터 전환, Judge/생성 모델 분리, 7B 전환 및 첫 eval 실행, 코드 리뷰(`chat_runpod.py`, `graph.py`·`tools.py`·`store.py`+`retriever.py`·`chain.py`·`main.py`), 출제 모듈 passage_text 리디자인(2026.07, FEEDBACK_DRIVEN_REDESIGN_v2.md), 리디자인 후속 코드 리뷰 지적사항 5건 정리(2026.07, 69ebdee)
 - ⬜ 남은 작업: 아래 "남은 작업" 목록 참고 (우선순위 순)
 
 ---
@@ -41,33 +40,32 @@
 - standards 컬렉션 조회 도구(`search_standards`) 재도입
 - 로컬 Ollama `num_predict` 캡 누락 버그 수정 (RunPod과 동일하게 2048 캡 — 폭주 생성 방지)
 
----
-
-## 🔄 진행 중
-
-- 코드 리뷰: `graph.py`(리디자인으로 재작성돼 재검토 필요) → `tools.py`(리디자인으로 도구 구성 변경) → `store.py` + `retriever.py` → `chain.py`
+### 리디자인 후속 코드 리뷰 지적사항 5건 정리 (2026.07, 커밋 69ebdee)
+- `/exam/stream`을 `graph.stream(stream_mode="updates")`로 전환해 실제 노드 단위(plan/agent/validate, 재시도 포함) 진행 이벤트 전송. 프론트(`ExamTab.tsx`)는 가짜 `LOADING_STEPS` 스테퍼 대신 `fetch`+`ReadableStream`으로 실제 SSE 소비
+- `main.py`의 `/exam`·`/exam/stream` 중복 로직(truncation·spec 구성·그래프 실행)을 헬퍼로 추출
+- `app/common/rag/singleton.py` 신설 — `exam/tools.py`·`record/chain.py`가 store·embedder·reranker·retriever를 공유하는 lazy-singleton으로 통합 (이전엔 서로 다른 패턴이었음)
+- 앱 코드에서 안 쓰이던 `RAGStore.create_temp_collection`/`delete_collection`과 이를 시뮬레이션하던 `test_rag.py` 스텝 제거
 
 ---
 
 ## ⬜ 남은 작업 (우선순위 순)
 
-1. **코드 리뷰 완료** — `graph.py` → `tools.py` → `store.py`+`retriever.py` → `chain.py`
-2. **오답매력도 개선** — 현재 2.43 (출제 프롬프트 튜닝, 리디자인 이전 측정치라 재검증 필요)
-3. **STRUCTURE_GOLDEN 실제 모델 라벨 보강** — 현재 3개는 Claude 합성 부트스트랩, 7B 이상 실제 출력 기반 라벨 필요
-4. **생기부 모듈 eval 개선**
+1. **오답매력도 개선** — 현재 2.43 (출제 프롬프트 튜닝, 리디자인 이전 측정치라 재검증 필요)
+2. **STRUCTURE_GOLDEN 실제 모델 라벨 보강** — 현재 3개는 Claude 합성 부트스트랩, 7B 이상 실제 출력 기반 라벨 필요
+3. **생기부 모듈 eval 개선**
    - 규정 위반 Recall 0.840 → 0.95 목표 (위반 탐지 프롬프트 튜닝 또는 규정 RAG 보강)
    - NLI 사실추가율 오탐 2건 원인 분석 (골든셋 검수 or Judge 프롬프트 개선)
-5. **모델 비교 실험** — Qwen2.5-7B vs GPT-3.5 vs Ollama 소형 모델
+4. **모델 비교 실험** — Qwen2.5-7B vs GPT-3.5 vs Ollama 소형 모델
    - 동일 골든셋으로 3개 모델 eval 실행
    - 정량 비교 결과로 Qwen 채택 근거 확보
    - GPT-3.5는 API 비용 발생, 비교 후 즉시 종료
-6. **Ragas 연동 + LangSmith Experiments 연동**
+5. **Ragas 연동 + LangSmith Experiments 연동**
    - Faithfulness, Answer Relevancy 지표 추가 (`eval_ragas.py` 신규 스크립트)
    - eval 실행 시 결과가 LangSmith Experiments에 자동 기록되도록 연동
    - 모델/프롬프트 변경 시 Experiments 탭에서 결과 비교 가능
    - EVAL.md 결과 이력 수동 업데이트 → LangSmith 자동 기록으로 전환
-7. **GitHub Actions CI** — eval 자동화
-8. **문서화 및 포트폴리오 정리**
+6. **GitHub Actions CI** — eval 자동화
+7. **문서화 및 포트폴리오 정리**
 
 ---
 
@@ -78,10 +76,11 @@
 | 파일 | 핵심 이해 포인트 | 상태 |
 |---|---|---|
 | `app/common/llm/backends/chat_runpod.py` | 왜 BaseChatModel을 직접 상속했는가, `_agenerate` vs `_generate` 차이 | ✅ |
-| `app/modules/exam/graph.py` | LangGraph 노드 구조, 각 노드의 역할과 연결 (리디자인으로 재작성돼 재검토 필요) | 🔄 |
-| `app/modules/exam/tools.py` | `@tool` 데코레이터, `_ctx` 공유 상태 문제 (리디자인으로 도구 구성 변경) | 🔄 |
-| `app/common/rag/store.py` + `retriever.py` | ChromaDB 컬렉션 구조, 2단계 검색 흐름 | ⬜ |
-| `app/modules/record/chain.py` | LCEL 파이프 구조, 하이브리드 위반 탐지 순서 | ⬜ |
+| `app/modules/exam/graph.py` | LangGraph 노드 구조, 각 노드의 역할과 연결 (리디자인 이후 구조로 재검토 완료) | ✅ |
+| `app/modules/exam/tools.py` | `@tool` 데코레이터, `_ctx` 공유 상태 문제, RAG 싱글턴 통합 | ✅ |
+| `app/common/rag/store.py` + `retriever.py` | ChromaDB 컬렉션 구조, 2단계 검색 흐름, 죽은 임시 컬렉션 코드 제거 | ✅ |
+| `app/modules/record/chain.py` | LCEL 파이프 구조, 하이브리드 위반 탐지 순서, RAG 싱글턴 통합 | ✅ |
+| `app/main.py` | `/exam`·`/exam/stream` 중복 제거, 실제 SSE 노드 단위 스트리밍 | ✅ |
 
 ### 흐름만 파악하면 되는 파일
 - `app/common/llm/factory.py` — 환경변수 분기, 10줄

@@ -245,15 +245,15 @@ def should_retry(state: ExamState) -> str:
 
 ## 6. Claude Code 구현 체크리스트
 
-- [ ] `app/main.py`: `/exam`, `/exam/stream` 엔드포인트를 `passage_text` 단일 입력으로 변경
-- [ ] `app/modules/exam/state.py`: `ExamSpec`/`ExamState`에서 `num_items`/`type_dist`/`difficulty_dist` 제거, `passage_text`/`similarity_judge_result` 반영
-- [ ] `app/modules/exam/tools.py`: `search_passages`/`check_duplicate`/`get_past_item_examples` 제거, `similarity_judge` 신규 구현
-- [ ] `app/modules/exam/graph.py`: agent 노드 단일 세션 생성으로 재작성(`ThreadPoolExecutor`/`_build_target_pairs`/`_run_item` 제거), `should_retry`를 `similarity_judge_result` 기반으로 변경, `budget` 기본값 5로 변경
-- [ ] `scripts/index_past_exams.py`, `data/past_exams/` 폐기
-- [ ] `data/golden/retrieval_golden_final.json`에서 `past_exams` 참조 항목 제거
-- [ ] `frontend/`: 입력 UI를 텍스트 붙여넣기 단일 필드로 교체
-- [ ] 신규 `STRUCTURE_GOLDEN` 골든셋 구축 (예시 문제 + 사람이 매긴 구조 정답 + overall_score 라벨)
-- [ ] `EVAL.md`, `README.md`, `bunpil_roadmap.md`에 위 변경사항 반영
+- [x] `app/main.py`: `/exam`, `/exam/stream` 엔드포인트를 `passage_text` 단일 입력으로 변경
+- [x] `app/modules/exam/state.py`: `ExamSpec`/`ExamState`에서 `num_items`/`type_dist`/`difficulty_dist` 제거, `passage_text`/`similarity_judge_result` 반영
+- [x] `app/modules/exam/tools.py`: `search_passages`/`check_duplicate`/`get_past_item_examples` 제거, `similarity_judge` 신규 구현
+- [x] `app/modules/exam/graph.py`: agent 노드 단일 세션 생성으로 재작성(`ThreadPoolExecutor`/`_build_target_pairs`/`_run_item` 제거), `should_retry`를 `similarity_judge_result` 기반으로 변경, `budget` 기본값 5로 변경
+- [x] `scripts/index_past_exams.py`, `data/past_exams/` 폐기
+- [x] `data/golden/retrieval_golden_final.json`에서 `past_exams` 참조 항목 제거
+- [x] `frontend/`: 입력 UI를 텍스트 붙여넣기 단일 필드로 교체
+- [ ] 신규 `STRUCTURE_GOLDEN` 골든셋 구축 (예시 문제 + 사람이 매긴 구조 정답 + overall_score 라벨) — Claude 합성 부트스트랩 3개만 있음, 실제 모델 라벨 보강 미완료(상단 안내 참고)
+- [x] `EVAL.md`, `README.md`, `bunpil_roadmap.md`에 위 변경사항 반영
 
 ---
 
