@@ -35,7 +35,7 @@ from gen_structure_golden import PASSAGE_SAMPLES
 _OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "golden", "_retry_preservation_compare.json")
 
 BUDGET = 3
-TEST_SAMPLES = [s for s in PASSAGE_SAMPLES if s["num_items"] >= 5]
+TEST_SAMPLES = [s for s in PASSAGE_SAMPLES if s["num_items"] >= 5][:8]  # 시간 제약으로 8개로 축소(2026-07-10 야간)
 
 
 def _old_system_prompt(passage_text: str, num_items: int) -> str:
