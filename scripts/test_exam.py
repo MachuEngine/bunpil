@@ -24,13 +24,17 @@ PASSAGE_TEXT = """\
 
 
 def main() -> None:
+    # num_items를 예시 문제 자체의 문항 수(2개)와 다르게 줘서, 생성 개수가
+    # 예시 개수가 아니라 num_items를 따르는지(count_match 디커플링) 검증한다.
+    num_items = 3
     spec: ExamSpec = {
         "passage_text": PASSAGE_TEXT,
         "standards": ["민주주의 핵심 원리 이해"],
+        "num_items": num_items,
     }
 
     print("=== 출제 모듈 통합 테스트 (passage_text 리디자인) ===\n")
-    print(f"입력 지문 길이: {len(PASSAGE_TEXT)}자")
+    print(f"입력 지문 길이: {len(PASSAGE_TEXT)}자 (예시 문항 2개, 요청 num_items={num_items})")
     print("\nReAct 에이전트 출제 시작...")
 
     init_session()

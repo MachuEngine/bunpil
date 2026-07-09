@@ -389,20 +389,22 @@ def eval_item_quality(items: list, llm, limit: int = 8) -> dict:
 
 STRUCTURE_JUDGE_TPL = PromptTemplate(
     system=(
-        "예시 문제와 새로 생성된 문항 세트를 비교해 구조적 유사도를 평가하세요.\n"
-        "다음 4가지를 JSON으로만 응답하세요.\n"
-        "기준: count_match(문항 개수 일치, true/false), type_ratio_score(유형 구성 비율 유사도, 0.0~1.0), "
+        "예시 문제와 새로 생성된 문항 세트를 비교해 구조적 유사도를 평가하세요. "
+        "문항 개수 일치 여부는 판단하지 마세요 — 개수는 예시 문제와 무관하게 별도로 지정되므로 "
+        "이 평가와는 무관합니다.\n"
+        "다음 3가지를 JSON으로만 응답하세요.\n"
+        "기준: type_ratio_score(유형 구성 비율 유사도, 0.0~1.0), "
         "difficulty_match(난이도 구성 부합, true/false), overall_score(종합 유사도, 0~5 정수)\n"
-        '형식: {"count_match": true/false, "type_ratio_score": 실수, "difficulty_match": true/false, "overall_score": 정수}'
+        '형식: {"type_ratio_score": 실수, "difficulty_match": true/false, "overall_score": 정수}'
     ),
     few_shots=[
         {
             "user": '{"예시_문제": "1문항(객관식)", "생성된_세트": [{"item_type":"객관식","difficulty":"중"}]}',
-            "assistant": '{"count_match": true, "type_ratio_score": 1.0, "difficulty_match": true, "overall_score": 5}',
+            "assistant": '{"type_ratio_score": 1.0, "difficulty_match": true, "overall_score": 5}',
         },
         {
             "user": '{"예시_문제": "3문항(객관식2+서술형1)", "생성된_세트": [{"item_type":"객관식","difficulty":"하"}]}',
-            "assistant": '{"count_match": false, "type_ratio_score": 0.5, "difficulty_match": false, "overall_score": 1}',
+            "assistant": '{"type_ratio_score": 0.5, "difficulty_match": false, "overall_score": 1}',
         },
     ],
 )
@@ -422,7 +424,6 @@ def judge_structure_one(entry: dict, llm) -> dict:
     except Exception:
         scores = {}
     return {
-        "count_match": bool(scores.get("count_match", False)),
         "type_ratio_score": float(scores.get("type_ratio_score", 0.0)),
         "difficulty_match": bool(scores.get("difficulty_match", False)),
         "overall_score": int(scores.get("overall_score", 0)),
@@ -433,12 +434,15 @@ def judge_structure_one(entry: dict, llm) -> dict:
 def eval_structure_judge(golden: list, llm, limit: int = 8) -> dict:
     """STRUCTURE_GOLDEN의 고정된 (passage_text, generated_items) 쌍에 대해 LLM에게
     구조 유사도 판단만 다시 시켜 사람 라벨(human_label)과 대조한다.
-    골든셋이 비어 있으면(라벨링 전) 빈 결과를 반환한다."""
+    골든셋이 비어 있으면(라벨링 전) 빈 결과를 반환한다.
+    count_match(문항 개수 일치)는 2026-07-09부로 이 비교에서 제외됨 — 개수는 예시
+    문제와 무관하게 spec["num_items"]로 별도 지정되고, len(draft_items)==num_items로
+    코드가 직접 검증하므로 LLM Judge/사람 라벨 대조 대상이 아님(structure_golden.json
+    _schema.count_match_deprecated 참고)."""
     subset = golden[:limit]
     if not subset:
         return {"n": 0, "note": "STRUCTURE_GOLDEN이 비어 있습니다 — 라벨링 후 재실행하세요."}
 
-    count_match_hits = []
     difficulty_match_hits = []
     overall_diffs = []
 
@@ -446,14 +450,12 @@ def eval_structure_judge(golden: list, llm, limit: int = 8) -> dict:
         judge = judge_structure_one(entry, llm)
         human = entry["human_label"]
 
-        count_match_hits.append(judge["count_match"] == human["count_match"])
         difficulty_match_hits.append(judge["difficulty_match"] == human["difficulty_match"])
         overall_diffs.append(abs(judge["overall_score"] - human["overall_score"]))
 
     n = len(subset)
     return {
         "n": n,
-        "count_match_agreement": round(sum(count_match_hits) / n, 3),
         "difficulty_match_agreement": round(sum(difficulty_match_hits) / n, 3),
         "overall_score_mae": round(sum(overall_diffs) / n, 3),
     }
@@ -515,7 +517,6 @@ def print_report(retrieval: dict, quality: dict, structure: dict, reliability: d
     if structure["n"] == 0:
         print(f"  {structure.get('note', '')}")
     else:
-        print(f"  count_match 일치율      : {structure['count_match_agreement']:.3f}")
         print(f"  difficulty_match 일치율 : {structure['difficulty_match_agreement']:.3f}")
         print(f"  overall_score MAE       : {structure['overall_score_mae']:.3f}")
 

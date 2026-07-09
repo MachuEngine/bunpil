@@ -43,15 +43,17 @@
 **State**
 
 ```
-spec:                    { passage_text(예시 문제 원문), standards(성취기준, 선택) }
+spec:                    { passage_text(예시 문제 원문), standards(성취기준, 선택), num_items(생성 개수, 기본 5) }
 draft_items:             [ { 문항, 유형, 난이도, judge_score, 상태 } ]
-similarity_judge_result: { count_match, type_ratio_score, difficulty_match, overall_score }
+similarity_judge_result: { type_ratio_score, difficulty_match, overall_score }
 budget:                  남은 재시도 횟수 (세트 전체 단위, 무한루프 방지)
 ```
 
-**Agent(LLM)가 판단하는 것**: 문항 세트 작성, 형식 자기수정, 구조 유사도 자체 평가(`similarity_judge` 호출).
-**코드가 판단하는 것**: `similarity_judge` 결과의 threshold 통과 여부, 재시도 여부.
+**Agent(LLM)가 판단하는 것**: 문항 세트 작성, 형식 자기수정, 구조 유사도 자체 평가(`similarity_judge` 호출 — 유형 비율·난이도·종합 유사도만).
+**코드가 판단하는 것**: 문항 개수 일치 여부(`len(draft_items) == spec["num_items"]`), `similarity_judge` 결과의 threshold 통과 여부, 재시도 여부.
 → "판단은 LLM, 통과/재시도 결정은 코드"라는 원칙은 리디자인 이후에도 그대로 유지.
+
+> **2026-07-09 정정**: 문항 개수는 예시 문제(`passage_text`)의 문항 수와 무관하게 `num_items`로 별도 지정된다(사용자가 자연어로 명시하지 않으면 기본값 5, `main.py`가 LLM 판단으로 추출). 초기엔 "생성 개수가 예시 문제 개수와 일치해야 한다"는 전제로 `count_match`를 LLM Judge가 판단했으나, 이 전제 자체가 실제 설계와 맞지 않아 폐기 — 개수 일치는 이제 LLM Judge가 아니라 코드가 직접 검증한다.
 
 ### 모듈 ③ 생기부 윤문 도우미 — 검증 Chain (LCEL)
 
@@ -112,7 +114,7 @@ budget:                  남은 재시도 횟수 (세트 전체 단위, 무한�
 |---|---|---|---|
 | 검색 | Recall@5, MRR | 함수 | R@5 ≥ 0.8 |
 | 문항 | 정답 유일성·오답 매력도·근거성 | LLM Judge | 5점 척도 평균 ≥ 4.0 (보정 후 확정) |
-| 구조 유사도 | count_match·type_ratio_score·difficulty_match·overall_score | LLM Judge (사람 라벨 STRUCTURE_GOLDEN과 대조) | 미정 (부트스트랩 단계) |
+| 구조 유사도 | type_ratio_score·difficulty_match·overall_score (LLM Judge) + 문항 개수 일치(코드) | LLM Judge(개수 제외) + 코드(개수) | 미정 (부트스트랩 단계) |
 | 과정 | 평균 반복수·미충족 실패율·latency | 함수 | 예산 내 수렴 |
 | 종단 | 수정 없는 교사 채택률 | 사람 | 북극성 |
 

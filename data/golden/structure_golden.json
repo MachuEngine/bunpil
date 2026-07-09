@@ -6,14 +6,14 @@
       "passage_text": "교사가 붙여넣었다고 가정한 예시 문제 원문",
       "generated_items": "이 passage_text에 대해 (실제로 또는 가정으로) 생성됐다고 보는 문항 세트. 각 항목: question, options, answer, item_type(객관식|서술형), difficulty(상|중|하)",
       "human_label": {
-        "count_match": "사람이 판단한 문항 개수 일치 여부 (bool)",
         "type_ratio_score": "사람이 판단한 유형 구성 비율 유사도 (0.0~1.0)",
         "difficulty_match": "사람이 판단한 난이도 구성 부합 여부 (bool)",
         "overall_score": "사람이 매긴 종합 유사도 점수 (0~5 정수)"
       }
     },
     "provenance": "str_001~str_003은 Claude가 생성한 합성 예시(실제 모델 생성 결과 아님) — eval 스캐폴딩 자체를 검증하기 위한 부트스트랩 데이터. 실제 모델(7B 이상) 출력 기반 라벨로 추후 교체/보강 필요.",
-    "how_to_label": "passage_text와 generated_items를 비교해 사람이 human_label을 채운다. eval_structure_judge()는 이 고정된 쌍을 LLM에게 다시 보여주고 판단시킨 뒤, 그 결과를 human_label과 비교한다."
+    "how_to_label": "passage_text와 generated_items를 비교해 사람이 human_label을 채운다(문항 개수는 라벨링 대상이 아님 — 아래 count_match 참고). eval_structure_judge()는 이 고정된 쌍을 LLM에게 다시 보여주고 판단시킨 뒤, 그 결과를 human_label과 비교한다.",
+    "count_match_deprecated": "2026-07-09: count_match(문항 개수 일치 여부)는 이 골든셋/Judge의 라벨링 대상에서 제거됨. 리디자인 초기엔 '생성 개수가 예시 문제 개수와 일치해야 한다'는 전제가 있었으나, 실제로는 생성 개수(num_items)가 예시 문제 개수와 무관하게 spec에서 별도로 정해지는 값(사용자가 명시하지 않으면 기본 5)이라 이 전제 자체가 틀렸음이 확인됨(ExamSpec.num_items, app/modules/exam/graph.py validate_node 참고). 문항 개수 일치 여부는 이제 LLM Judge가 아니라 len(draft_items)==spec['num_items']로 코드가 직접 검증하므로, 사람이 판단하거나 LLM에게 다시 시킬 대상이 아님."
   },
   "entries": [
     {
@@ -36,7 +36,6 @@
         }
       ],
       "human_label": {
-        "count_match": true,
         "type_ratio_score": 1.0,
         "difficulty_match": true,
         "overall_score": 5
@@ -62,7 +61,6 @@
         }
       ],
       "human_label": {
-        "count_match": false,
         "type_ratio_score": 0.6,
         "difficulty_match": true,
         "overall_score": 2
@@ -95,7 +93,6 @@
         }
       ],
       "human_label": {
-        "count_match": true,
         "type_ratio_score": 1.0,
         "difficulty_match": false,
         "overall_score": 3

@@ -36,13 +36,45 @@ def _parse_standards(standards: str) -> list:
     return std_list
 
 
-def _build_spec(passage_text: str, standards: str):
+DEFAULT_NUM_ITEMS = 5
+
+
+async def _extract_num_items(passage_text: str) -> int:
+    """passage_text 안에 교사가 명시적으로 요청한 문항 개수가 있으면 그 값을,
+    없으면 기본값(DEFAULT_NUM_ITEMS)을 반환한다. 예시 문제 자체의 문항 개수와는 무관 —
+    "5문제 만들어줘" 같은 지시문이 같은 텍스트에 섞여 들어올 수 있어 정규식이 아니라
+    LLM 판단으로 추출한다."""
+    from app.common.llm import get_llm_backend
+
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "다음은 교사가 문항 생성 서비스에 입력한 텍스트입니다. "
+                "이 텍스트에서 교사가 명시적으로 요청한 생성 문항 개수를 찾으세요. "
+                "명시적인 개수 요청이 있으면 그 숫자만 응답하고, 없으면 5라고만 응답하세요. "
+                "설명 없이 숫자만 응답하세요."
+            ),
+        },
+        {"role": "user", "content": passage_text[:2000]},
+    ]
+    try:
+        raw = await get_llm_backend().generate(messages)
+        digits = "".join(ch for ch in raw if ch.isdigit())
+        n = int(digits) if digits else DEFAULT_NUM_ITEMS
+    except Exception:
+        n = DEFAULT_NUM_ITEMS
+    return max(1, min(n, 20))  # 폭주 생성 방지
+
+
+async def _build_spec(passage_text: str, standards: str):
     """예시 문제 입력을 길이 제한에 맞게 잘라 ExamSpec으로 구성한다. (spec, truncated) 반환."""
     truncated = len(passage_text) > MAX_PASSAGE_LENGTH
     text = passage_text[:MAX_PASSAGE_LENGTH] if truncated else passage_text
     spec = {
         "passage_text": text,
         "standards": _parse_standards(standards),
+        "num_items": await _extract_num_items(text),
     }
     return spec, truncated
 
@@ -148,7 +180,7 @@ async def exam_stream(
 ):
     """예시 문제 텍스트를 받아 SSE로 진행 상황과 결과를 스트리밍한다."""
 
-    spec, truncated = _build_spec(passage_text, standards)
+    spec, truncated = await _build_spec(passage_text, standards)
 
     async def generate():
         def evt(data: dict) -> str:
@@ -185,7 +217,7 @@ async def exam(
     passage_text: str = Form(...),
     standards: str = Form(""),
 ):
-    spec, truncated = _build_spec(passage_text, standards)
+    spec, truncated = await _build_spec(passage_text, standards)
     result = await _run_exam(spec)
     return {"truncated": truncated, **result}
 

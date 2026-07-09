@@ -155,21 +155,19 @@ def record_score(score: int) -> str:
 
 @tool
 def similarity_judge(
-    count_match: bool,
     type_ratio_score: float,
     difficulty_match: bool,
     overall_score: int,
 ) -> str:
     """예시 문제와 방금 작성한 문항 세트의 구조적 유사도를 기록합니다.
     문항 세트 작성을 모두 마친 뒤, 스스로 판단한 평가 결과를 인자로 전달해 호출하세요.
-    (통과/재시도 여부는 이 도구가 아니라 이후 로직이 threshold로 결정합니다.)
-    count_match: 문항 개수가 예시 문제와 일치하는가
+    (통과/재시도 여부는 이 도구가 아니라 이후 로직이 threshold로 결정합니다.
+    문항 개수 일치 여부는 이 도구가 아니라 코드가 자동으로 검증합니다.)
     type_ratio_score: 유형(객관식/서술형) 구성 비율의 유사도 (0.0~1.0)
     difficulty_match: 난이도 수준 구성이 예시 문제와 부합하는가
     overall_score: 종합 평가 점수 (0~5, 5=매우 유사)
     """
     result = {
-        "count_match": bool(count_match),
         "type_ratio_score": float(max(0.0, min(1.0, type_ratio_score))),
         "difficulty_match": bool(difficulty_match),
         "overall_score": int(max(0, min(5, overall_score))),

@@ -4,6 +4,7 @@ from typing_extensions import TypedDict
 class ExamSpec(TypedDict):
     passage_text: str        # 교사가 붙여넣은 예시 문제 원문 (에이전트 프롬프트에 직접 삽입)
     standards: list          # 성취기준 목록 (선택)
+    num_items: int           # 생성할 문항 개수. 예시 문제 개수와 무관 — 기본값 5(main.py가 채움)
 
 
 class DraftItem(TypedDict):
@@ -24,5 +25,5 @@ class ExamState(TypedDict):
     budget: int              # 남은 재시도 횟수
     agent_messages: list     # 에이전트 메시지 (agent 노드가 교체)
     validation_passed: bool
-    similarity_judge_result: dict  # {"count_match": bool, "type_ratio_score": float, "difficulty_match": bool, "overall_score": int}
+    similarity_judge_result: dict  # {"type_ratio_score": float, "difficulty_match": bool, "overall_score": int} — count_match는 코드가 spec["num_items"]로 별도 검증(validate_node)
     error: str
