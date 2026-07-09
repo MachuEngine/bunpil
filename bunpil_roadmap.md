@@ -51,8 +51,8 @@
 ## ⬜ 남은 작업 (우선순위 순)
 
 1. **프론트엔드 프로덕션 배포** — Next.js 전환(Gradio `app/ui.py` 대체) 이후 `Dockerfile`·`docker-compose.yml`·`Caddyfile`에 `frontend/` 빌드·서빙이 반영되지 않아, 현재 배포 파이프라인만으로는 EC2에서 UI 접근 불가(FastAPI API만 서빙됨, 2026-07-08 확인). Vercel 등 별도 호스팅 + `BACKEND_URL`로 EC2 연결, 또는 EC2 상시 `next start` 프로세스 + Caddy 경로별 프록시 추가 중 택1
-2. **오답매력도 개선** — 현재 2.43 (출제 프롬프트 튜닝, 리디자인 이전 측정치라 재검증 필요)
-3. **STRUCTURE_GOLDEN 실제 모델 라벨 보강** — 현재 3개는 Claude 합성 부트스트랩, 7B 이상 실제 출력 기반 라벨 필요
+2. **오답매력도 개선** — 2026-07-09 완료: 1단계 `JUDGE_TPL`에 오답매력도=5점 few-shot 앵커 추가(ITEM_GOLDEN 기준 2.50→2.83). 2단계 `graph.py` agent_node 시스템 프롬프트에 오답 매력도 지시+예시 추가. **주의**: `eval_exam.py` 전/후 재실행으로 2단계를 검증하려 했으나 `eval_item_quality()`가 채점하는 `ITEM_GOLDEN`은 하드코딩된 고정 문항이라 agent_node 변경이 반영될 수 없음(방법론 오류, EVAL.md 4절 정정 사항 참고) — `scripts/compare_distractor_quality.py`로 실제 생성 기반 재검증: 오답매력도 2.500→2.846(+0.346, n=8→13, 객관식만). 방향은 맞으나 목표(4.0)엔 크게 못 미침, 추가 개입 필요(EVAL.md 6절 개선계획 참고)
+3. **STRUCTURE_GOLDEN 실제 모델 라벨 보강** — 현재 3개(str_001~003)는 Claude 합성 부트스트랩. `scripts/gen_structure_golden.py`로 신규 passage 다수 생성 시도 — budget=1/3 모두 문항 0개 실패율이 높아(qwen2.5:7b tool-calling 안정성 문제, blog_draft.md "배운 것" 7번 참고) 여러 라운드(str_004~023)를 거쳐 문항 0개 결과는 전부 제외하고 **실제 출력이 나온 8개(str_005/007/008/011/015/017/018/020)**를 `data/golden/structure_golden_pending.json`에 확보(라벨 없음, 기존 `structure_golden.json` 미변경). 사람 라벨링(`human_label`) 후 수동 병합 필요 — 라벨링은 대신하지 않음
 4. **생기부 모듈 eval 개선**
    - 규정 위반 Recall 0.840 → 0.95 목표 (위반 탐지 프롬프트 튜닝 또는 규정 RAG 보강)
    - NLI 사실추가율 오탐 2건 원인 분석 (골든셋 검수 or Judge 프롬프트 개선)
