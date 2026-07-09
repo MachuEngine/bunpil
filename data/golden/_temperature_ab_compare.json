@@ -1,0 +1,360 @@
+{
+  "_schema": {
+    "description": "temperature 0.7 vs 0.2 A/B (n=28, exact_match 기준, prompt_variant=strong). scripts/test_temperature_effect.py --full 결과. 골든셋 아님, 실험 스냅샷."
+  },
+  "temperature_0.7": [
+    {
+      "id": "str_001",
+      "num_items": 3,
+      "generated": 0,
+      "exact_match": false
+    },
+    {
+      "id": "str_002",
+      "num_items": 5,
+      "generated": 5,
+      "exact_match": true
+    },
+    {
+      "id": "str_003",
+      "num_items": 5,
+      "generated": 2,
+      "exact_match": false
+    },
+    {
+      "id": "str_004",
+      "num_items": 3,
+      "generated": 4,
+      "exact_match": false
+    },
+    {
+      "id": "str_005",
+      "num_items": 7,
+      "generated": 1,
+      "exact_match": false
+    },
+    {
+      "id": "str_006",
+      "num_items": 5,
+      "generated": 1,
+      "exact_match": false
+    },
+    {
+      "id": "str_007",
+      "num_items": 7,
+      "generated": 7,
+      "exact_match": true
+    },
+    {
+      "id": "str_008",
+      "num_items": 5,
+      "generated": 5,
+      "exact_match": true
+    },
+    {
+      "id": "str_009",
+      "num_items": 3,
+      "generated": 2,
+      "exact_match": false
+    },
+    {
+      "id": "str_010",
+      "num_items": 5,
+      "generated": 1,
+      "exact_match": false
+    },
+    {
+      "id": "str_011",
+      "num_items": 5,
+      "generated": 4,
+      "exact_match": false
+    },
+    {
+      "id": "str_012",
+      "num_items": 3,
+      "generated": 4,
+      "exact_match": false
+    },
+    {
+      "id": "str_013",
+      "num_items": 5,
+      "generated": 4,
+      "exact_match": false
+    },
+    {
+      "id": "str_014",
+      "num_items": 3,
+      "generated": 0,
+      "exact_match": false
+    },
+    {
+      "id": "str_015",
+      "num_items": 7,
+      "generated": 6,
+      "exact_match": false
+    },
+    {
+      "id": "str_016",
+      "num_items": 5,
+      "generated": 4,
+      "exact_match": false
+    },
+    {
+      "id": "str_017",
+      "num_items": 3,
+      "generated": 4,
+      "exact_match": false
+    },
+    {
+      "id": "str_018",
+      "num_items": 5,
+      "generated": 1,
+      "exact_match": false
+    },
+    {
+      "id": "str_019",
+      "num_items": 7,
+      "generated": 6,
+      "exact_match": false
+    },
+    {
+      "id": "str_020",
+      "num_items": 3,
+      "generated": 2,
+      "exact_match": false
+    },
+    {
+      "id": "str_021",
+      "num_items": 5,
+      "generated": 5,
+      "exact_match": true
+    },
+    {
+      "id": "str_022",
+      "num_items": 3,
+      "generated": 5,
+      "exact_match": false
+    },
+    {
+      "id": "str_023",
+      "num_items": 5,
+      "generated": 2,
+      "exact_match": false
+    },
+    {
+      "id": "str_024",
+      "num_items": 3,
+      "generated": 2,
+      "exact_match": false
+    },
+    {
+      "id": "str_025",
+      "num_items": 5,
+      "generated": 3,
+      "exact_match": false
+    },
+    {
+      "id": "str_026",
+      "num_items": 3,
+      "generated": 4,
+      "exact_match": false
+    },
+    {
+      "id": "str_027",
+      "num_items": 5,
+      "generated": 0,
+      "exact_match": false
+    },
+    {
+      "id": "str_028",
+      "num_items": 3,
+      "generated": 0,
+      "exact_match": false
+    }
+  ],
+  "temperature_0.2": [
+    {
+      "id": "str_001",
+      "num_items": 3,
+      "generated": 5,
+      "exact_match": false
+    },
+    {
+      "id": "str_002",
+      "num_items": 5,
+      "generated": 5,
+      "exact_match": true
+    },
+    {
+      "id": "str_003",
+      "num_items": 5,
+      "generated": 5,
+      "exact_match": true
+    },
+    {
+      "id": "str_004",
+      "num_items": 3,
+      "generated": 3,
+      "exact_match": true
+    },
+    {
+      "id": "str_005",
+      "num_items": 7,
+      "generated": 5,
+      "exact_match": false
+    },
+    {
+      "id": "str_006",
+      "num_items": 5,
+      "generated": 6,
+      "exact_match": false
+    },
+    {
+      "id": "str_007",
+      "num_items": 7,
+      "generated": 5,
+      "exact_match": false
+    },
+    {
+      "id": "str_008",
+      "num_items": 5,
+      "generated": 5,
+      "exact_match": true
+    },
+    {
+      "id": "str_009",
+      "num_items": 3,
+      "generated": 3,
+      "exact_match": true
+    },
+    {
+      "id": "str_010",
+      "num_items": 5,
+      "generated": 7,
+      "exact_match": false
+    },
+    {
+      "id": "str_011",
+      "num_items": 5,
+      "generated": 5,
+      "exact_match": true
+    },
+    {
+      "id": "str_012",
+      "num_items": 3,
+      "generated": 0,
+      "exact_match": false
+    },
+    {
+      "id": "str_013",
+      "num_items": 5,
+      "generated": 1,
+      "exact_match": false
+    },
+    {
+      "id": "str_014",
+      "num_items": 3,
+      "generated": 5,
+      "exact_match": false,
+      "extra_text_turns": 0
+    },
+    {
+      "id": "str_015",
+      "num_items": 7,
+      "generated": 6,
+      "exact_match": false,
+      "extra_text_turns": 0
+    },
+    {
+      "id": "str_016",
+      "num_items": 5,
+      "generated": 6,
+      "exact_match": false,
+      "extra_text_turns": 0
+    },
+    {
+      "id": "str_017",
+      "num_items": 3,
+      "generated": 6,
+      "exact_match": false,
+      "extra_text_turns": 0
+    },
+    {
+      "id": "str_018",
+      "num_items": 5,
+      "generated": 4,
+      "exact_match": false,
+      "extra_text_turns": 0
+    },
+    {
+      "id": "str_019",
+      "num_items": 7,
+      "generated": 6,
+      "exact_match": false,
+      "extra_text_turns": 0
+    },
+    {
+      "id": "str_020",
+      "num_items": 3,
+      "generated": 6,
+      "exact_match": false,
+      "extra_text_turns": 0
+    },
+    {
+      "id": "str_021",
+      "num_items": 5,
+      "generated": 6,
+      "exact_match": false,
+      "extra_text_turns": 0
+    },
+    {
+      "id": "str_022",
+      "num_items": 3,
+      "generated": 4,
+      "exact_match": false,
+      "extra_text_turns": 0
+    },
+    {
+      "id": "str_023",
+      "num_items": 5,
+      "generated": 2,
+      "exact_match": false,
+      "extra_text_turns": 0
+    },
+    {
+      "id": "str_024",
+      "num_items": 3,
+      "generated": 6,
+      "exact_match": false,
+      "extra_text_turns": 0
+    },
+    {
+      "id": "str_025",
+      "num_items": 5,
+      "generated": 6,
+      "exact_match": false,
+      "extra_text_turns": 0
+    },
+    {
+      "id": "str_026",
+      "num_items": 3,
+      "generated": 5,
+      "exact_match": false,
+      "extra_text_turns": 0
+    },
+    {
+      "id": "str_027",
+      "num_items": 5,
+      "generated": 4,
+      "exact_match": false,
+      "extra_text_turns": 0
+    },
+    {
+      "id": "str_028",
+      "num_items": 3,
+      "generated": 4,
+      "exact_match": false,
+      "extra_text_turns": 0
+    }
+  ]
+}
