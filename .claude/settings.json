@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/anjongmin/bunpil/.claude/hooks/pre_tool_use/guard.sh"
+            "command": "/Users/jongmin/Project/bunpil/.claude/hooks/pre_tool_use/guard.sh"
           }
         ]
       }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/anjongmin/bunpil/.claude/hooks/post_tool_use/pii_check.sh"
+            "command": "/Users/jongmin/Project/bunpil/.claude/hooks/post_tool_use/pii_check.sh"
           }
         ]
       }
@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/anjongmin/bunpil/.claude/hooks/stop/verify.sh"
+            "command": "/Users/jongmin/Project/bunpil/.claude/hooks/stop/verify.sh"
           }
         ]
       }
