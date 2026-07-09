@@ -92,6 +92,15 @@ retrieval_golden_final.json의 쿼리는 성취기준 해설 문체(주제어/�
 - 예비 관찰(정량 아님, top-5 reranker score 기준): "누진세에 대한 설명으로 옳은 것은?" 같은 구체적 문제 문장은 상위 후보 score가 -10대까지 낮게 나오는 반면, "소선거구제와 비례대표제의 차이점을 서술하시오." 같은 서술형은 -0.6대로 상대적으로 높음 — 문체보다 "핵심 개념어 포함 여부"가 더 큰 영향일 가능성. 라벨링 후 Recall 격차로 확인 필요
 - **다음 실행**: `data/golden/example_question_retrieval_test.json`의 8개 항목에 `chunk_preview`(정답 청크 원문 앞부분)와 `expected_chunk_id`를 채우고 `reviewed: true`로 바꾼 뒤 `python scripts/eval_example_retrieval.py` 재실행 → 기존 골든셋과 Recall@5/MRR 나란히 비교됨
 
+### 출제 에이전트 안정성 개선 (컨텍스트/tool-calling, 2026-07-10 야간 자율 세션)
+TROUBLESHOOTING.md의 num_ctx 발견 이후 남은 잔여 tool-calling 실패율(~35~40%)을 줄이기 위한 실험.
+
+- **설명텍스트 금지 지시 위치/강조**: 문장 끝에 한 번만 넣은 baseline은 효과 없었음(temperature A/B에서 0.70으로 무변화 확인). 정체성 선언 직후(초두 효과) + 끝(최신 효과) 두 번, "**매우 중요한 규칙**" 강조로 바꾼 strong 변형은 소표본(n=8, temperature=0.2)에서 턴당 설명텍스트 0.38→0.00으로 완전 제거 — 프로덕션(`graph.py`)에 strong 변형 채택
+- **temperature 0.7 vs 0.2**: strong 프롬프트 기준 n=28 A/B. exact_match_rate(생성 개수==num_items) 0.7→14%, 0.2→21%(+7%p) — n=28에서 표준오차 약 ±7%p라 노이즈 범위. 초과생성 비율은 0.7→18%(5/28), 0.2→46%(13/28)로 뚜렷이 악화. **판단: temperature 기본값 0.7 유지**(정확도 개선은 불확실한데 초과생성 부작용은 명확) — 코드에는 파라미터만 추가, 즉시 전환 가능
+- **재시도 시 부분 진행 보존**: 기존엔 재시도마다 `init_session()`으로 전체 초기화(이전 시도 문항 폐기). `plan_node`가 요청당 1회만 초기화하고, `agent_node`는 `reset_judge()`만 호출해 문항을 유지, "나머지 N개만 작성" 프롬프트로 이어서 생성하도록 개선. old vs new 비교(`scripts/test_retry_preservation.py`, num_items≥5 샘플)는 진행 중/결과 반영 예정
+- **RAG top_k 3→2 실험**: Recall 0.810→0.762(-0.048, n=21), 기준(0.05) 경계선이라 top_k=3 유지
+- **안정성 보강**: 장시간 세션에서 간헐적으로 발생하는 Ollama 스트림 오류에 `_invoke_with_retry()`(graph.py, 최대 2회 재시도) 추가
+
 ## 6. 개선 계획
 
 | 지표 | 현재 | 목표 | 접근 방법 |

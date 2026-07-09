@@ -55,22 +55,26 @@
 1. **프론트엔드 프로덕션 배포** — Next.js 전환(Gradio `app/ui.py` 대체) 이후 `Dockerfile`·`docker-compose.yml`·`Caddyfile`에 `frontend/` 빌드·서빙이 반영되지 않아, 현재 배포 파이프라인만으로는 EC2에서 UI 접근 불가(FastAPI API만 서빙됨, 2026-07-08 확인). Vercel 등 별도 호스팅 + `BACKEND_URL`로 EC2 연결, 또는 EC2 상시 `next start` 프로세스 + Caddy 경로별 프록시 추가 중 택1
 2. **오답매력도 개선** — 2026-07-09 완료: 1단계 `JUDGE_TPL`에 오답매력도=5점 few-shot 앵커 추가(ITEM_GOLDEN 기준 2.50→2.83). 2단계 `graph.py` agent_node 시스템 프롬프트에 오답 매력도 지시+예시 추가. **주의**: `eval_exam.py` 전/후 재실행으로 2단계를 검증하려 했으나 `eval_item_quality()`가 채점하는 `ITEM_GOLDEN`은 하드코딩된 고정 문항이라 agent_node 변경이 반영될 수 없음(방법론 오류, EVAL.md 4절 정정 사항 참고) — `scripts/compare_distractor_quality.py`로 실제 생성 기반 재검증: 오답매력도 2.500→2.846(+0.346, n=8→13, 객관식만). 방향은 맞으나 목표(4.0)엔 크게 못 미침, 추가 개입 필요(EVAL.md 6절 개선계획 참고)
 3. **STRUCTURE_GOLDEN 실제 모델 라벨 보강** — 2026-07-10 전면 재구성 완료. count_match(생성 개수가 예시 문제 개수와 일치해야 한다는 전제) 자체가 설계 오류였음이 확인되어, 기존 str_001~003(Claude 합성 부트스트랩)과 count_match 기반 시도 전부 폐기. `ExamSpec.num_items` 도입(개수는 예시와 무관하게 별도 지정) 후 `scripts/gen_structure_golden.py`로 재생성하는 과정에서 **로컬 Ollama의 `num_ctx` 기본값(4096)이 멀티턴 ReAct 루프에서 쉽게 초과되어 컨텍스트가 잘리고 모델 응답이 깨지는 문제를 발견**(성공률 6%까지 급락) → `app/modules/exam/llm.py`에 `num_ctx=16384` 명시로 수정, 동일 passage 재현 테스트로 확인(4096: 0/5 → 16384: 5/5). 수정 후 정상 성공률(~35~40%) 회복, 총 34개 passage 시도로 **문항 0개가 아닌 14개 확보**(정확히 일치 5·부족 8·초과 1 — count_match 판정용으로 다양성 확보) `data/golden/structure_golden.json`에 저장(human_label 비워둠). 사람 라벨링 필요 — 라벨링은 대신하지 않음
-   - **2026-07-09 중대 설계 오류 수정**: `count_match`(생성 개수가 예시 문제 개수와 일치하는가)라는 전제 자체가 잘못됐음이 발견됨 — 실제로는 생성 개수가 예시 문제와 무관하게 `ExamSpec.num_items`(사용자가 자연어로 명시 안 하면 기본 5)로 별도 지정되어야 하는데, `count_match`는 이걸 무시하고 "예시 개수 == 생성 개수"를 요구하고 있었음. `state.py`에 `num_items` 필드 재도입, `main.py`가 `passage_text`에서 LLM 판단으로 개수 추출(명시 없으면 5), `graph.py` agent_node 프롬프트를 "개수는 num_items를 따르고 예시는 스타일·난이도 참고용"으로 수정, `validate_node`가 `len(draft_items)==num_items`로 count_match를 코드에서 직접 계산하도록 변경, `tools.py`의 `similarity_judge`에서 `count_match` 파라미터 제거, `structure_golden.json`/`eval_exam.py`의 `eval_structure_judge()`에서도 `count_match` 라벨링·비교 완전 삭제(이제 type_ratio_score/difficulty_match/overall_score만). `test_exam.py`로 검증(예시 2문항 요청 num_items=3으로 디커플링 확인). 기존 pending 8개는 count_match를 어차피 안 쓰므로 재생성 불필요 — 그대로 라벨링 가능
-4. **생기부 모듈 eval 개선**
+4. **출제 에이전트 안정성 개선 (컨텍스트/tool-calling, 2026-07-10 야간 자율 세션)** — TROUBLESHOOTING.md 참고. 세부 내용:
+   - **1단계(컨텍스트 관리)**: agent_node 시스템 프롬프트에 "설명 텍스트 금지" 지시 추가, 위치를 정체성 선언 직후+끝 두 번(강조)으로 배치한 strong 변형이 소표본(n=8)에서 설명텍스트 턴을 0.38→0.00으로 제거해 채택. temperature 파라미터화(get_langchain_model, ChatOllama/ChatRunPod 둘 다) 후 0.7 vs 0.2 A/B(n=28, exact_match 기준): 0.7→14%, 0.2→21%(+7%p, n=28 표본 노이즈 범위), 초과생성 비율은 0.7→18%, 0.2→46%로 뚜렷이 악화 — **temperature 기본값 0.7 유지 결정**(노이즈+부작용 고려, 즉시 0.2 전환 가능하도록 파라미터만 추가)
+   - **3단계(재시도 구조 개선)**: 재시도마다 init_session()으로 전체 초기화하던 것을 plan_node(요청당 1회)로 옮기고, agent_node는 reset_judge()만 호출해 기존 문항을 유지. 부족분만 "나머지 N개만 작성" 프롬프트로 이어서 생성(_build_system_prompt). old(전체 재시도) vs new(부분 보존) 비교는 test_retry_preservation.py로 진행 — 결과는 다음 업데이트 시 반영
+   - **4단계(RAG top_k 실험)**: search_standards/search_regulations의 top_k 3→2 축소 시 Recall 0.810→0.762(-0.048, n=21) — 기준(0.05)에 근접한 경계선이라 **top_k=3 유지 결정**(노이즈 고려)
+   - **안정성 보강**: 장시간 세션에서 간헐적으로 발생하는 "No data received from Ollama stream" 오류에 대응해 _invoke_with_retry()(graph.py) 추가 — LLM 호출 실패 시 자동 재시도(최대 2회, 2초 간격)
+5. **생기부 모듈 eval 개선**
    - 규정 위반 Recall 0.840 → 0.95 목표 (위반 탐지 프롬프트 튜닝 또는 규정 RAG 보강)
    - NLI 사실추가율 오탐 2건 원인 분석 (골든셋 검수 or Judge 프롬프트 개선)
-5. **모델 비교 실험** — Qwen2.5-7B vs GPT-3.5 vs Ollama 소형 모델
+6. **모델 비교 실험** — Qwen2.5-7B vs GPT-3.5 vs Ollama 소형 모델
    - 동일 골든셋으로 3개 모델 eval 실행
    - 정량 비교 결과로 Qwen 채택 근거 확보
    - GPT-3.5는 API 비용 발생, 비교 후 즉시 종료
-6. **Ragas 연동 + LangSmith Experiments 연동**
+7. **Ragas 연동 + LangSmith Experiments 연동**
    - Faithfulness, Answer Relevancy 지표 추가 (`eval_ragas.py` 신규 스크립트)
    - eval 실행 시 결과가 LangSmith Experiments에 자동 기록되도록 연동
    - 모델/프롬프트 변경 시 Experiments 탭에서 결과 비교 가능
    - EVAL.md 결과 이력 수동 업데이트 → LangSmith 자동 기록으로 전환
    - **완료 직후 코드 리뷰 1건 추가**: `eval_ragas.py`는 완전 신규 스크립트라 "핵심 구조를 설명할 수 있는 수준" 원칙상 리뷰 필요. STRUCTURE_GOLDEN용 스크립트나 모델 비교 실험 코드는 기존 `graph.py`/`eval_exam.py` 호출 재사용 수준이라 작성하면서 바로 이해되므로 별도 리뷰 라운드 불필요 — `eval_ragas.py` 하나만 핵심으로 본다.
-7. **GitHub Actions CI** — eval 자동화
-8. **문서화 및 포트폴리오 정리**
+8. **GitHub Actions CI** — eval 자동화
+9. **문서화 및 포트폴리오 정리**
 
 ---
 
