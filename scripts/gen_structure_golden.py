@@ -394,7 +394,7 @@ def generate_one(sample: dict, budget: int) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--budget", type=int, default=3)
+    parser.add_argument("--budget", type=int, default=1)
     parser.add_argument("--only", type=str, default="")
     parser.add_argument("--drop", type=str, default="", help="기존 파일에서 완전히 제거할 id")
     args = parser.parse_args()
