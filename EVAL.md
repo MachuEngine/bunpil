@@ -14,9 +14,11 @@
 | 문항 품질 | 정답유일성·오답매력도·근거성 | LLM Judge | 평균 ≥ 4.0 |
 | Judge 신뢰도 | Cohen's kappa | 사람 라벨 비교 | ≥ 0.4 |
 | Judge 신뢰도 | ±1 일치율 | 사람 라벨 비교 | ≥ 0.7 |
-| 구조 유사도 Judge 신뢰도 | count/difficulty 일치율, overall MAE | 사람 라벨(STRUCTURE_GOLDEN) 비교 | 미정 (부트스트랩 단계) |
+| 구조 유사도 Judge 신뢰도 | difficulty 일치율, overall MAE (LLM Judge) + 문항 개수 일치(코드) | 사람 라벨(STRUCTURE_GOLDEN) 비교 + `len(draft_items)==num_items` | 미정 (부트스트랩 단계) |
 
 > 2026.07 passage_text 리디자인으로 "세트 제약(유형/난이도/커버리지/중복률)" 함수 검증은 폐기되고 위 "구조 유사도 Judge 신뢰도"로 대체됨 (`check_duplicate`/`past_exams` 제거에 따름).
+>
+> **2026-07-09 count_match 개념 폐기**: "생성 개수가 예시 문제 개수와 일치해야 한다"는 전제 자체가 틀렸음이 발견됨 — 실제로는 개수가 예시와 무관하게 `ExamSpec.num_items`(명시 없으면 기본 5)로 별도 지정된다. count_match는 이제 LLM Judge/사람 라벨 대상이 아니라 `validate_node`가 `len(draft_items)==num_items`로 직접 계산한다. `STRUCTURE_GOLDEN`의 `human_label`·`eval_structure_judge()`·`similarity_judge` 도구 시그니처에서 count_match 전면 제거(자세한 내용은 `data/golden/structure_golden.json`의 `_schema.count_match_deprecated`, `bunpil_roadmap.md` 참고).
 
 ### 생기부 모듈 (`eval_record.py`)
 
@@ -97,6 +99,6 @@ retrieval_golden_final.json의 쿼리는 성취기준 해설 문체(주제어/�
 | ~~Recall@5~~ | 0.905 ✅ | ≥ 0.8 | past_exams 제거 후 이미 달성(2026.07) |
 | 오답매력도 | 실제 생성 기준 2.500→2.846(+0.346, n=8→13, 객관식만, 2026.07.09) | ≥ 4.0 | 1단계(Judge 5점 앵커, ITEM_GOLDEN 채점) + 2단계(agent_node에 오답 매력도 지시+예시, 실제 생성 재검증) 둘 다 완료. 방향은 맞으나 목표에는 크게 못 미침 — few-shot을 진짜 멀티턴 tool-call 예시로 강화하거나, validate_item_format에 오답 매력도 최소 기준을 추가하는 등 추가 개입 필요 |
 | Cohen's kappa | 0.328 (JUDGE_TPL 변경 전후 동일) | ≥ 0.4 | Judge 5점 앵커 추가만으론 kappa 불변 확인됨(고정 ITEM_GOLDEN 기준) — 근본 원인이 오답매력도 채점 기준 하나가 아닐 가능성, 추가 조사 필요 |
-| 구조 Judge 신뢰도 | count/diff 0.667, MAE 1.333 (1.5b, n=3) | 미정 | STRUCTURE_GOLDEN 실제 모델(7B+) 라벨 보강 후 재측정 |
+| 구조 Judge 신뢰도 | diff 0.667, MAE 1.333 (1.5b, n=3, count_match는 2026-07-09 개념 폐기로 지표에서 제외) | 미정 | STRUCTURE_GOLDEN 실제 모델(7B+) 라벨 보강(pending 8개 라벨링 대기 중) 후 재측정 |
 | 규정 위반 Recall | 0.840 | ≥ 0.95 | 위반 탐지 프롬프트 튜닝 또는 규정 RAG 보강 |
 | NLI 사실추가율 | 0.100 | = 0 | 오탐 2건 원인 분석 (골든셋 or 프롬프트 문제) |
