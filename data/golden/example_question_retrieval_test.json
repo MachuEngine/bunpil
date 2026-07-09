@@ -1,0 +1,66 @@
+[
+  {
+    "id": "ex_001",
+    "query": "시장 실패의 원인이 아닌 것은?",
+    "source_collection": "standards",
+    "expected_chunk_id": "",
+    "chunk_preview": "",
+    "reviewed": false
+  },
+  {
+    "id": "ex_002",
+    "query": "다음 중 대한민국 헌법이 규정한 민주주의 원리로 옳지 않은 것은?",
+    "source_collection": "standards",
+    "expected_chunk_id": "",
+    "chunk_preview": "",
+    "reviewed": false
+  },
+  {
+    "id": "ex_003",
+    "query": "국제기구 중 정부 간 기구(GO)에 해당하는 것은?",
+    "source_collection": "standards",
+    "expected_chunk_id": "",
+    "chunk_preview": "",
+    "reviewed": false
+  },
+  {
+    "id": "ex_004",
+    "query": "문화 변동의 외재적 요인에 해당하는 것은?",
+    "source_collection": "standards",
+    "expected_chunk_id": "",
+    "chunk_preview": "",
+    "reviewed": false
+  },
+  {
+    "id": "ex_005",
+    "query": "소선거구제와 비례대표제의 차이점을 서술하시오.",
+    "source_collection": "standards",
+    "expected_chunk_id": "",
+    "chunk_preview": "",
+    "reviewed": false
+  },
+  {
+    "id": "ex_006",
+    "query": "누진세에 대한 설명으로 옳은 것은?",
+    "source_collection": "standards",
+    "expected_chunk_id": "",
+    "chunk_preview": "",
+    "reviewed": false
+  },
+  {
+    "id": "ex_007",
+    "query": "사회 계층 구조가 사회 통합에 미치는 영향을 서술하시오.",
+    "source_collection": "standards",
+    "expected_chunk_id": "",
+    "chunk_preview": "",
+    "reviewed": false
+  },
+  {
+    "id": "ex_008",
+    "query": "헌법재판소가 위헌법률심판을 통해 보호하고자 하는 헌법상 원리를 서술하시오.",
+    "source_collection": "standards",
+    "expected_chunk_id": "",
+    "chunk_preview": "",
+    "reviewed": false
+  }
+]
