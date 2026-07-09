@@ -238,6 +238,7 @@ def eval_structure_judge(golden: list, llm, limit: int = 8) -> dict:
 
     difficulty_match_hits = []
     overall_diffs = []
+    count_match_code_hits = []  # LLM/사람 대조 대상 아님 — 골든셋 엔트리 자체의 데이터 정합성 확인용
 
     for entry in subset:
         judge = judge_structure_one(entry, llm)
@@ -245,10 +246,12 @@ def eval_structure_judge(golden: list, llm, limit: int = 8) -> dict:
 
         difficulty_match_hits.append(judge["difficulty_match"] == human["difficulty_match"])
         overall_diffs.append(abs(judge["overall_score"] - human["overall_score"]))
+        count_match_code_hits.append(len(entry.get("generated_items", [])) == entry.get("num_items"))
 
     n = len(subset)
     return {
         "n": n,
+        "count_match_code_rate": round(sum(count_match_code_hits) / n, 3),
         "difficulty_match_agreement": round(sum(difficulty_match_hits) / n, 3),
         "overall_score_mae": round(sum(overall_diffs) / n, 3),
     }
@@ -312,6 +315,7 @@ def print_report(retrieval: dict, quality: dict, structure: dict, reliability: d
     else:
         print(f"  difficulty_match 일치율 : {structure['difficulty_match_agreement']:.3f}")
         print(f"  overall_score MAE       : {structure['overall_score_mae']:.3f}")
+        print(f"  (참고) count_match_code : {structure['count_match_code_rate']:.3f} — 골든셋 생성 시점에 num_items를 실제로 맞춘 비율(사람 대조 아님)")
 
     print(f"\n[4] Judge 신뢰도 (n={reliability['n']})")
     k = reliability["cohen_kappa"]
