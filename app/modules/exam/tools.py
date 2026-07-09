@@ -60,6 +60,13 @@ def get_judge_result() -> dict:
     return _get_ctx().get("judge_result", {})
 
 
+def reset_judge() -> None:
+    """재시도 시 문항(items/scores)은 유지하고 similarity_judge 결과만 초기화한다.
+    이전 시도(더 적은 문항 기준)의 판정이 이번 재시도(누적된 문항 기준) 결과에
+    잘못 남아있지 않도록 한다. 문항 자체를 지우지 않는 것이 init_session()과의 차이."""
+    _get_ctx()["judge_result"] = {}
+
+
 # ── 도구 정의 ──
 # 모든 도구는 LLM 호출 없이 순수 계산/검색/저장만 수행한다.
 # 추론과 생성은 에이전트(LLM)가 직접 담당한다.

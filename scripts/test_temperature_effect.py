@@ -36,6 +36,7 @@ os.environ.setdefault("CHROMA_PERSIST_DIR", "./chroma_db")
 
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 
+from app.modules.exam.graph import _invoke_with_retry
 from app.modules.exam.llm import get_langchain_model
 from app.modules.exam.tools import TOOLS, get_draft_items, init_session
 
@@ -102,7 +103,7 @@ def run_once(sample: dict, temperature: float, prompt_variant: str) -> dict:
 
     extra_text_turns = 0  # 도구 호출과 별개로 content에 텍스트를 쓴 턴 수(지시 준수 프록시)
     for _ in range(14):
-        response = llm.invoke(messages)
+        response = _invoke_with_retry(llm, messages)
         messages.append(response)
         if getattr(response, "content", "") and getattr(response, "tool_calls", []):
             extra_text_turns += 1
