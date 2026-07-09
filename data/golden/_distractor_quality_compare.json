@@ -1,4 +1,11 @@
 {
+  "_schema": {
+    "description": "골든셋이 아니라 scripts/compare_distractor_quality.py의 1회성 실험 결과 스냅샷. agent_node 프롬프트에 오답 매력도 지시를 추가하기 전(old)/후(new)로 실제 문항을 새로 생성해 JUDGE_TPL로 채점한 오답매력도 점수 원본. 재실행하면 덮어써짐 — 참조용으로만 둔다.",
+    "entry_fields": {
+      "old": "프롬프트 변경 전 생성된 객관식 문항들의 오답매력도 점수 목록 (1~5)",
+      "new": "프롬프트 변경 후 생성된 객관식 문항들의 오답매력도 점수 목록 (1~5)"
+    }
+  },
   "old": [
     2,
     3,

@@ -183,6 +183,8 @@ ollama pull qwen2.5:7b
 # ollama pull qwen2.5:1.5b
 ```
 
+> **참고**: Ollama는 별도 설정이 없으면 `num_ctx`를 4096으로 제한합니다(모델 자체는 32K 네이티브 지원). 출제 에이전트의 멀티턴 ReAct 루프는 RAG 검색 결과가 누적되며 몇 턴 만에 4096을 넘기기 쉬워, 컨텍스트가 잘리면 모델 응답이 깨지는 원인이 됩니다. `app/modules/exam/llm.py`에서 `num_ctx=16384`로 이미 올려뒀습니다 — 별도 조치 불필요.
+
 ### 3. RAG 데이터 인덱싱
 
 ```bash
@@ -246,17 +248,22 @@ bunpil/
 ├── data/
 │   ├── regulations/      # 생기부 기재요령, 작성·관리지침
 │   ├── standards/        # 사회과 교육과정 PDF
-│   └── golden/           # 검색·구조 평가 골든셋 (retrieval_golden_final.json, structure_golden.json)
+│   └── golden/           # 모든 골든셋 JSON (하드코딩 금지 — retrieval_golden_final.json,
+│                         # structure_golden.json, item_golden.json, masking_golden.json,
+│                         # hallucination_golden.json, violation_golden.json). 각 파일
+│                         # `_schema`에 필드 설명·provenance 포함
 ├── scripts/
 │   ├── index_regulations.py      # regulations 컬렉션 인덱싱
 │   ├── index_standards.py        # standards 컬렉션 인덱싱
 │   ├── gen_golden_retrieval.py   # 실제 컬렉션 기반 검색 골든셋 초안 생성
+│   ├── gen_structure_golden.py   # 실제 출제 그래프(qwen2.5:7b)로 STRUCTURE_GOLDEN 생성
 │   ├── test_llm.py               # LLM 추상화 레이어 검증
 │   ├── test_rag.py               # RAG 파이프라인 검증
 │   ├── test_exam.py              # 출제 모듈 통합 테스트 (passage_text 리디자인 반영)
 │   ├── test_record.py            # 생기부 모듈 통합 테스트
-│   ├── eval_exam.py              # 출제 평가 (Recall@5, MRR, LLM Judge, 구조 유사도 Judge 신뢰도)
-│   └── eval_record.py            # 생기부 평가 (마스킹 FN, 사실추가율, 위반 Recall)
+│   ├── eval_exam.py              # 출제 평가 (Recall@5, MRR, LLM Judge, 구조 유사도 Judge 신뢰도) — 골든셋은 전부 data/golden/*.json에서 로드
+│   ├── eval_record.py            # 생기부 평가 (마스킹 FN, 사실추가율, 위반 Recall) — 골든셋은 전부 data/golden/*.json에서 로드
+│   └── eval_example_retrieval.py # 예시 문제 문장 스타일 쿼리 vs standards 검색 정합성 비교
 ├── runpod_handler/       # RunPod 서버리스 핸들러 (Qwen2.5-7B vLLM)
 ├── deploy/               # EC2·Caddy·빌링알람 프로비저닝 스크립트
 ├── Dockerfile
@@ -311,14 +318,14 @@ bunpil/
 |---|---|---|---|
 | Recall@5 | 21 | ≥ 0.80 | 0.905 ✓ |
 | MRR | 21 | 참고값 | 0.659 |
-| 구조 유사도 Judge 신뢰도 (STRUCTURE_GOLDEN) | 3 | count/difficulty 일치율, overall MAE | count 0.667 / difficulty 0.667 / overall MAE 1.333 (1.5b, 부트스트랩 3개 기준 — 실제 모델 라벨 보강 필요) |
+| 구조 유사도 Judge 신뢰도 (STRUCTURE_GOLDEN) | 14 | difficulty 일치율, overall MAE (count는 코드가 직접 검증) | 라벨링 대기 — 2026-07-09 num_items 아키텍처로 실제 qwen2.5:7b 출력 전면 재생성 완료(옛 1.5b 부트스트랩 3개 수치는 폐기) |
 | LLM Judge 종합평균 | 30 | ≥ 4.0 / 5 | 3.68 ✗ (7B, 리디자인 이전 측정) |
 | Judge 신뢰도 (Cohen's kappa) | 30 | ≥ 0.4 | 0.328 ✗ (7B) |
 | Judge 신뢰도 (±1 일치율) | 30 | ≥ 0.7 | 0.800 ✓ (7B) |
 
 > 검색 수치(Recall@5, MRR)는 LLM 모델과 무관하며 BGE-M3 + BGE-reranker 파이프라인 성능입니다. past_exams 제거 후 n이 28→21(reviewed 기준)로 줄면서 Recall@5가 0.679→0.905로 상승 — past_exams 항목이 상대적으로 검색 난도가 높았던 것으로 보입니다.
 > LLM Judge/신뢰도 수치(3.68/0.328/0.800)는 리디자인 이전 7B 실측치 — ITEM_GOLDEN 기반 문항 품질 평가 자체는 이번 리디자인으로 바뀌지 않아 여전히 유효함. 미달 원인은 오답매력도(2.43/5)가 낮은 것 — 출제 프롬프트 튜닝 예정(로드맵 참고).
-> 세트 제약(유형·난이도·중복률) 검증은 리디자인으로 폐기되고 구조 유사도 Judge 신뢰도 검증으로 대체됨. STRUCTURE_GOLDEN 3개는 Claude가 만든 합성 부트스트랩 데이터(실제 모델 생성 결과 아님, `data/golden/structure_golden.json`의 `_schema.provenance` 참고)로 eval 스캐폴딩 검증용 — 실제 모델(7B 이상) 출력 기반 라벨로 교체·보강 필요.
+> 세트 제약(유형·난이도·중복률) 검증은 리디자인으로 폐기되고 구조 유사도 Judge 신뢰도 검증으로 대체됨. 2026-07-09: "생성 개수가 예시 문제 개수와 일치해야 한다"(`count_match`)는 전제 자체가 잘못됐음이 확인되어 폐기 — 개수는 `ExamSpec.num_items`로 예시와 무관하게 별도 지정되고 코드가 직접 검증한다. STRUCTURE_GOLDEN은 Claude 합성 부트스트랩을 전부 폐기하고 실제 qwen2.5:7b 출력 기반으로 전면 재생성함(`data/golden/structure_golden.json`의 `_schema.provenance` 참고) — human_label은 사람이 직접 채움.
 
 **생기부 모듈**
 

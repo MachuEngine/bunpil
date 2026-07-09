@@ -41,11 +41,11 @@
 | 골든셋 | 경로 | 규모 | 비고 |
 |---|---|---|---|
 | retrieval_golden | `data/golden/retrieval_golden_final.json` | 22개 (reviewed 21개) | 실데이터 기반, 사람 검수. 2026.07 past_exams 참조 8개 제거(30→22) |
-| STRUCTURE_GOLDEN | `data/golden/structure_golden.json` | 3개 | Claude 합성 부트스트랩(실제 모델 출력 아님) — eval 스캐폴딩 검증용, 실제 라벨 보강 필요 |
-| MASKING_GOLDEN | `scripts/eval_record.py` 내 상수 | 20개 | 합성 |
-| VIOLATION_GOLDEN | `scripts/eval_record.py` 내 상수 | 50개 | 위반 25 + 정상 25 |
-| HALLUCINATION_GOLDEN | `scripts/eval_record.py` 내 상수 | 20개 | 합성 |
-| ITEM_GOLDEN | `scripts/eval_exam.py` 내 상수 | 30개 | human_score 1~5점 분포 |
+| STRUCTURE_GOLDEN | `data/golden/structure_golden.json` | 14개 (라벨링 대기) | count_match 폐기·num_items 도입으로 Claude 부트스트랩 전량 폐기, 실제 qwen2.5:7b 출력으로 전면 재생성(정확히 일치 5·부족 8·초과 1) — human_label 라벨링 대기 |
+| MASKING_GOLDEN | `data/golden/masking_golden.json` | 20개 | 합성. 2026-07-09 `scripts/eval_record.py` 하드코딩에서 외부화 |
+| VIOLATION_GOLDEN | `data/golden/violation_golden.json` | 50개 | 위반 25 + 정상 25. 2026-07-09 `scripts/eval_record.py` 하드코딩에서 외부화 |
+| HALLUCINATION_GOLDEN | `data/golden/hallucination_golden.json` | 20개 | 합성. 2026-07-09 `scripts/eval_record.py` 하드코딩에서 외부화 |
+| ITEM_GOLDEN | `data/golden/item_golden.json` | 30개 | human_score 1~5점 분포. 2026-07-09 `scripts/eval_exam.py` 하드코딩에서 외부화 |
 | example_question_retrieval_test | `data/golden/example_question_retrieval_test.json` | 8개 (reviewed 0개) | 주제어가 아닌 "실제 문제 문장" 스타일 query — standards 컬렉션과의 문체 격차 검증용, 라벨링 대기 |
 
 ## 3. 실행 방법
@@ -99,6 +99,6 @@ retrieval_golden_final.json의 쿼리는 성취기준 해설 문체(주제어/�
 | ~~Recall@5~~ | 0.905 ✅ | ≥ 0.8 | past_exams 제거 후 이미 달성(2026.07) |
 | 오답매력도 | 실제 생성 기준 2.500→2.846(+0.346, n=8→13, 객관식만, 2026.07.09) | ≥ 4.0 | 1단계(Judge 5점 앵커, ITEM_GOLDEN 채점) + 2단계(agent_node에 오답 매력도 지시+예시, 실제 생성 재검증) 둘 다 완료. 방향은 맞으나 목표에는 크게 못 미침 — few-shot을 진짜 멀티턴 tool-call 예시로 강화하거나, validate_item_format에 오답 매력도 최소 기준을 추가하는 등 추가 개입 필요 |
 | Cohen's kappa | 0.328 (JUDGE_TPL 변경 전후 동일) | ≥ 0.4 | Judge 5점 앵커 추가만으론 kappa 불변 확인됨(고정 ITEM_GOLDEN 기준) — 근본 원인이 오답매력도 채점 기준 하나가 아닐 가능성, 추가 조사 필요 |
-| 구조 Judge 신뢰도 | diff 0.667, MAE 1.333 (1.5b, n=3, count_match는 2026-07-09 개념 폐기로 지표에서 제외) | 미정 | STRUCTURE_GOLDEN 실제 모델(7B+) 라벨 보강(pending 8개 라벨링 대기 중) 후 재측정 |
+| 구조 Judge 신뢰도 | diff 0.667, MAE 1.333 (1.5b, n=3, count_match는 2026-07-09 개념 폐기로 지표에서 제외 — 옛 부트스트랩 3개 기준 수치, 참고용) | 미정 | STRUCTURE_GOLDEN 실제 qwen2.5:7b 출력 14개 확보 완료(전면 재생성), 라벨링 대기 중 — 라벨링 후 재측정 |
 | 규정 위반 Recall | 0.840 | ≥ 0.95 | 위반 탐지 프롬프트 튜닝 또는 규정 RAG 보강 |
 | NLI 사실추가율 | 0.100 | = 0 | 오탐 2건 원인 분석 (골든셋 or 프롬프트 문제) |

@@ -19,10 +19,12 @@
 | 골든셋 | 규모 | 비고 |
 |---|---|---|
 | retrieval_golden | 28개 | 실데이터 기반, 사람 검수 완료 |
-| MASKING_GOLDEN | 20개 | 합성 |
-| VIOLATION_GOLDEN | 50개 | 위반 25 + 정상 25 |
-| HALLUCINATION_GOLDEN | 20개 | 합성 |
-| ITEM_GOLDEN | 30개 | human_score 1~5점 분포 |
+| MASKING_GOLDEN | 20개 | 합성. `data/golden/masking_golden.json`(2026-07-09 하드코딩→외부화) |
+| VIOLATION_GOLDEN | 50개 | 위반 25 + 정상 25. `data/golden/violation_golden.json`(2026-07-09 하드코딩→외부화) |
+| HALLUCINATION_GOLDEN | 20개 | 합성. `data/golden/hallucination_golden.json`(2026-07-09 하드코딩→외부화) |
+| ITEM_GOLDEN | 30개 | human_score 1~5점 분포. `data/golden/item_golden.json`(2026-07-09 하드코딩→외부화) |
+
+> **2026-07-09 골든셋 전면 외부화**: 그동안 `eval_exam.py`/`eval_record.py`에 파이썬 리스트로 하드코딩돼 있던 ITEM_GOLDEN/MASKING_GOLDEN/HALLUCINATION_GOLDEN/VIOLATION_GOLDEN을 `retrieval_golden_final.json` 방식과 동일하게 전부 `data/golden/*.json`으로 분리(각 파일에 `_schema` 포함). 스크립트는 로더 함수(`_load_item_golden()`, `_load_golden()`)로 읽음.
 
 ### Eval 체계 — 스크립트 업그레이드
 - `eval_exam.py`, `eval_record.py` 실데이터 기반으로 업그레이드
@@ -52,7 +54,7 @@
 
 1. **프론트엔드 프로덕션 배포** — Next.js 전환(Gradio `app/ui.py` 대체) 이후 `Dockerfile`·`docker-compose.yml`·`Caddyfile`에 `frontend/` 빌드·서빙이 반영되지 않아, 현재 배포 파이프라인만으로는 EC2에서 UI 접근 불가(FastAPI API만 서빙됨, 2026-07-08 확인). Vercel 등 별도 호스팅 + `BACKEND_URL`로 EC2 연결, 또는 EC2 상시 `next start` 프로세스 + Caddy 경로별 프록시 추가 중 택1
 2. **오답매력도 개선** — 2026-07-09 완료: 1단계 `JUDGE_TPL`에 오답매력도=5점 few-shot 앵커 추가(ITEM_GOLDEN 기준 2.50→2.83). 2단계 `graph.py` agent_node 시스템 프롬프트에 오답 매력도 지시+예시 추가. **주의**: `eval_exam.py` 전/후 재실행으로 2단계를 검증하려 했으나 `eval_item_quality()`가 채점하는 `ITEM_GOLDEN`은 하드코딩된 고정 문항이라 agent_node 변경이 반영될 수 없음(방법론 오류, EVAL.md 4절 정정 사항 참고) — `scripts/compare_distractor_quality.py`로 실제 생성 기반 재검증: 오답매력도 2.500→2.846(+0.346, n=8→13, 객관식만). 방향은 맞으나 목표(4.0)엔 크게 못 미침, 추가 개입 필요(EVAL.md 6절 개선계획 참고)
-3. **STRUCTURE_GOLDEN 실제 모델 라벨 보강** — 현재 3개(str_001~003)는 Claude 합성 부트스트랩. `scripts/gen_structure_golden.py`로 신규 passage 다수 생성 시도 — budget=1/3 모두 문항 0개 실패율이 높아(qwen2.5:7b tool-calling 안정성 문제, blog_draft.md "배운 것" 7번 참고) 여러 라운드(str_004~023)를 거쳐 문항 0개 결과는 전부 제외하고 **실제 출력이 나온 8개(str_005/007/008/011/015/017/018/020)**를 `data/golden/structure_golden_pending.json`에 확보(라벨 없음, 기존 `structure_golden.json` 미변경). 사람 라벨링(`human_label`) 후 수동 병합 필요 — 라벨링은 대신하지 않음
+3. **STRUCTURE_GOLDEN 실제 모델 라벨 보강** — 2026-07-10 전면 재구성 완료. count_match(생성 개수가 예시 문제 개수와 일치해야 한다는 전제) 자체가 설계 오류였음이 확인되어, 기존 str_001~003(Claude 합성 부트스트랩)과 count_match 기반 시도 전부 폐기. `ExamSpec.num_items` 도입(개수는 예시와 무관하게 별도 지정) 후 `scripts/gen_structure_golden.py`로 재생성하는 과정에서 **로컬 Ollama의 `num_ctx` 기본값(4096)이 멀티턴 ReAct 루프에서 쉽게 초과되어 컨텍스트가 잘리고 모델 응답이 깨지는 문제를 발견**(성공률 6%까지 급락) → `app/modules/exam/llm.py`에 `num_ctx=16384` 명시로 수정, 동일 passage 재현 테스트로 확인(4096: 0/5 → 16384: 5/5). 수정 후 정상 성공률(~35~40%) 회복, 총 34개 passage 시도로 **문항 0개가 아닌 14개 확보**(정확히 일치 5·부족 8·초과 1 — count_match 판정용으로 다양성 확보) `data/golden/structure_golden.json`에 저장(human_label 비워둠). 사람 라벨링 필요 — 라벨링은 대신하지 않음
    - **2026-07-09 중대 설계 오류 수정**: `count_match`(생성 개수가 예시 문제 개수와 일치하는가)라는 전제 자체가 잘못됐음이 발견됨 — 실제로는 생성 개수가 예시 문제와 무관하게 `ExamSpec.num_items`(사용자가 자연어로 명시 안 하면 기본 5)로 별도 지정되어야 하는데, `count_match`는 이걸 무시하고 "예시 개수 == 생성 개수"를 요구하고 있었음. `state.py`에 `num_items` 필드 재도입, `main.py`가 `passage_text`에서 LLM 판단으로 개수 추출(명시 없으면 5), `graph.py` agent_node 프롬프트를 "개수는 num_items를 따르고 예시는 스타일·난이도 참고용"으로 수정, `validate_node`가 `len(draft_items)==num_items`로 count_match를 코드에서 직접 계산하도록 변경, `tools.py`의 `similarity_judge`에서 `count_match` 파라미터 제거, `structure_golden.json`/`eval_exam.py`의 `eval_structure_judge()`에서도 `count_match` 라벨링·비교 완전 삭제(이제 type_ratio_score/difficulty_match/overall_score만). `test_exam.py`로 검증(예시 2문항 요청 num_items=3으로 디커플링 확인). 기존 pending 8개는 count_match를 어차피 안 쓰므로 재생성 불필요 — 그대로 라벨링 가능
 4. **생기부 모듈 eval 개선**
    - 규정 위반 Recall 0.840 → 0.95 목표 (위반 탐지 프롬프트 튜닝 또는 규정 RAG 보강)
