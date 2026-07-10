@@ -1,5 +1,6 @@
 import contextvars
 import logging
+import re
 import threading
 import uuid
 
@@ -16,6 +17,9 @@ from app.common.rag import get_retriever, get_store
 # last_id: 스레드별 분리 — 병렬 생성 시 레이스 컨디션 방지
 _request_ctx: contextvars.ContextVar[dict] = contextvars.ContextVar("_request_ctx")
 _thread_local = threading.local()
+
+_HANGUL_RE = re.compile(r"[가-힣]")
+_HAN_RE = re.compile(r"[一-鿿]")  # CJK 한자 (중국어 오염 검출용)
 
 
 def _get_ctx() -> dict:
@@ -124,9 +128,26 @@ def validate_item_format(question: str, options: list, answer: str, item_type: s
     return "형식 검증 통과"
 
 
+def _check_korean(question: str, options: list, answer: str) -> str | None:
+    """문항 텍스트가 한국어인지 결정론적으로 검사한다. 통과하면 None, 아니면 거부 사유 반환.
+
+    qwen2.5:7b가 컨텍스트가 길어지면 확률적으로 중국어 문항을 생성하는 문제가 있어
+    (2026-07-11 발견, TROUBLESHOOTING.md 참고) 저장 전에 코드가 차단한다.
+    한자 비율 5% 미만은 허용 — 정당한 괄호 병기(예: 사법(私法))까지 막지 않기 위함."""
+    text = " ".join([str(question), str(answer), *[str(o) for o in options]])
+    hangul = len(_HANGUL_RE.findall(text))
+    han = len(_HAN_RE.findall(text))
+    if hangul == 0:
+        return "저장 거부 — 문항에 한국어가 없습니다. 모든 내용을 한국어로 작성한 뒤 다시 저장하세요."
+    if han and han / (han + hangul) >= 0.05:
+        return "저장 거부 — 문항에 중국어가 포함되어 있습니다. question·options·answer 전체를 한국어로 다시 작성한 뒤 저장하세요."
+    return None
+
+
 @tool
 def save_item(question: str, options: list, answer: str, item_type: str, difficulty: str = "중", standard: str = "") -> str:
     """검증된 문항을 저장합니다. 에이전트가 직접 작성한 내용을 저장합니다.
+    (한국어가 아닌 문항은 저장이 거부됩니다 — 거부 시 한국어로 다시 작성해 재시도하세요.)
     question: 문제 질문
     options: 선지 목록 (객관식: ["①...", "②...", "③...", "④..."], 서술형: [])
     answer: 정답 (객관식: "①"~"④", 서술형: "")
@@ -134,6 +155,9 @@ def save_item(question: str, options: list, answer: str, item_type: str, difficu
     difficulty: 상|중|하
     standard: 성취기준명 (선택)
     """
+    rejection = _check_korean(question, options, answer)
+    if rejection:
+        return rejection
     item_id = uuid.uuid4().hex[:8]
     item = {
         "item_id": item_id,
