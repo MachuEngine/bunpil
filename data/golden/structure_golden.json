@@ -10,7 +10,8 @@
         "type_ratio_score": "사람이 판단한 유형 구성 비율 유사도 (0.0~1.0)",
         "difficulty_match": "사람이 판단한 난이도 구성 부합 여부 (bool)",
         "overall_score": "사람이 매긴 종합 유사도 점수 (0~5 정수). human_label 전체가 null이면 라벨링 전(eval_structure_judge가 자동 스킵)."
-      }
+      },
+      "code_version": "이 엔트리가 어느 코드 버전으로 생성됐는지 (post_*: num_ctx=16384+strong 프롬프트+재시도 시 부분 진행 보존 전부 반영, pre_*: 이전 코드)"
     },
     "provenance": "2026-07-09 count_match 폐기·num_items 도입 이후 실제 qwen2.5:7b 출력 기반으로 전면 재생성. 이전 부트스트랩(Claude 합성 str_001~003)과 count_match 기반 pending 항목은 아키텍처 변경으로 전부 폐기하고 새로 생성함.",
     "how_to_label": "passage_text·num_items와 generated_items를 비교해 사람이 human_label을 채운다 (개수 일치 여부는 라벨링 대상이 아님 — len(generated_items)==num_items로 코드가 이미 검증). eval_structure_judge()는 이 고정된 쌍을 LLM에게 다시 보여주고 판단시킨 뒤, 그 결과를 human_label과 비교한다."
@@ -58,7 +59,8 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": null,
+      "code_version": "pre_2026-07-10_retry_preservation_fix"
     },
     {
       "id": "str_003",
@@ -90,7 +92,8 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": null,
+      "code_version": "pre_2026-07-10_retry_preservation_fix"
     },
     {
       "id": "str_004",
@@ -124,7 +127,8 @@
           "difficulty": "상"
         }
       ],
-      "human_label": null
+      "human_label": null,
+      "code_version": "pre_2026-07-10_retry_preservation_fix"
     },
     {
       "id": "str_007",
@@ -204,7 +208,8 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": null,
+      "code_version": "pre_2026-07-10_retry_preservation_fix"
     },
     {
       "id": "str_010",
@@ -272,7 +277,8 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": null,
+      "code_version": "pre_2026-07-10_retry_preservation_fix"
     },
     {
       "id": "str_011",
@@ -292,7 +298,8 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": null,
+      "code_version": "pre_2026-07-10_retry_preservation_fix"
     },
     {
       "id": "str_012",
@@ -312,7 +319,8 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": null,
+      "code_version": "pre_2026-07-10_retry_preservation_fix"
     },
     {
       "id": "str_014",
@@ -332,7 +340,8 @@
           "difficulty": "上"
         }
       ],
-      "human_label": null
+      "human_label": null,
+      "code_version": "pre_2026-07-10_retry_preservation_fix"
     },
     {
       "id": "str_017",
@@ -378,7 +387,8 @@
           "difficulty": "中"
         }
       ],
-      "human_label": null
+      "human_label": null,
+      "code_version": "pre_2026-07-10_retry_preservation_fix"
     },
     {
       "id": "str_019",
@@ -470,7 +480,8 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": null,
+      "code_version": "pre_2026-07-10_retry_preservation_fix"
     },
     {
       "id": "str_024",
@@ -514,7 +525,8 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": null,
+      "code_version": "pre_2026-07-10_retry_preservation_fix"
     },
     {
       "id": "str_025",
@@ -534,7 +546,8 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": null,
+      "code_version": "pre_2026-07-10_retry_preservation_fix"
     },
     {
       "id": "str_029",
@@ -554,7 +567,8 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": null,
+      "code_version": "pre_2026-07-10_retry_preservation_fix"
     },
     {
       "id": "str_032",
@@ -574,7 +588,383 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": null,
+      "code_version": "pre_2026-07-10_retry_preservation_fix"
+    },
+    {
+      "id": "str_035",
+      "passage_text": "1. 헌법재판소의 위헌법률심판 결정 유형 중 '헌법불합치'의 의미로 옳은 것은?\n① 법률이 즉시 효력을 상실한다 ② 법률의 위헌성은 인정하되 일정 기간 효력을 유지시킨다 ③ 법률이 처음부터 무효였다고 본다 ④ 법률의 합헌성을 확정한다",
+      "num_items": 5,
+      "generated_items": [
+        {
+          "question": "헌법재판소의 위헌법률심판 결정 유형 중 '헌법불합치'의 의미로 옳은 것은?",
+          "options": [
+            "① 법률이 즉시 효력을 상실한다",
+            "② 법률의 위헌성은 인정하되 일정 기간 효력을 유지시킨다",
+            "③ 법률이 처음부터 무효였다고 본다",
+            "④ 법률의 합헌성을 확정한다"
+          ],
+          "answer": "③",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "헌법재판소의 위헌법률심판 결정 유형 중 '헌법불합치'의 의미로 옳은 것은?",
+          "options": [
+            "① 법률이 즉시 효력을 상실한다",
+            "② 법률의 위헌성은 인정하되 일정 기간 효력을 유지시킨다",
+            "③ 법률이 처음부터 무효였다고 본다",
+            "④ 법률의 합헌성을 확정한다"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "헌법재판소의 위헌법률심판 결정 유형 중 '헌법불합치'의 의미로 옳은 것은?",
+          "options": [
+            "① 법률이 즉시 효력을 상실한다",
+            "② 법률의 위헌성은 인정하되 일정 기간 효력을 유지시킨다",
+            "③ 법률이 처음부터 무효였다고 본다",
+            "④ 법률의 합헌성을 확정한다"
+          ],
+          "answer": "④",
+          "item_type": "객관식",
+          "difficulty": "하"
+        },
+        {
+          "question": "헌법재판소의 위헌법률심판 결정 유형 중 '헌법불합치'의 의미로 옳은 것은?",
+          "options": [
+            "① 법률이 즉시 효력을 상실한다",
+            "② 법률의 위헌성은 인정하되 일정 기간 효력을 유지시킨다",
+            "③ 법률이 처음부터 무효였다고 본다",
+            "④ 법률의 합헌성을 확정한다"
+          ],
+          "answer": "①",
+          "item_type": "객관식",
+          "difficulty": "하"
+        },
+        {
+          "question": "헌법재판소의 위헌법률심판 결정 유형 중 '확정적 합당성심사'의 의미로 옳은 것은?",
+          "options": [
+            "① 법률이 즉시 효력을 상실한다",
+            "② 법률의 위헌성은 인정하되 일정 기간 효력을 유지시킨다",
+            "③ 법률이 처음부터 무효였다고 본다",
+            "④ 법률의 합법성을 확정한다"
+          ],
+          "answer": "④",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "헌법재판소의 위헌법률심판 결정 유형 중 '확정적 합당성심사'의 의미로 옳은 것은?",
+          "options": [
+            "① 법률이 즉시 효력을 상실한다",
+            "② 법률의 위헌성은 인정하되 일정 기간 효력을 유지시킨다",
+            "③ 법률을 처음부터 무효였다고 본다",
+            "④ 법률의 합당성을 확정하며, 그 결정은 최종적이다"
+          ],
+          "answer": "④",
+          "item_type": "객관식",
+          "difficulty": "중"
+        }
+      ],
+      "human_label": null,
+      "code_version": "post_2026-07-10_retry_preservation_fix"
+    },
+    {
+      "id": "str_036",
+      "passage_text": "1. 완전경쟁시장의 특징으로 옳은 것은?\n① 소수의 공급자가 시장을 지배한다 ② 다수의 수요자와 공급자가 존재하고 진입·퇴출이 자유롭다 ③ 상품 차별화가 이루어진다 ④ 개별 기업이 가격을 결정한다\n\n2. 독점시장에서 자원 배분이 비효율적인 이유를 서술하시오.",
+      "num_items": 5,
+      "generated_items": [
+        {
+          "question": "1. 완전경쟁시장의 특징으로 옳은 것은?\n① 소수의 공급자가 시장을 지배한다\n② 다수의 수요자와 공급자가 존재하고 진입·퇴출이 자유롭다\n③ 상품 차별화가 이루어진다\n④ 개별 기업이 가격을 결정한다",
+          "options": [
+            "① 소수의 공급자가 시장을 지배한다",
+            "② 다수의 수요자와 공급자가 존재하고 진입·퇴출이 자유롭다",
+            "③ 상품 차별화가 이루어진다",
+            "④ 개별 기업이 가격을 결정한다"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "2. 완전경쟁시장에서 가격 결정에 영향을 미치는 요인으로 옳은 것은?",
+          "options": [
+            "① 생산비용이 낮은 기업만 가격을 결정한다",
+            "② 공급자가 많아서 개별 기업의 영향력이 작다",
+            "③ 공급과 수요가 극단적으로 불균형적이다",
+            "④ 공급자가 적어 개별 기업의 가격 결정력이 크다"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "3. 완전경쟁시장의 특징 중 틀린 것은?",
+          "options": [
+            "① 공급자가 많아서 개별 기업의 영향력이 작다",
+            "② 소수의 수요자와 공급자가 있는 시장에서 가격 형성 과정",
+            "③ 생산비용이 낮은 기업만 가격을 결정한다",
+            "④ 공급과 수요가 극단적으로 불균형적이다"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "4. 완전경쟁시장에서 가격 결정에 영향을 미치지 않는 요인으로 옳은 것은?",
+          "options": [
+            "① 공급자가 많아서 개별 기업의 영향력이 작다",
+            "② 독점기업이 가격을 결정한다",
+            "③ 생산비용이 낮은 기업만 가격을 결정한다",
+            "④ 공급과 수요가 극단적으로 불균형적이다"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "5. 완전경쟁시장에서 가격 형성에 영향을 미치는 요인으로 옳은 것은?",
+          "options": [
+            "① 공급자가 많아서 개별 기업의 영향력이 작다",
+            "② 독점기업이 가격을 결정한다",
+            "③ 생산비용이 낮은 기업만 가격을 결정한다",
+            "④ 공급과 수요가 극단적으로 불균형적이다"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        }
+      ],
+      "human_label": null,
+      "code_version": "post_2026-07-10_retry_preservation_fix"
+    },
+    {
+      "id": "str_037",
+      "passage_text": "1. 다음 사례에서 나타난 사회 문제 해결 방식의 한계를 서술하시오.",
+      "num_items": 3,
+      "generated_items": [
+        {
+          "question": "2024년 청와대 국민청원 게시판에 올라온 사례 중 하나가 '자영업 경쟁력 강화 방안'입니다. 이 문제 해결 방식의 한계를 서술하시오.",
+          "options": [],
+          "answer": "",
+          "item_type": "서술형",
+          "difficulty": "중"
+        },
+        {
+          "question": "2024년 청와대 국민청원 게시판에 올라온 사례 중 하나가 '자영업 경쟁', 이 문제 해결 방안을 서술하시오.",
+          "options": [],
+          "answer": "",
+          "item_type": "서술형",
+          "difficulty": "중"
+        },
+        {
+          "question": "2024년 청와대 국민청원 게시판에 올라온 사례 중 하나가 '미세먼지 대책 방안 개선'이라는 주제입니다. 이 사例에서 社会问题 解决 方式的 一个局限性是什么？请阐述。",
+          "options": [],
+          "answer": "",
+          "item_type": "서술형",
+          "difficulty": "중"
+        }
+      ],
+      "human_label": null,
+      "code_version": "post_2026-07-10_retry_preservation_fix"
+    },
+    {
+      "id": "str_038",
+      "passage_text": "1. 국제 사회에서 국가 주권 평등의 원칙이 지니는 의의로 옳은 것은?\n① 강대국의 우월한 지위를 인정 ② 모든 국가가 국제법상 동등한 지위를 가짐 ③ 약소국의 발언권을 제한 ④ 국제기구의 결정을 무시할 수 있음\n\n2. 국가 주권 평등 원칙이 현실에서 제약받는 사례를 서술하시오.",
+      "num_items": 7,
+      "generated_items": [
+        {
+          "question": "국제 사회에서 주권 평등 원칙이 현실에서 제약받는 사례로 옳은 것은?",
+          "options": [
+            "① 강대국의 우위를 인정하지 않는 국가가 있으며, 이들은 국제 기구 결정을 무시한다.",
+            "② 모든 국가가 국제법상 동등한 지위를 가지지만, 실질적인 국제 권력 구조는 불평등하다.",
+            "③ 약소국은 강대국의 주장을 대부분 수용해야 하므로 발언권이 제한된다.",
+            "④ 각 나라가 주권을 행사할 수 있으나, 현실에서는 특정 국가에 대한 제재와 압박으로 인해 자유롭게 행동하기 어렵다."
+          ],
+          "answer": "④",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "국제 사회에서 주권 평등 원칙이 현실에서 제약받는 사례로 옳은 것은?",
+          "options": [
+            "① 강대국의 우위를 인정하지 않는 국가가 있으며, 이들은 국제 기구 결정을 무시한다.",
+            "② 모든 국가가 국제법상 동등한 지위를 가지지만, 실질적인 국제 권력 구조는 불평등하다.",
+            "③ 약소국은 강대국의 주장을 대부분 수용해야 하므로 발언권이 제한된다.",
+            "④ 각 나라가 주권을 행사할 수 있으나, 현실에서는 특정 국가에 대한 제재와 압박으로 인해 자유롭게 행동하기 어렵다."
+          ],
+          "answer": "③",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "국제 사회에서 주권 평등 원칙이 현실에서 제약받는 사례로 옳은 것은?",
+          "options": [
+            "① 강대국의 군사력 투사가 약소국에 미치는 영향",
+            "② 국제기구에서 특정 국가의 의견을 무시하는 경우",
+            "③ 강대국의 경제 제재가 약소국에 미치는 영향",
+            "④ 국제법을 어기는 행위"
+          ],
+          "answer": "③",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "국제 사회에서 주권 평등 원칙이 현실에서 제약받는 사례로 옳은 것은?",
+          "options": [
+            "① 강대국의 군사력 투사가 약소국에 미치는 영향",
+            "② 특정 국가의 주권 침해로 인한 국제 기구 결정 무시",
+            "③ 강대국의 경제 제재가 약소국에 미치는 영향",
+            "④ 국제법을 준수하는 모든 국가의 동등성"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "国际社会中，主权平等原则在现实中受到限制的例子是？",
+          "options": [
+            "① 강대국의 군사력 투사가 약소국에 미치는 영향",
+            "② 특정 국가의 주권 침해로 인한 국제 기구 결정 무시",
+            "③ 강대国的经济制裁对弱小国家的影响",
+            "④ 国际法被所有国家遵守的平等性"
+          ],
+          "answer": "③",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "国际社会中，主权平等原则在现实中受到限制的例子是？",
+          "options": [
+            "① 强大国家的军事力量对弱小国家的影响",
+            "② 某个国家侵犯主权而被国际机构忽视决定",
+            "③ 强大国家的经济制裁对弱小国家的影响",
+            "④ 国际法在所有国家中被平等遵守"
+          ],
+          "answer": "④",
+          "item_type": "객관식",
+          "difficulty": "중"
+        }
+      ],
+      "human_label": null,
+      "code_version": "post_2026-07-10_retry_preservation_fix"
+    },
+    {
+      "id": "str_039",
+      "passage_text": "1. 근로기준법상 부당해고 구제 절차로 옳은 것은?\n① 곧바로 민사소송을 제기해야 한다 ② 노동위원회에 구제를 신청할 수 있다 ③ 국회에 청원해야 한다 ④ 구제 절차가 없다",
+      "num_items": 3,
+      "generated_items": [
+        {
+          "question": "근로기준법상 부당해고 구제 절차로 옳은 것은?",
+          "options": [
+            "① 곧바로 민사소송을 제기해야 한다",
+            "② 노동위원회에 구제를 신청할 수 있다",
+            "③ 국회에 청원해야 한다",
+            "④ 구제 절차가 없다"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "공익광고의 특징으로 옳은 것은?",
+          "options": [
+            "① 공익광고의 주제는 사회적 가치를 전달한다.",
+            "② 공익광고는 비용이 매우 높다.",
+            "③ 공익광고에는 광고주가 있지 않다.",
+            "④ 공익광고는 기업 이미지 개선에 효과적이다"
+          ],
+          "answer": "③",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "근로기준법의 주요 내용 중 옳지 않은 것은?",
+          "options": [
+            "① 근로기준법은 1953년에 제정되었다.",
+            "② 근로기준법은 근로자의 기본권을 보장한다.",
+            "③ 근로기준법은 모든 노동자를 대상으로 적용된다.",
+            "④ 근로기준법은 근로시간 제한만 포함하고 있다"
+          ],
+          "answer": "④",
+          "item_type": "객관식",
+          "difficulty": "중"
+        }
+      ],
+      "human_label": null,
+      "code_version": "post_2026-07-10_retry_preservation_fix"
+    },
+    {
+      "id": "str_040",
+      "passage_text": "1. 대의 민주주의에서 정당의 역할로 가장 적절한 것은?\n① 사법부 견제 ② 국민의 다양한 의사를 결집해 정책으로 제시 ③ 행정부 대체 ④ 언론 통제\n\n2. 대의 민주주의의 한계를 보완하는 직접 민주주의적 요소를 두 가지 이상 서술하시오.\n\n3. 정당 명부식 비례대표제가 지역구 국회의원 선거와 다른 점을 서술하시오.",
+      "num_items": 5,
+      "generated_items": [
+        {
+          "question": "大义民主主义中政党角色中最合适的是？",
+          "options": [
+            "① 사법부 견제",
+            "② 국민의 다양한 의사를 결집해 정책으로 제示",
+            "③ 行政部代替",
+            "④ 言论控制"
+          ],
+          "answer": "②",
+          "item_type": "객观式",
+          "difficulty": "중"
+        },
+        {
+          "question": "대의 민주주의에서 정당의 역할로 가장 적절한 것은?",
+          "options": [
+            "사법부 견제",
+            "국민의 다양한 의사를 결집해 정책으로 제시",
+            "행정부 대체",
+            "언론 통제"
+          ],
+          "answer": "②",
+          "item_type": "서술형",
+          "difficulty": "중"
+        },
+        {
+          "question": "在代议民主主义中，政党角色中最合适的是？",
+          "options": [
+            "① 法院监督",
+            "② 国民的各种意见集合成政策提出",
+            "③ 行政部代替",
+            "④ 言论控制"
+          ],
+          "answer": "②",
+          "item_type": "서술型",
+          "difficulty": "중"
+        },
+        {
+          "question": "在代议民主主义中，政党角色中最合适的是？",
+          "options": [
+            "① 法院监督",
+            "② 国民的各种意见集合成政策提出",
+            "③ 行政部代替",
+            "④ 言论控制"
+          ],
+          "answer": "②",
+          "item_type": "서술型",
+          "difficulty": "중"
+        },
+        {
+          "question": "대의 민주주의에서 정당의 역할로 가장 적절한 것은?",
+          "options": [
+            "① 사법부 견제",
+            "② 국민의 다양한 의사를 결집해 정책으로 제시",
+            "③ 행정부 대체",
+            "④ 언론 통제"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        }
+      ],
+      "human_label": null,
+      "code_version": "post_2026-07-10_retry_preservation_fix"
     }
   ]
 }
