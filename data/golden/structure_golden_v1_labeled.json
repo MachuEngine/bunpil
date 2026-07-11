@@ -1,0 +1,886 @@
+{
+  "_schema": {
+    "description": "[v1 아카이브, 2026-07-11 동결] STRUCTURE_GOLDEN — num_items 기반 아키텍처(passage_text는 스타일/난이도 참고용, 개수는 spec.num_items가 결정) 하의 구조 유사도 Judge 신뢰도 검증용 골든셋. 개수 일치 여부는 코드가 결정론적으로 검증하므로 사람 라벨링·kappa 대상에서 제외. — 유사도 게이트 적용 전 qwen2.5:7b 출력 + 사람 라벨 완료본. Judge 신뢰도 v1 측정(EVAL.md 5절)의 기준 데이터로 보존. 정기 평가는 structure_golden.json(게이트 적용 후 재생성본)을 사용.",
+    "entry_fields": {
+      "id": "고유 id",
+      "passage_text": "예시 문제 원문 (스타일/난이도 참고용, 개수와 무관)",
+      "num_items": "이 생성에 지정된 목표 개수",
+      "generated_items": "실제 생성된 문항 세트",
+      "human_label": {
+        "type_ratio_score": "사람이 판단한 유형 구성 비율 유사도 (0.0~1.0)",
+        "difficulty_match": "사람이 판단한 난이도 구성 부합 여부 (bool)",
+        "overall_score": "사람이 매긴 종합 유사도 점수 (0~5 정수). human_label 전체가 null이면 라벨링 전(eval_structure_judge가 자동 스킵)."
+      }
+    },
+    "provenance": "2026-07-09 count_match 폐기·num_items 도입 이후 실제 qwen2.5:7b 출력 기반으로 전면 재생성. 이전 부트스트랩(Claude 합성 str_001~003)과 count_match 기반 pending 항목은 아키텍처 변경으로 전부 폐기하고 새로 생성함.",
+    "how_to_label": "passage_text·num_items와 generated_items를 비교해 사람이 human_label을 채운다 (개수 일치 여부는 라벨링 대상이 아님 — len(generated_items)==num_items로 코드가 이미 검증). eval_structure_judge()는 이 고정된 쌍을 LLM에게 다시 보여주고 판단시킨 뒤, 그 결과를 human_label과 비교한다.",
+    "overall_score_policy": "overall_score는 단순한 유형·난이도 일치만이 아니라, 예시의 주제와 문항 형식을 유지하면서 새 문항 세트로 변환했는지를 종합 평가한다. passage_text의 문항을 그대로 복사한 경우, generated_items 내부에 완전 중복이 있는 경우, 주제가 이탈한 경우는 감점한다. 단, len(generated_items)==num_items 여부 자체는 코드가 별도로 검증하므로 직접 채점 요소에서 제외한다.",
+    "overall_score_rubric": {
+      "5": "유형·난이도·주제·형식이 매우 잘 맞고, 새 문항으로 충분히 변형되며 중복이나 심각한 오류가 없음",
+      "4": "전반적으로 잘 맞으나 경미한 반복, 표현 오류, 일부 내용 결함이 있음",
+      "3": "핵심 구조는 유지하지만 뚜렷한 중복, 오류, 환각, 일부 유형 또는 주제 손상이 있음",
+      "2": "일부 구조만 재현하며 유형 누락, 큰 주제 이탈, 심한 품질 저하가 있음",
+      "1": "원문 단순 복사 또는 완전 중복에 의존해 새 문항 생성으로 보기 어렵지만 최소한의 형식 일치는 있음",
+      "0": "유형이 완전히 반전되거나 언어 오염·구조 붕괴 등으로 사실상 사용할 수 없음"
+    }
+  },
+  "entries": [
+    {
+      "id": "str_001",
+      "passage_text": "1. 헌법이 보장하는 기본권 중 자유권에 해당하는 것은?\n① 교육받을 권리 ② 신체의 자유 ③ 근로의 권리 ④ 환경권",
+      "num_items": 3,
+      "generated_items": [
+        {
+          "question": "헌법이 보장하는 기본권 중 자유권에 해당하는 것은?\n① 교육받을 권리 ② 신체의 자유 ③ 근로의 권리 ④ 환경권",
+          "options": [
+            "① 교육받을 권리",
+            "② 신체의 자유",
+            "③ 근로의 권리",
+            "④ 환环境权"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "헌법이 보장하는 기본권 중 사회권에 해당하는 것은?\n① 교육받을 권리 ② 근로의 권리 ③ 재산의 보호 ④ 환경권",
+          "options": [
+            "① 교육받을 권리",
+            "② 근로의 권리",
+            "③ 재산의 보호",
+            "④ 환环境权"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "헌법이 보장하는 기본권 중 제한권에 해당하는 것은?\n① 언론의 자유 ② 집회의 자유 ③ 재산의 정당한 취득 ④ 국방 의무",
+          "options": [
+            "① 언론의 자유",
+            "② 집회의 자유",
+            "③ 재산의 정당한 취득",
+            "④ 국방 의무"
+          ],
+          "answer": "④",
+          "item_type": "객관식",
+          "difficulty": "중"
+        }
+      ],
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 4
+      },
+      "code_version": "pre_2026-07-10_retry_preservation_fix",
+      "has_language_contamination": true
+    },
+    {
+      "id": "str_004",
+      "passage_text": "1. (하) 공정 무역이 추구하는 목표로 가장 적절한 것은?\n① 다국적 기업의 이윤 극대화 ② 생산자에게 정당한 대가 지급 ③ 관세 철폐 ④ 저가 경쟁 촉진\n\n2. (중) 다국적 기업의 공간적 분업이 개발도상국 경제에 미치는 영향을 서술하시오.\n\n3. (상) 다음 사례에서 나타난 국제 무역 갈등의 원인을 분석하여 서술하시오.",
+      "num_items": 3,
+      "generated_items": [
+        {
+          "question": "다음 중 국제 무역에서 가장 중요한 원칙으로 옳은 것은?",
+          "options": [
+            "① 보호무역 정책 강화",
+            "② 자유무역 확대",
+            "③ 관세율 일정화",
+            "④ 수출위주 산업 발전"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "하"
+        },
+        {
+          "question": "다국적 기업이 글로벌 공급망을 구축할 때, 대부분의 제조 공정이 개발도상나라에서 이루어진다는 것을 주장하는 근거를 서술하시오.",
+          "options": [],
+          "answer": "",
+          "item_type": "서술형",
+          "difficulty": "중"
+        },
+        {
+          "question": "다음 사례에서 나타난 국제 무역 갈등의 원인을 분석하여 서술하시오.",
+          "options": [],
+          "answer": "",
+          "item_type": "서술형",
+          "difficulty": "상"
+        }
+      ],
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 5
+      },
+      "code_version": "pre_2026-07-10_retry_preservation_fix"
+    },
+    {
+      "id": "str_010",
+      "passage_text": "1. 지방분권이 필요한 이유로 가장 적절한 것은?\n① 중앙정부 권한 강화 ② 지역 실정에 맞는 행정 실현 ③ 행정 절차 단축 ④ 예산 절감",
+      "num_items": 5,
+      "generated_items": [
+        {
+          "question": "지방자치제의 이익으로 가장 적절한 것은?",
+          "options": [
+            "① 정치 통합 강화",
+            "② 행정 효율성 저하",
+            "③ 지역 주민 참여 증대",
+            "④ 중앙 정부 권위 약화"
+          ],
+          "answer": "③",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "지방분권을 실현하기 위한 가장 중요한 요소로는?",
+          "options": [
+            "① 지방의회 설치",
+            "② 중앙정부 감독 강화",
+            "③ 지역발전계획 수립",
+            "④ 행정 절차 단순화"
+          ],
+          "answer": "①",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "지방분권이 필요한 이유로 가장 적절한 것은?",
+          "options": [
+            "① 중앙정부 권한 강화",
+            "② 지역 실정에 맞는 행정 실현",
+            "③ 행정 절차 단축",
+            "④ 예산 절감"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "지방분권의 한계로 가장 적절한 것은?",
+          "options": [
+            "① 행정 비효율성 증가",
+            "② 중앙 정부와 지역 간 관계 개선",
+            "③ 예산 집중화",
+            "④ 정치 통합 강화"
+          ],
+          "answer": "①",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "지방분권을 위한 교육과정 개선 방안으로 가장 적절한 것은?",
+          "options": [
+            "① 전국 단일 교육과정 도입",
+            "② 지역적 특성 반영한 교육과정 개발",
+            "③ 중앙정부 통제 강화",
+            "④ 학교 행정 간소화"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        }
+      ],
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 5
+      },
+      "code_version": "pre_2026-07-10_retry_preservation_fix"
+    },
+    {
+      "id": "str_011",
+      "passage_text": "1. 환율이 상승(원화 가치 하락)할 때 나타나는 현상으로 옳은 것은?\n① 수출 감소 ② 수입 물가 상승 ③ 해외여행 비용 감소 ④ 외채 부담 감소\n\n2. 경상수지 흑자가 지속될 때 국내 경제에 미치는 영향을 서술하시오.",
+      "num_items": 5,
+      "generated_items": [
+        {
+          "question": "환율이 하락할 때 나타나는 현상으로 옳은 것은?\n① 수출 증가\n② 수입 물가 상승\n③ 해외여행 비용 증가\n④ 외채 부담 감소",
+          "options": [
+            "① 수출 증가",
+            "② 수입 물가 상승",
+            "③ 해외여행 비용 증가",
+            "④ 왖채 부담 감소"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        }
+      ],
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      },
+      "code_version": "pre_2026-07-10_retry_preservation_fix"
+    },
+    {
+      "id": "str_012",
+      "passage_text": "1. 사회적 소수자를 보호하기 위한 제도적 방안으로 가장 적절한 것은?\n① 차별금지법 제정 ② 다수결 원칙 강화 ③ 동화 정책 강제 ④ 정보 제한",
+      "num_items": 3,
+      "generated_items": [
+        {
+          "question": "사회적 소수자를 보호하기 위한 제도적 방안으로 가장 적절한 것은?\n① 차별금지법 제정\n② 다수결 원칙 강화\n③ 동화 정책 강제\n④ 정보 제한",
+          "options": [
+            "① 차별금지법 제정",
+            "② 다수결 원칙 강화",
+            "③ 동화 정책 강제",
+            "④ 정보 제한"
+          ],
+          "answer": "①",
+          "item_type": "객관식",
+          "difficulty": "중"
+        }
+      ],
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
+      "code_version": "pre_2026-07-10_retry_preservation_fix"
+    },
+    {
+      "id": "str_014",
+      "passage_text": "1. 저출산·고령화 현상이 사회보장 재정에 미치는 영향을 서술하시오.",
+      "num_items": 3,
+      "generated_items": [
+        {
+          "question": "저출산과 고령화가 사회 보장 재정에 미치는 영향 중 하나로는 무엇이 있을 수 있나?\n ① 국민연금 부채 증가\n ② 의료비 부담 완화\n ③ 공공기관 축소\n ④ 노인복지 예산 확대",
+          "options": [
+            "① 국민연금 부채 증加",
+            "② 의疗费负担缓解",
+            "③ 公共机构削减",
+            "④ 老年福利预算扩大"
+          ],
+          "answer": "①",
+          "item_type": "객观式",
+          "difficulty": "上"
+        }
+      ],
+      "human_label": {
+        "type_ratio_score": 0.0,
+        "difficulty_match": false,
+        "overall_score": 0
+      },
+      "code_version": "pre_2026-07-10_retry_preservation_fix",
+      "has_language_contamination": true
+    },
+    {
+      "id": "str_019",
+      "passage_text": "1. 사법부의 독립이 필요한 이유로 옳은 것은?\n① 행정부의 효율적 통제를 위해 ② 공정한 재판을 통한 국민의 권리 보장을 위해 ③ 입법부의 권한 강화를 위해 ④ 신속한 재판 진행만을 위해\n\n2. 법관의 신분 보장이 사법권 독립에 기여하는 방식을 서술하시오.",
+      "num_items": 7,
+      "generated_items": [
+        {
+          "question": "사법부의 독립이 필요한 이유로 옳은 것은?",
+          "options": [
+            "① 행정부와 경쟁력을 갖추기 위함",
+            "② 국민의 권리 보장과 공정한 재판을 통한 민주주의 지키기",
+            "③ 입법부로부터 독립하여 법률의 정확성 유지를 위해",
+            "④ 신속한 판결 진행만을 위해"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "법관의 신분 보장이 사법권 독립에 기여하는 방식으로 옳은 것은?",
+          "options": [
+            "① 법관들이 재판에 중립적일 수 있도록 독립성을 유지할 수 있게 함",
+            "② 국민에게 공정한 재판을 통한 민주주의를 증진시키는 것",
+            "③ 입법부와 행정부의 권한 강화에 기여하는 것",
+            "④ 신속한 판결을 촉진시키기 위함"
+          ],
+          "answer": "①",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "법관이 재판에 중립적이 될 수 있는 조건으로 옳은 것은?",
+          "options": [
+            "① 재정적 지원 없음",
+            "② 정치적인 압력과 외압 면제",
+            "③ 개인적인 사정 때문에 판결을 할 수 없음",
+            "④ 국민의 신뢰를 받기 위함"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "사법부의 독립이 실현되려면 필요한 조치로 옳은 것은?",
+          "options": [
+            "① 법관들의 재판 결과에 대한 책임 완화",
+            "② 정치적 압력으로부터의 방어",
+            "③ 입법부와 행정부로부터의 독립",
+            "④ 신속한 재판을 위한 제도 개선"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "사법부의 독립과 기능에 대해 옳은 이해는?",
+          "options": [
+            "① 법관들이 정치적 입장에 따라서 판결하기 위함",
+            "② 국민의 권리 보호와 공정한 재판을 위해",
+            "③ 입법부로부터 권한을 얻어 법을 집행하는 것",
+            "④ 행정부의 효율적인 운영을 돕기 위함"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "사법부가 독립성을 유지하기 위한 조치로 옳은 것은?",
+          "options": [
+            "① 법관들의 재판 결과에 대한 책임 완화",
+            "② 정치적 압력으로부터의 방어",
+            "③ 입법부와 행정부로부터의 독립",
+            "④ 신속한 재판을 위한 제도 개선"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "사법부의 기능 중 하나는?",
+          "options": [
+            "① 법률의 집행",
+            "② 법률의 적용",
+            "③ 법률의 만성",
+            "④ 법률의 제정"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        }
+      ],
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      },
+      "code_version": "pre_2026-07-10_retry_preservation_fix"
+    },
+    {
+      "id": "str_024",
+      "passage_text": "1. 다수결 원칙의 한계로 옳은 것은?\n① 소수 의견이 항상 반영됨 ② 소수자의 권리가 침해될 수 있음 ③ 결정이 항상 정확함 ④ 시간이 오래 걸리지 않음",
+      "num_items": 3,
+      "generated_items": [
+        {
+          "question": "다수결 원칙의 한계로 옳은 것은?",
+          "options": [
+            "① 소수 의견이 항상 반영됨 ",
+            "② 소수자의 권리가 침해될 수 있음 ",
+            "③ 결정이 항상 정확함 ",
+            "④ 시간이 오래 걸리지 않음"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "다수결 원칙을 적용할 때, 가장 문제로 발생하기 쉬운 상황은?",
+          "options": [
+            "① 모든 사람들이 의견을 공유할 경우 ",
+            "② 소수의 의견만 남아 있을 경우 ",
+            "③ 주요한 의사 결정이 필요한 경우 ",
+            "④ 인구 규모가 작을 때"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "다수결 원칙과 관련하여, 사회 과정에서 중요한 가치는?",
+          "options": [
+            "① 단순한 지배와 통제 ",
+            "② 공론장에서의 대화와 타협 ",
+            "③ 강자만의 의사 결정 ",
+            "④ 개별적인 이해관계만을 중시"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        }
+      ],
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 5
+      },
+      "code_version": "pre_2026-07-10_retry_preservation_fix"
+    },
+    {
+      "id": "str_025",
+      "passage_text": "1. 지적재산권 보호가 필요한 이유로 가장 적절한 것은?\n① 창작 의욕 저하 ② 창작자의 권리 보호와 기술 혁신 촉진 ③ 정보 독점 강화 ④ 가격 상승 유도",
+      "num_items": 5,
+      "generated_items": [
+        {
+          "question": "지적재산권 보호가 필요한 이유로 가장 적절한 것은?",
+          "options": [
+            "창작 의욕 저하",
+            "창작자의 권리 보호와 기술 혁신 촉진",
+            "정보 독점 강화",
+            "가격 상승 유도"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        }
+      ],
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
+      "code_version": "pre_2026-07-10_retry_preservation_fix"
+    },
+    {
+      "id": "str_029",
+      "passage_text": "1. 선거공영제를 시행하는 목적으로 옳은 것은?\n① 후보자 간 재력 차이에 따른 불공정 완화 ② 특정 정당 지원 ③ 선거 비용 증대 ④ 투표율 저하",
+      "num_items": 5,
+      "generated_items": [
+        {
+          "question": "선거공영제를 시행하는 목적으로 옳은 것은?",
+          "options": [
+            "후보자 간 재력 차이에 따른 불공정 완화",
+            "특정 정당 지원",
+            "선거 비용 증대",
+            "투표율 저하"
+          ],
+          "answer": "①",
+          "item_type": "객관식",
+          "difficulty": "중"
+        }
+      ],
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
+      "code_version": "pre_2026-07-10_retry_preservation_fix"
+    },
+    {
+      "id": "str_035",
+      "passage_text": "1. 헌법재판소의 위헌법률심판 결정 유형 중 '헌법불합치'의 의미로 옳은 것은?\n① 법률이 즉시 효력을 상실한다 ② 법률의 위헌성은 인정하되 일정 기간 효력을 유지시킨다 ③ 법률이 처음부터 무효였다고 본다 ④ 법률의 합헌성을 확정한다",
+      "num_items": 5,
+      "generated_items": [
+        {
+          "question": "헌법재판소의 위헌법률심판 결정 유형 중 '헌법불합치'의 의미로 옳은 것은?",
+          "options": [
+            "① 법률이 즉시 효력을 상실한다",
+            "② 법률의 위헌성은 인정하되 일정 기간 효력을 유지시킨다",
+            "③ 법률이 처음부터 무효였다고 본다",
+            "④ 법률의 합헌성을 확정한다"
+          ],
+          "answer": "③",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "헌법재판소의 위헌법률심판 결정 유형 중 '헌법불합치'의 의미로 옳은 것은?",
+          "options": [
+            "① 법률이 즉시 효력을 상실한다",
+            "② 법률의 위헌성은 인정하되 일정 기간 효력을 유지시킨다",
+            "③ 법률이 처음부터 무효였다고 본다",
+            "④ 법률의 합헌성을 확정한다"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "헌법재판소의 위헌법률심판 결정 유형 중 '헌법불합치'의 의미로 옳은 것은?",
+          "options": [
+            "① 법률이 즉시 효력을 상실한다",
+            "② 법률의 위헌성은 인정하되 일정 기간 효력을 유지시킨다",
+            "③ 법률이 처음부터 무효였다고 본다",
+            "④ 법률의 합헌성을 확정한다"
+          ],
+          "answer": "④",
+          "item_type": "객관식",
+          "difficulty": "하"
+        },
+        {
+          "question": "헌법재판소의 위헌법률심판 결정 유형 중 '헌법불합치'의 의미로 옳은 것은?",
+          "options": [
+            "① 법률이 즉시 효력을 상실한다",
+            "② 법률의 위헌성은 인정하되 일정 기간 효력을 유지시킨다",
+            "③ 법률이 처음부터 무효였다고 본다",
+            "④ 법률의 합헌성을 확정한다"
+          ],
+          "answer": "①",
+          "item_type": "객관식",
+          "difficulty": "하"
+        },
+        {
+          "question": "헌법재판소의 위헌법률심판 결정 유형 중 '확정적 합당성심사'의 의미로 옳은 것은?",
+          "options": [
+            "① 법률이 즉시 효력을 상실한다",
+            "② 법률의 위헌성은 인정하되 일정 기간 효력을 유지시킨다",
+            "③ 법률이 처음부터 무효였다고 본다",
+            "④ 법률의 합법성을 확정한다"
+          ],
+          "answer": "④",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "헌법재판소의 위헌법률심판 결정 유형 중 '확정적 합당성심사'의 의미로 옳은 것은?",
+          "options": [
+            "① 법률이 즉시 효력을 상실한다",
+            "② 법률의 위헌성은 인정하되 일정 기간 효력을 유지시킨다",
+            "③ 법률을 처음부터 무효였다고 본다",
+            "④ 법률의 합당성을 확정하며, 그 결정은 최종적이다"
+          ],
+          "answer": "④",
+          "item_type": "객관식",
+          "difficulty": "중"
+        }
+      ],
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": false,
+        "overall_score": 3
+      },
+      "code_version": "post_2026-07-10_retry_preservation_fix"
+    },
+    {
+      "id": "str_036",
+      "passage_text": "1. 완전경쟁시장의 특징으로 옳은 것은?\n① 소수의 공급자가 시장을 지배한다 ② 다수의 수요자와 공급자가 존재하고 진입·퇴출이 자유롭다 ③ 상품 차별화가 이루어진다 ④ 개별 기업이 가격을 결정한다\n\n2. 독점시장에서 자원 배분이 비효율적인 이유를 서술하시오.",
+      "num_items": 5,
+      "generated_items": [
+        {
+          "question": "1. 완전경쟁시장의 특징으로 옳은 것은?\n① 소수의 공급자가 시장을 지배한다\n② 다수의 수요자와 공급자가 존재하고 진입·퇴출이 자유롭다\n③ 상품 차별화가 이루어진다\n④ 개별 기업이 가격을 결정한다",
+          "options": [
+            "① 소수의 공급자가 시장을 지배한다",
+            "② 다수의 수요자와 공급자가 존재하고 진입·퇴출이 자유롭다",
+            "③ 상품 차별화가 이루어진다",
+            "④ 개별 기업이 가격을 결정한다"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "2. 완전경쟁시장에서 가격 결정에 영향을 미치는 요인으로 옳은 것은?",
+          "options": [
+            "① 생산비용이 낮은 기업만 가격을 결정한다",
+            "② 공급자가 많아서 개별 기업의 영향력이 작다",
+            "③ 공급과 수요가 극단적으로 불균형적이다",
+            "④ 공급자가 적어 개별 기업의 가격 결정력이 크다"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "3. 완전경쟁시장의 특징 중 틀린 것은?",
+          "options": [
+            "① 공급자가 많아서 개별 기업의 영향력이 작다",
+            "② 소수의 수요자와 공급자가 있는 시장에서 가격 형성 과정",
+            "③ 생산비용이 낮은 기업만 가격을 결정한다",
+            "④ 공급과 수요가 극단적으로 불균형적이다"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "4. 완전경쟁시장에서 가격 결정에 영향을 미치지 않는 요인으로 옳은 것은?",
+          "options": [
+            "① 공급자가 많아서 개별 기업의 영향력이 작다",
+            "② 독점기업이 가격을 결정한다",
+            "③ 생산비용이 낮은 기업만 가격을 결정한다",
+            "④ 공급과 수요가 극단적으로 불균형적이다"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "5. 완전경쟁시장에서 가격 형성에 영향을 미치는 요인으로 옳은 것은?",
+          "options": [
+            "① 공급자가 많아서 개별 기업의 영향력이 작다",
+            "② 독점기업이 가격을 결정한다",
+            "③ 생산비용이 낮은 기업만 가격을 결정한다",
+            "④ 공급과 수요가 극단적으로 불균형적이다"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        }
+      ],
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": false,
+        "overall_score": 2
+      },
+      "code_version": "post_2026-07-10_retry_preservation_fix"
+    },
+    {
+      "id": "str_037",
+      "passage_text": "1. 다음 사례에서 나타난 사회 문제 해결 방식의 한계를 서술하시오.",
+      "num_items": 3,
+      "generated_items": [
+        {
+          "question": "2024년 청와대 국민청원 게시판에 올라온 사례 중 하나가 '자영업 경쟁력 강화 방안'입니다. 이 문제 해결 방식의 한계를 서술하시오.",
+          "options": [],
+          "answer": "",
+          "item_type": "서술형",
+          "difficulty": "중"
+        },
+        {
+          "question": "2024년 청와대 국민청원 게시판에 올라온 사례 중 하나가 '자영업 경쟁', 이 문제 해결 방안을 서술하시오.",
+          "options": [],
+          "answer": "",
+          "item_type": "서술형",
+          "difficulty": "중"
+        },
+        {
+          "question": "2024년 청와대 국민청원 게시판에 올라온 사례 중 하나가 '미세먼지 대책 방안 개선'이라는 주제입니다. 이 사例에서 社会问题 解决 方式的 一个局限性是什么？请阐述。",
+          "options": [],
+          "answer": "",
+          "item_type": "서술형",
+          "difficulty": "중"
+        }
+      ],
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 0
+      },
+      "code_version": "post_2026-07-10_retry_preservation_fix",
+      "has_language_contamination": true
+    },
+    {
+      "id": "str_039",
+      "passage_text": "1. 근로기준법상 부당해고 구제 절차로 옳은 것은?\n① 곧바로 민사소송을 제기해야 한다 ② 노동위원회에 구제를 신청할 수 있다 ③ 국회에 청원해야 한다 ④ 구제 절차가 없다",
+      "num_items": 3,
+      "generated_items": [
+        {
+          "question": "근로기준법상 부당해고 구제 절차로 옳은 것은?",
+          "options": [
+            "① 곧바로 민사소송을 제기해야 한다",
+            "② 노동위원회에 구제를 신청할 수 있다",
+            "③ 국회에 청원해야 한다",
+            "④ 구제 절차가 없다"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "공익광고의 특징으로 옳은 것은?",
+          "options": [
+            "① 공익광고의 주제는 사회적 가치를 전달한다.",
+            "② 공익광고는 비용이 매우 높다.",
+            "③ 공익광고에는 광고주가 있지 않다.",
+            "④ 공익광고는 기업 이미지 개선에 효과적이다"
+          ],
+          "answer": "③",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "근로기준법의 주요 내용 중 옳지 않은 것은?",
+          "options": [
+            "① 근로기준법은 1953년에 제정되었다.",
+            "② 근로기준법은 근로자의 기본권을 보장한다.",
+            "③ 근로기준법은 모든 노동자를 대상으로 적용된다.",
+            "④ 근로기준법은 근로시간 제한만 포함하고 있다"
+          ],
+          "answer": "④",
+          "item_type": "객관식",
+          "difficulty": "중"
+        }
+      ],
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 2
+      },
+      "code_version": "post_2026-07-10_retry_preservation_fix"
+    },
+    {
+      "id": "str_041",
+      "passage_text": "1. 문화 지체 현상의 사례로 가장 적절한 것은?\n① 기술 발전 속도를 제도와 의식이 따라가지 못하는 것 ② 전통 문화의 완전한 소멸 ③ 외래 문화의 전면 수용 ④ 문화 간 접촉의 단절",
+      "num_items": 5,
+      "generated_items": [
+        {
+          "question": "문화 지체 현상의 사례로 가장 적절한 것은?\n① 한국 사회에서 기술 발전 속도가 의식과 제도를 따라가지 못하는 것\n② 전통 문화가 완전히 소멸되는 과정\n③ 서구 문화의 급속한 수용으로 인해 지역 문화가 퇴조하는 현상\n④ 내국인들과 이주민 사이에 발생한 문화 간 접촉이 단절된 것",
+          "options": [
+            "① 한국 사회에서 기술 발전 속도가 의식과 제도를 따라가지 못하는 것",
+            "② 전통 문화가 완전히 소멸되는 과정",
+            "③ 서구 문화의 급속한 수용으로 인해 지역 문화가 퇴조하는 현상",
+            "④ 내국인들과 이주민 사이에 발생한 문화 간 접촉이 단절된 것"
+          ],
+          "answer": "①",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "문화 지체 현상의 사례로 가장 적절한 것은?\n① 한국 사회에서 기술 발전 속도가 의식과 제도를 따라가지 못하는 것\n② 전통 문화가 완전히 소멸되는 과정\n③ 서구 문화의 급속한 수용으로 인해 지역 문화가 퇴조하는 현상\n④ 내국인들과 이주민 사이에 발생한 문화 간 접촉이 단절된 것",
+          "options": [
+            "① 한국 사회에서 기술 발전 속도가 의식과 제도를 따라가지 못하는 것",
+            "② 전통 문화가 완전히 소멸되는 과정",
+            "③ 서구 문화의 급속한 수용으로 인해 지역 문화가 퇴조하는 현상",
+            "④ 내국인들과 이주민 사이에 발생한 문화 간 접촉이 단절된 것"
+          ],
+          "answer": "①",
+          "item_type": "객관식",
+          "difficulty": "중"
+        }
+      ],
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
+      "code_version": "post_2026-07-10_retry_preservation_fix"
+    },
+    {
+      "id": "str_042",
+      "passage_text": "1. 기회비용의 개념으로 옳은 것은?\n① 실제 지출한 금액만 포함한다 ② 어떤 선택으로 포기한 대안 중 가장 가치 있는 것 ③ 항상 화폐 단위로만 측정된다 ④ 선택과 무관하게 발생한다\n\n2. 매몰 비용을 의사 결정에서 고려하지 말아야 하는 이유를 서술하시오.",
+      "num_items": 7,
+      "generated_items": [
+        {
+          "question": "3. 기회비용의 개념을 설명하라.",
+          "options": [],
+          "answer": "",
+          "item_type": "서술형",
+          "difficulty": "중"
+        }
+      ],
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      },
+      "code_version": "post_2026-07-10_retry_preservation_fix"
+    },
+    {
+      "id": "str_043",
+      "passage_text": "1. 다음 사례에서 나타난 일탈 이론의 관점을 쓰고, 그 근거를 서술하시오.",
+      "num_items": 3,
+      "generated_items": [
+        {
+          "question": "다음 사례에서 나타난 일탈 이론의 관점을 쓰고, 그 근거를 서술하시오.",
+          "options": [
+            "① 비복종이 사회적 압력에 대한 반발로 발생하는 경우",
+            "② 비복종이 개인의 가치관과 사회 규범 사이의 충돌에서 유래되는 경우",
+            "③ 비복종이 사회 체제와 부조화를 보이는 경우",
+            "④ 비복종이 경제적 압박 때문인 경우"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "다음 사례에서 일탈 이론을 설명하는 관점을 선택하시오.",
+          "options": [
+            "① 사회적 압력에 반발한 비복종",
+            "② 가치관과 규범의 충돌로 인한 비복종",
+            "③ 체제와 부조화를 보이는 비복종",
+            "④ 경제적 요인으로 인한 비복종"
+          ],
+          "answer": "③",
+          "item_type": "객관식",
+          "difficulty": "중"
+        }
+      ],
+      "human_label": {
+        "type_ratio_score": 0.0,
+        "difficulty_match": true,
+        "overall_score": 0
+      },
+      "code_version": "post_2026-07-10_retry_preservation_fix"
+    },
+    {
+      "id": "str_047",
+      "passage_text": "1. 사회 계약설의 관점에서 국가의 성립 목적으로 옳은 것은?\n① 지배 계급의 이익 보호 ② 시민의 생명·자유·재산 보호 ③ 종교적 권위의 유지 ④ 영토 확장",
+      "num_items": 5,
+      "generated_items": [
+        {
+          "question": "사회 계약설의 관점에서 국가의 성립 목적으로 옳은 것은?",
+          "options": [
+            "① 지배 계급의 이익 보호",
+            "② 시민의 생명·자유·재산 보호",
+            "③ 종교적 권위의 유지",
+            "④ 영토 확장"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        }
+      ],
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
+      "code_version": "post_2026-07-11_language_gate"
+    },
+    {
+      "id": "str_048",
+      "passage_text": "1. 보통 선거 원칙에 위배되는 사례로 옳은 것은?\n① 일정 연령 이상 모든 국민에게 투표권 부여 ② 납세액에 따라 투표권 차등 부여 ③ 비밀 투표 보장 ④ 직접 투표 실시\n\n2. 평등 선거 원칙과 보통 선거 원칙의 차이를 서술하시오.",
+      "num_items": 3,
+      "generated_items": [
+        {
+          "question": "보통 선거 원칙에 위반되는 사례로 옳은 것은?",
+          "options": [
+            "① 모든 국민에게 투표권 부여",
+            "② 나이 18세 이상만 투표권 부여",
+            "③ 비밀 투표 보장",
+            "④ 직접 투표 실시"
+          ],
+          "answer": "②",
+          "item_type": "객관식",
+          "difficulty": "중"
+        }
+      ],
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      },
+      "code_version": "post_2026-07-11_language_gate"
+    },
+    {
+      "id": "str_049",
+      "passage_text": "1. 다음 사례에서 나타난 규모의 경제 효과를 설명하고, 이것이 시장 구조에 미치는 영향을 서술하시오.",
+      "num_items": 7,
+      "generated_items": [
+        {
+          "question": "다음 사례에서 규모의 경제 효과를 설명하고, 이를 시장 구조에 미치는 영향을 서술하시오.\n\n[사례]\n한 회사는 원자재 공급량이 크게 늘어나면서 생산 비용이 감소하였고, 이로 인해 가격경쟁력을 강화되었다. 하지만 이 회사는 규모의 경제 효과를 활용하여 시장 점유율을 높이는 데에 실패하였다.\n\n[시사점]\n1. 규모의 경제 효과\n2. 시장 점유율",
+          "options": [
+            "① 원자재 공급량 증가로 인한 생산 비용 감소가 가격경쟁력을 강화하였으나, 시장 점유율을 높이는 데에는 실패하였다.",
+            "② 시장 점유율은 회사의 규모와 무관하게 결정되므로 규모의 경제 효과를 활용하지 않아도 될 것이다.",
+            "③ 가격경쟁력을 강화하였으나, 제품 품질 저하로 인해 시장 점유율을 높이지 못하였다.",
+            "④ 원자재 공급량 증가에 따른 생산 비용 감소는 가격 경쟁력만 강화하였으며, 시장 구조와 무관한 결과를 초래하였다."
+          ],
+          "answer": "①",
+          "item_type": "객관식",
+          "difficulty": "중"
+        },
+        {
+          "question": "다음 사례에서 규모의 경제 효과를 설명하고, 이를 시장 구조에 미치는 영향을 서술하시오.\n\n[사례]\n한 회사는 원자재 공급량이 크게 늘어나면서 생산 비용이 감소하였고, 이로 인해 가격경쟁력을 강화되었다. 하지만 이 회사는 규모의 경제 효과를 활용하여 시장 점유율을 높이는 데에 실패하였다.\n\n[시사점]\n1. 규모의 경제 효과\n2. 시장 점유율",
+          "options": [
+            "① 원자재 공급량 증가로 인한 생산 비용 감소가 가격경쟁력을 강화하였으나, 시장 점유율을 높이는 데에는 실패하였다.",
+            "② 시장 점유율은 회사의 규모와 무관하게 결정되므로 규모의 경제 효과를 활용하지 않아도 될 것이다.",
+            "③ 가격경쟁력을 강화하였으나, 제품 품질 저하로 인해 시장 점유율을 높이지 못하였다.",
+            "④ 원자재 공급량 증가에 따른 생산 비용 감소는 가격 경쟁력만 강화하였으며, 시장 구조와 무관한 결과를 초래하였다."
+          ],
+          "answer": "①",
+          "item_type": "객관식",
+          "difficulty": "중"
+        }
+      ],
+      "human_label": {
+        "type_ratio_score": 0.0,
+        "difficulty_match": false,
+        "overall_score": 0
+      },
+      "code_version": "post_2026-07-11_language_gate"
+    }
+  ]
+}
