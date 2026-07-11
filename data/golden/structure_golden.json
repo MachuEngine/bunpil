@@ -175,7 +175,7 @@
       "human_label": {
         "type_ratio_score": 1.0,
         "difficulty_match": true,
-        "overall_score": 4
+        "overall_score": 1
       },
       "code_version": "post_2026-07-11_malformed_retry_fix_qwen14b"
     },
@@ -759,7 +759,7 @@
       "human_label": {
         "type_ratio_score": 1.0,
         "difficulty_match": true,
-        "overall_score": 4
+        "overall_score": 1
       },
       "code_version": "post_2026-07-11_malformed_retry_fix_qwen14b"
     },

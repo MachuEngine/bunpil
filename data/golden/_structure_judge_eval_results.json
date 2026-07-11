@@ -1,6 +1,6 @@
 {
   "_schema": {
-    "description": "eval_structure_judge 신뢰도 검증 raw 결과. v3 골든셋 + 균형 문구/예시 추가 후(패러프레이즈 few-shot 1개 유지, 환각 few-shot 제거, \"실질적으로 다르면 감점 금지\" 문구 추가) 재측정, Judge=qwen2.5:14b, 2026-07-12. 골든셋 아님 — 재실행 시 덮어씀."
+    "description": "eval_structure_judge 신뢰도 검증 raw 결과. v3 골든셋 + 저점1개/균형 few-shot(C안) + str_010/047 라벨 재검토 반영 후 재측정, Judge=qwen2.5:14b, 2026-07-12. 골든셋 아님 — 재실행 시 덮어씀."
   },
   "results": [
     {
@@ -11,9 +11,9 @@
         "overall_score": 2
       },
       "judge": {
-        "type_ratio_score": 0.8,
+        "type_ratio_score": 0.7,
         "difficulty_match": true,
-        "overall_score": 4
+        "overall_score": 3
       }
     },
     {
@@ -34,7 +34,7 @@
       "human": {
         "type_ratio_score": 1.0,
         "difficulty_match": true,
-        "overall_score": 4
+        "overall_score": 1
       },
       "judge": {
         "type_ratio_score": 1.0,
@@ -76,7 +76,7 @@
         "overall_score": 3
       },
       "judge": {
-        "type_ratio_score": 0.8,
+        "type_ratio_score": 0.75,
         "difficulty_match": true,
         "overall_score": 3
       }
@@ -103,8 +103,8 @@
       },
       "judge": {
         "type_ratio_score": 0.8,
-        "difficulty_match": false,
-        "overall_score": 3
+        "difficulty_match": true,
+        "overall_score": 4
       }
     },
     {
@@ -115,9 +115,9 @@
         "overall_score": 3
       },
       "judge": {
-        "type_ratio_score": 0.8,
+        "type_ratio_score": 1.0,
         "difficulty_match": true,
-        "overall_score": 4
+        "overall_score": 5
       }
     },
     {
@@ -128,7 +128,7 @@
         "overall_score": 4
       },
       "judge": {
-        "type_ratio_score": 0.7,
+        "type_ratio_score": 0.8,
         "difficulty_match": false,
         "overall_score": 3
       }
@@ -141,7 +141,7 @@
         "overall_score": 2
       },
       "judge": {
-        "type_ratio_score": 0.7,
+        "type_ratio_score": 0.6,
         "difficulty_match": true,
         "overall_score": 3
       }
@@ -154,9 +154,9 @@
         "overall_score": 2
       },
       "judge": {
-        "type_ratio_score": 0.8,
+        "type_ratio_score": 0.75,
         "difficulty_match": true,
-        "overall_score": 4
+        "overall_score": 3
       }
     },
     {
@@ -180,9 +180,9 @@
         "overall_score": 3
       },
       "judge": {
-        "type_ratio_score": 0.8,
+        "type_ratio_score": 0.7,
         "difficulty_match": true,
-        "overall_score": 3
+        "overall_score": 4
       }
     },
     {
@@ -206,9 +206,9 @@
         "overall_score": 1
       },
       "judge": {
-        "type_ratio_score": 0.3,
+        "type_ratio_score": 0.6,
         "difficulty_match": false,
-        "overall_score": 2
+        "overall_score": 3
       }
     },
     {
@@ -216,12 +216,12 @@
       "human": {
         "type_ratio_score": 1.0,
         "difficulty_match": true,
-        "overall_score": 4
+        "overall_score": 1
       },
       "judge": {
         "type_ratio_score": 0.8,
         "difficulty_match": true,
-        "overall_score": 3
+        "overall_score": 4
       }
     },
     {
@@ -232,7 +232,7 @@
         "overall_score": 1
       },
       "judge": {
-        "type_ratio_score": 0.7,
+        "type_ratio_score": 0.8,
         "difficulty_match": true,
         "overall_score": 3
       }
@@ -258,9 +258,9 @@
         "overall_score": 2
       },
       "judge": {
-        "type_ratio_score": 0.7,
-        "difficulty_match": false,
-        "overall_score": 3
+        "type_ratio_score": 0.8,
+        "difficulty_match": true,
+        "overall_score": 4
       }
     }
   ]
