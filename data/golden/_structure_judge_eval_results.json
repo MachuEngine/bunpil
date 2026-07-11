@@ -1,27 +1,40 @@
 {
   "_schema": {
-    "description": "eval_structure_judge 신뢰도 검증 raw 결과 (사람 라벨 vs qwen2.5:7b Judge). rubric 주입 후 재측정본(2026-07-11). 골든셋 아님 — 재실행 시 덮어씀."
+    "description": "eval_structure_judge 신뢰도 검증 raw 결과 (사람 라벨 vs Judge). v3(게이트+재시도로직 적용, 14B 생성) 골든셋 기준, Judge 모델은 qwen2.5:14b(OLLAMA_JUDGE_MODEL 미설정 시 OLLAMA_MODEL 폴백). 2026-07-12. 골든셋 아님 — 재실행 시 덮어씀."
   },
   "results": [
     {
       "id": "str_001",
       "human": {
         "type_ratio_score": 1.0,
-        "difficulty_match": true,
-        "overall_score": 4
+        "difficulty_match": false,
+        "overall_score": 2
       },
       "judge": {
         "type_ratio_score": 0.8,
-        "difficulty_match": true,
-        "overall_score": 4
+        "difficulty_match": false,
+        "overall_score": 3
       }
     },
     {
       "id": "str_004",
       "human": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 3
+      },
+      "judge": {
+        "type_ratio_score": 0.6,
+        "difficulty_match": false,
+        "overall_score": 3
+      }
+    },
+    {
+      "id": "str_010",
+      "human": {
         "type_ratio_score": 1.0,
         "difficulty_match": true,
-        "overall_score": 5
+        "overall_score": 4
       },
       "judge": {
         "type_ratio_score": 0.7,
@@ -30,11 +43,24 @@
       }
     },
     {
-      "id": "str_010",
+      "id": "str_011",
       "human": {
         "type_ratio_score": 1.0,
         "difficulty_match": true,
-        "overall_score": 5
+        "overall_score": 4
+      },
+      "judge": {
+        "type_ratio_score": 0.6,
+        "difficulty_match": true,
+        "overall_score": 4
+      }
+    },
+    {
+      "id": "str_012",
+      "human": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 3
       },
       "judge": {
         "type_ratio_score": 0.8,
@@ -43,53 +69,27 @@
       }
     },
     {
-      "id": "str_011",
+      "id": "str_014",
       "human": {
         "type_ratio_score": 0.5,
         "difficulty_match": true,
-        "overall_score": 2
-      },
-      "judge": {
-        "type_ratio_score": 0.6,
-        "difficulty_match": true,
         "overall_score": 3
-      }
-    },
-    {
-      "id": "str_012",
-      "human": {
-        "type_ratio_score": 1.0,
-        "difficulty_match": true,
-        "overall_score": 1
       },
       "judge": {
-        "type_ratio_score": 1.0,
+        "type_ratio_score": 0.7,
         "difficulty_match": true,
-        "overall_score": 5
-      }
-    },
-    {
-      "id": "str_014",
-      "human": {
-        "type_ratio_score": 0.0,
-        "difficulty_match": false,
-        "overall_score": 0
-      },
-      "judge": {
-        "type_ratio_score": 0.3,
-        "difficulty_match": false,
-        "overall_score": 0
+        "overall_score": 4
       }
     },
     {
       "id": "str_019",
       "human": {
-        "type_ratio_score": 0.5,
+        "type_ratio_score": 1.0,
         "difficulty_match": true,
-        "overall_score": 2
+        "overall_score": 3
       },
       "judge": {
-        "type_ratio_score": 0.714,
+        "type_ratio_score": 0.8,
         "difficulty_match": true,
         "overall_score": 4
       }
@@ -98,26 +98,13 @@
       "id": "str_024",
       "human": {
         "type_ratio_score": 1.0,
-        "difficulty_match": true,
-        "overall_score": 5
+        "difficulty_match": false,
+        "overall_score": 3
       },
       "judge": {
-        "type_ratio_score": 1.0,
-        "difficulty_match": true,
-        "overall_score": 5
-      }
-    },
-    {
-      "id": "str_025",
-      "human": {
-        "type_ratio_score": 1.0,
-        "difficulty_match": true,
-        "overall_score": 1
-      },
-      "judge": {
-        "type_ratio_score": 1.0,
-        "difficulty_match": true,
-        "overall_score": 5
+        "type_ratio_score": 0.7,
+        "difficulty_match": false,
+        "overall_score": 3
       }
     },
     {
@@ -125,20 +112,20 @@
       "human": {
         "type_ratio_score": 1.0,
         "difficulty_match": true,
-        "overall_score": 1
+        "overall_score": 3
       },
       "judge": {
-        "type_ratio_score": 1.0,
+        "type_ratio_score": 0.8,
         "difficulty_match": true,
-        "overall_score": 5
+        "overall_score": 4
       }
     },
     {
       "id": "str_035",
       "human": {
         "type_ratio_score": 1.0,
-        "difficulty_match": false,
-        "overall_score": 3
+        "difficulty_match": true,
+        "overall_score": 4
       },
       "judge": {
         "type_ratio_score": 0.6,
@@ -150,26 +137,26 @@
       "id": "str_036",
       "human": {
         "type_ratio_score": 0.5,
-        "difficulty_match": false,
+        "difficulty_match": true,
         "overall_score": 2
       },
       "judge": {
-        "type_ratio_score": 0.8,
-        "difficulty_match": false,
+        "type_ratio_score": 0.6,
+        "difficulty_match": true,
         "overall_score": 3
       }
     },
     {
       "id": "str_037",
       "human": {
-        "type_ratio_score": 1.0,
+        "type_ratio_score": 0.5,
         "difficulty_match": true,
-        "overall_score": 0
+        "overall_score": 2
       },
       "judge": {
-        "type_ratio_score": 0.6,
-        "difficulty_match": false,
-        "overall_score": 2
+        "type_ratio_score": 0.8,
+        "difficulty_match": true,
+        "overall_score": 4
       }
     },
     {
@@ -177,12 +164,12 @@
       "human": {
         "type_ratio_score": 1.0,
         "difficulty_match": true,
-        "overall_score": 2
+        "overall_score": 5
       },
       "judge": {
-        "type_ratio_score": 0.6,
-        "difficulty_match": false,
-        "overall_score": 3
+        "type_ratio_score": 0.8,
+        "difficulty_match": true,
+        "overall_score": 4
       }
     },
     {
@@ -190,12 +177,12 @@
       "human": {
         "type_ratio_score": 1.0,
         "difficulty_match": true,
-        "overall_score": 1
+        "overall_score": 3
       },
       "judge": {
-        "type_ratio_score": 0.7,
+        "type_ratio_score": 0.8,
         "difficulty_match": true,
-        "overall_score": 3
+        "overall_score": 4
       }
     },
     {
@@ -208,20 +195,20 @@
       "judge": {
         "type_ratio_score": 0.6,
         "difficulty_match": false,
-        "overall_score": 2
+        "overall_score": 3
       }
     },
     {
       "id": "str_043",
       "human": {
-        "type_ratio_score": 0.0,
-        "difficulty_match": true,
-        "overall_score": 0
+        "type_ratio_score": 0.5,
+        "difficulty_match": false,
+        "overall_score": 1
       },
       "judge": {
-        "type_ratio_score": 0.7,
-        "difficulty_match": true,
-        "overall_score": 4
+        "type_ratio_score": 0.6,
+        "difficulty_match": false,
+        "overall_score": 3
       }
     },
     {
@@ -229,20 +216,7 @@
       "human": {
         "type_ratio_score": 1.0,
         "difficulty_match": true,
-        "overall_score": 1
-      },
-      "judge": {
-        "type_ratio_score": 1.0,
-        "difficulty_match": true,
-        "overall_score": 5
-      }
-    },
-    {
-      "id": "str_048",
-      "human": {
-        "type_ratio_score": 0.5,
-        "difficulty_match": true,
-        "overall_score": 2
+        "overall_score": 4
       },
       "judge": {
         "type_ratio_score": 0.8,
@@ -251,16 +225,42 @@
       }
     },
     {
-      "id": "str_049",
+      "id": "str_048",
       "human": {
-        "type_ratio_score": 0.0,
-        "difficulty_match": false,
-        "overall_score": 0
-      },
-      "judge": {
         "type_ratio_score": 0.5,
         "difficulty_match": true,
+        "overall_score": 1
+      },
+      "judge": {
+        "type_ratio_score": 0.7,
+        "difficulty_match": true,
+        "overall_score": 4
+      }
+    },
+    {
+      "id": "str_050",
+      "human": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
         "overall_score": 3
+      },
+      "judge": {
+        "type_ratio_score": 0.7,
+        "difficulty_match": true,
+        "overall_score": 4
+      }
+    },
+    {
+      "id": "str_051",
+      "human": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": false,
+        "overall_score": 2
+      },
+      "judge": {
+        "type_ratio_score": 0.8,
+        "difficulty_match": true,
+        "overall_score": 4
       }
     }
   ]

@@ -58,7 +58,11 @@
           "difficulty": "상"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": false,
+        "overall_score": 2
+      },
       "code_version": "post_2026-07-11_malformed_retry_fix_qwen14b"
     },
     {
@@ -98,7 +102,11 @@
           "difficulty": "상"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 3
+      },
       "code_version": "post_2026-07-11_malformed_retry_fix_qwen14b"
     },
     {
@@ -155,7 +163,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 4
+      },
       "code_version": "post_2026-07-11_malformed_retry_fix_qwen14b"
     },
     {
@@ -183,7 +195,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 4
+      },
       "code_version": "post_2026-07-11_malformed_retry_fix_qwen14b"
     },
     {
@@ -228,7 +244,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 3
+      },
       "code_version": "post_2026-07-11_malformed_retry_fix_qwen14b"
     },
     {
@@ -268,7 +288,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 3
+      },
       "code_version": "post_2026-07-11_malformed_retry_fix_qwen14b"
     },
     {
@@ -308,7 +332,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 3
+      },
       "code_version": "post_2026-07-11_malformed_retry_fix_qwen14b"
     },
     {
@@ -353,7 +381,11 @@
           "difficulty": "하"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": false,
+        "overall_score": 3
+      },
       "code_version": "post_2026-07-11_malformed_retry_fix_qwen14b"
     },
     {
@@ -410,7 +442,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 3
+      },
       "code_version": "post_2026-07-11_malformed_retry_fix_qwen14b"
     },
     {
@@ -431,7 +467,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 4
+      },
       "code_version": "post_2026-07-11_malformed_retry_fix_qwen14b"
     },
     {
@@ -452,7 +492,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      },
       "code_version": "post_2026-07-11_malformed_retry_fix_qwen14b"
     },
     {
@@ -492,7 +536,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      },
       "code_version": "post_2026-07-11_malformed_retry_fix_qwen14b"
     },
     {
@@ -513,7 +561,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 5
+      },
       "code_version": "post_2026-07-11_malformed_retry_fix_qwen14b"
     },
     {
@@ -570,7 +622,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 3
+      },
       "code_version": "post_2026-07-11_malformed_retry_fix_qwen14b"
     },
     {
@@ -591,7 +647,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      },
       "code_version": "post_2026-07-11_malformed_retry_fix_qwen14b"
     },
     {
@@ -626,7 +686,11 @@
           "difficulty": "하"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": false,
+        "overall_score": 1
+      },
       "code_version": "post_2026-07-11_malformed_retry_fix_qwen14b"
     },
     {
@@ -683,7 +747,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 4
+      },
       "code_version": "post_2026-07-11_malformed_retry_fix_qwen14b"
     },
     {
@@ -728,7 +796,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
       "code_version": "post_2026-07-11_malformed_retry_fix_qwen14b"
     },
     {
@@ -773,7 +845,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 3
+      },
       "code_version": "post_2026-07-11_malformed_retry_fix_qwen14b"
     },
     {
@@ -837,7 +913,11 @@
           "difficulty": "하"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": false,
+        "overall_score": 2
+      },
       "code_version": "post_2026-07-11_malformed_retry_fix_qwen14b"
     }
   ]
