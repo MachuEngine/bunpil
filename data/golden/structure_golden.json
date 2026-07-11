@@ -13,7 +13,16 @@
       }
     },
     "provenance": "2026-07-09 count_match 폐기·num_items 도입 이후 실제 qwen2.5:7b 출력 기반으로 전면 재생성. 이전 부트스트랩(Claude 합성 str_001~003)과 count_match 기반 pending 항목은 아키텍처 변경으로 전부 폐기하고 새로 생성함.",
-    "how_to_label": "passage_text·num_items와 generated_items를 비교해 사람이 human_label을 채운다 (개수 일치 여부는 라벨링 대상이 아님 — len(generated_items)==num_items로 코드가 이미 검증). eval_structure_judge()는 이 고정된 쌍을 LLM에게 다시 보여주고 판단시킨 뒤, 그 결과를 human_label과 비교한다."
+    "how_to_label": "passage_text·num_items와 generated_items를 비교해 사람이 human_label을 채운다 (개수 일치 여부는 라벨링 대상이 아님 — len(generated_items)==num_items로 코드가 이미 검증). eval_structure_judge()는 이 고정된 쌍을 LLM에게 다시 보여주고 판단시킨 뒤, 그 결과를 human_label과 비교한다.",
+    "overall_score_policy": "overall_score는 단순한 유형·난이도 일치만이 아니라, 예시의 주제와 문항 형식을 유지하면서 새 문항 세트로 변환했는지를 종합 평가한다. passage_text의 문항을 그대로 복사한 경우, generated_items 내부에 완전 중복이 있는 경우, 주제가 이탈한 경우는 감점한다. 단, len(generated_items)==num_items 여부 자체는 코드가 별도로 검증하므로 직접 채점 요소에서 제외한다.",
+    "overall_score_rubric": {
+      "5": "유형·난이도·주제·형식이 매우 잘 맞고, 새 문항으로 충분히 변형되며 중복이나 심각한 오류가 없음",
+      "4": "전반적으로 잘 맞으나 경미한 반복, 표현 오류, 일부 내용 결함이 있음",
+      "3": "핵심 구조는 유지하지만 뚜렷한 중복, 오류, 환각, 일부 유형 또는 주제 손상이 있음",
+      "2": "일부 구조만 재현하며 유형 누락, 큰 주제 이탈, 심한 품질 저하가 있음",
+      "1": "원문 단순 복사 또는 완전 중복에 의존해 새 문항 생성으로 보기 어렵지만 최소한의 형식 일치는 있음",
+      "0": "유형이 완전히 반전되거나 언어 오염·구조 붕괴 등으로 사실상 사용할 수 없음"
+    }
   },
   "entries": [
     {
@@ -58,7 +67,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 4
+      },
       "code_version": "pre_2026-07-10_retry_preservation_fix",
       "has_language_contamination": true
     },
@@ -94,7 +107,11 @@
           "difficulty": "상"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 5
+      },
       "code_version": "pre_2026-07-10_retry_preservation_fix"
     },
     {
@@ -163,7 +180,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 5
+      },
       "code_version": "pre_2026-07-10_retry_preservation_fix"
     },
     {
@@ -184,7 +205,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      },
       "code_version": "pre_2026-07-10_retry_preservation_fix"
     },
     {
@@ -205,7 +230,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
       "code_version": "pre_2026-07-10_retry_preservation_fix"
     },
     {
@@ -226,7 +255,11 @@
           "difficulty": "上"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 0.0,
+        "difficulty_match": false,
+        "overall_score": 0
+      },
       "code_version": "pre_2026-07-10_retry_preservation_fix",
       "has_language_contamination": true
     },
@@ -320,7 +353,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      },
       "code_version": "pre_2026-07-10_retry_preservation_fix"
     },
     {
@@ -365,7 +402,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 5
+      },
       "code_version": "pre_2026-07-10_retry_preservation_fix"
     },
     {
@@ -386,7 +427,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
       "code_version": "pre_2026-07-10_retry_preservation_fix"
     },
     {
@@ -407,7 +452,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
       "code_version": "pre_2026-07-10_retry_preservation_fix"
     },
     {
@@ -488,7 +537,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": false,
+        "overall_score": 3
+      },
       "code_version": "post_2026-07-10_retry_preservation_fix"
     },
     {
@@ -557,7 +610,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": false,
+        "overall_score": 2
+      },
       "code_version": "post_2026-07-10_retry_preservation_fix"
     },
     {
@@ -587,7 +644,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 0
+      },
       "code_version": "post_2026-07-10_retry_preservation_fix",
       "has_language_contamination": true
     },
@@ -633,7 +694,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 2
+      },
       "code_version": "post_2026-07-10_retry_preservation_fix"
     },
     {
@@ -666,7 +731,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
       "code_version": "post_2026-07-10_retry_preservation_fix"
     },
     {
@@ -682,7 +751,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      },
       "code_version": "post_2026-07-10_retry_preservation_fix"
     },
     {
@@ -715,7 +788,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 0.0,
+        "difficulty_match": true,
+        "overall_score": 0
+      },
       "code_version": "post_2026-07-10_retry_preservation_fix"
     },
     {
@@ -736,7 +813,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
       "code_version": "post_2026-07-11_language_gate"
     },
     {
@@ -757,7 +838,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      },
       "code_version": "post_2026-07-11_language_gate"
     },
     {
@@ -790,7 +875,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null,
+      "human_label": {
+        "type_ratio_score": 0.0,
+        "difficulty_match": false,
+        "overall_score": 0
+      },
       "code_version": "post_2026-07-11_language_gate"
     }
   ]

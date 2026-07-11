@@ -1,0 +1,267 @@
+{
+  "_schema": {
+    "description": "eval_structure_judge 신뢰도 검증 raw 결과 (사람 라벨 vs qwen2.5:7b Judge, 2026-07-11). 골든셋 아님 — 재실행 시 덮어씀."
+  },
+  "results": [
+    {
+      "id": "str_001",
+      "human": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 4
+      },
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 5
+      }
+    },
+    {
+      "id": "str_004",
+      "human": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 5
+      },
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 5
+      }
+    },
+    {
+      "id": "str_010",
+      "human": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 5
+      },
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 5
+      }
+    },
+    {
+      "id": "str_011",
+      "human": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      },
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 4
+      }
+    },
+    {
+      "id": "str_012",
+      "human": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 4
+      }
+    },
+    {
+      "id": "str_014",
+      "human": {
+        "type_ratio_score": 0.0,
+        "difficulty_match": false,
+        "overall_score": 0
+      },
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": false,
+        "overall_score": 3
+      }
+    },
+    {
+      "id": "str_019",
+      "human": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      },
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 4
+      }
+    },
+    {
+      "id": "str_024",
+      "human": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 5
+      },
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 4
+      }
+    },
+    {
+      "id": "str_025",
+      "human": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 4
+      }
+    },
+    {
+      "id": "str_029",
+      "human": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 5
+      }
+    },
+    {
+      "id": "str_035",
+      "human": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": false,
+        "overall_score": 3
+      },
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": false,
+        "overall_score": 2
+      }
+    },
+    {
+      "id": "str_036",
+      "human": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": false,
+        "overall_score": 2
+      },
+      "judge": {
+        "type_ratio_score": 0.8,
+        "difficulty_match": true,
+        "overall_score": 4
+      }
+    },
+    {
+      "id": "str_037",
+      "human": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 0
+      },
+      "judge": {
+        "type_ratio_score": 0.67,
+        "difficulty_match": true,
+        "overall_score": 3
+      }
+    },
+    {
+      "id": "str_039",
+      "human": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 2
+      },
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 4
+      }
+    },
+    {
+      "id": "str_041",
+      "human": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 5
+      }
+    },
+    {
+      "id": "str_042",
+      "human": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      },
+      "judge": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 3
+      }
+    },
+    {
+      "id": "str_043",
+      "human": {
+        "type_ratio_score": 0.0,
+        "difficulty_match": true,
+        "overall_score": 0
+      },
+      "judge": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 3
+      }
+    },
+    {
+      "id": "str_047",
+      "human": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 4
+      }
+    },
+    {
+      "id": "str_048",
+      "human": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      },
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 4
+      }
+    },
+    {
+      "id": "str_049",
+      "human": {
+        "type_ratio_score": 0.0,
+        "difficulty_match": false,
+        "overall_score": 0
+      },
+      "judge": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 3
+      }
+    }
+  ]
+}

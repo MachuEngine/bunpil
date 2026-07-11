@@ -73,6 +73,7 @@ Windows 콘솔에서 실행 시 `cp949` 인코딩 오류(`UnicodeEncodeError`)�
 | 2026.07.09 | qwen2.5:7b (JUDGE_TPL 5점 앵커 추가 후) | 0.905 | 0.659 | 오답매력도 2.83(+0.33), 종합 3.79, 합격률 73%(+26%p) | 0.328(변화없음) | 0.800 | 구조Judge MAE 1.667 (n=3) |
 | 2026.07.09 | qwen2.5:7b (agent_node 프롬프트 변경 전, `compare_distractor_quality.py`로 실제 생성) | - | - | 오답매력도 2.500 (n=8, 객관식만) | - | - | - |
 | 2026.07.09 | qwen2.5:7b (agent_node 프롬프트 변경 후, `compare_distractor_quality.py`로 실제 생성) | - | - | 오답매력도 2.846 (n=13, 객관식만, +0.346) | - | - | - |
+| 2026.07.11 | qwen2.5:7b (STRUCTURE_GOLDEN 사람 라벨 20개 완성 후 첫 정식 측정) | - | - | - | - | - | 구조Judge diff 일치율 0.900(κ 0.615✅)/overall MAE 2.150·±1 일치 0.300·이진(≥3) κ **-0.103**❌/type_ratio MAE 0.206(r 0.575) — overall은 Judge가 +1.95 체계적 과대평가, 원인 분석 아래 참고 |
 
 > 모델 교체 또는 프롬프트 튜닝 시마다 행 추가. 2026.07 Recall@5/MRR은 passage_text 리디자인으로 past_exams golden 항목이 제거되며 n이 28→21로 줄어 재측정한 값(검색은 LLM과 무관하므로 모델 열은 해당 없음).
 >
@@ -81,6 +82,33 @@ Windows 콘솔에서 실행 시 `cp949` 인코딩 오류(`UnicodeEncodeError`)�
 > **방법론 오류 정정(2026.07.09)**: 이후 `graph.py` agent_node 프롬프트(생성 측)에도 오답 매력도 지시를 추가하고 같은 방식(`eval_exam.py` 전/후 재실행)으로 검증하려 했으나, `eval_item_quality()`가 채점하는 `ITEM_GOLDEN`은 **스크립트에 하드코딩된 고정 30개 문항**이라 agent_node를 전혀 호출하지 않는다 — 즉 생성 프롬프트를 바꿔도 이 지표엔 원리적으로 반영될 수 없다(실제로 전/후 평균이 2.815로 완전히 동일하게 나와서 발견). 생성 프롬프트 변경 효과는 `scripts/compare_distractor_quality.py`로 별도 검증함(아래 결과 이력 참고).
 
 ## 5. 진행 중인 조사
+
+### 구조 유사도 Judge 신뢰도 첫 정식 측정 결과 분석 (2026-07-11, n=20)
+
+사람 라벨 20개 완성 후 `judge_structure_one()`(qwen2.5:7b)을 각 엔트리에 재실행해 대조.
+raw 결과는 `data/golden/_structure_judge_eval_results.json`.
+
+| 항목 | 결과 | 해석 |
+|---|---|---|
+| difficulty_match 일치율 / κ | 0.900 / **0.615** | 목표(0.4) 초과 — 난이도 판단은 신뢰 가능 |
+| type_ratio_score MAE / r | 0.206 / 0.575 | 방향은 맞으나 Judge가 관대한 편 |
+| overall_score MAE | 2.150 | 매우 나쁨 |
+| overall_score 이진(≥3) κ | **-0.103** | 우연 이하 — 현재 형태로는 사용 불가 |
+| Judge 편향 | +1.95 | 20건 중 19건에서 human보다 높거나 같게 채점 |
+
+**원인(핵심)**: 사람 라벨은 이번에 신설된 rubric(`_schema.overall_score_rubric`)에 따라
+**중복 문항·원문 복사·주제 이탈·환각을 감점**하는데, Judge 프롬프트(`STRUCTURE_JUDGE_TPL`)는
+"유형 비율·난이도 구성의 구조적 유사도"만 물어봄 — 즉 **사람과 Judge가 서로 다른 것을
+채점하고 있음**. 최대 불일치 사례가 전부 이 패턴: str_029/041/025/047(human 1: 완전 중복
+문항들, judge 4~5: 유형·난이도는 실제로 일치), str_037(human 0: 언어 오염, judge 3).
+Judge가 무능하다기보다 질문이 rubric과 정렬되지 않은 것이 1차 원인 — **다음 단계는
+STRUCTURE_JUDGE_TPL에 rubric(중복·복사·주제 이탈 감점)을 주입하고 재측정**. 그래도 κ가
+낮으면 그때 Judge 모델 크기(14B) 문제로 넘어감.
+
+**부수 발견**: human 라벨 분포 자체가 낮은 쪽에 몰림(평균 1.95/5, 0~2점이 20개 중 14개) —
+rubric 기준으로 보면 현재 7B 생성 품질 자체가 낮다는 뜻이기도 함(중복 생성이 가장 흔한 감점
+사유). 구조 Judge 신뢰도와 별개로 "중복 문항 생성" 자체를 줄이는 개입(예: 부분 진행 보존
+프롬프트에 기존 문항과의 중복 금지 강화, 또는 save_item에 중복 검사 게이트)이 필요해 보임.
 
 ### 예시 문제 문장 → standards 검색 정합성 (2026.07.09)
 retrieval_golden_final.json의 쿼리는 성취기준 해설 문체(주제어/서술형)로 만들어졌는데, 실제로는 교사가
@@ -110,6 +138,6 @@ TROUBLESHOOTING.md의 num_ctx 발견 이후 남은 잔여 tool-calling 실패율
 | ~~Recall@5~~ | 0.905 ✅ | ≥ 0.8 | past_exams 제거 후 이미 달성(2026.07) |
 | 오답매력도 | 실제 생성 기준 2.500→2.846(+0.346, n=8→13, 객관식만, 2026.07.09) | ≥ 4.0 | 1단계(Judge 5점 앵커, ITEM_GOLDEN 채점) + 2단계(agent_node에 오답 매력도 지시+예시, 실제 생성 재검증) 둘 다 완료. 방향은 맞으나 목표에는 크게 못 미침 — few-shot을 진짜 멀티턴 tool-call 예시로 강화하거나, validate_item_format에 오답 매력도 최소 기준을 추가하는 등 추가 개입 필요 |
 | Cohen's kappa | 0.328 (JUDGE_TPL 변경 전후 동일) | ≥ 0.4 | Judge 5점 앵커 추가만으론 kappa 불변 확인됨(고정 ITEM_GOLDEN 기준) — 근본 원인이 오답매력도 채점 기준 하나가 아닐 가능성, 추가 조사 필요 |
-| 구조 Judge 신뢰도 | diff 0.667, MAE 1.333 (1.5b, n=3, count_match는 2026-07-09 개념 폐기로 지표에서 제외 — 옛 부트스트랩 3개 기준 수치, 참고용) | 미정 | STRUCTURE_GOLDEN 실제 qwen2.5:7b 출력 14개 확보 완료(전면 재생성), 라벨링 대기 중 — 라벨링 후 재측정 |
+| 구조 Judge 신뢰도 | diff κ 0.615 ✅ / overall 이진 κ -0.103 ❌ (7B, n=20, 2026-07-11 첫 정식 측정) | diff κ ≥ 0.4 달성 / overall κ ≥ 0.4 | overall은 Judge 프롬프트가 사람 rubric(중복·복사·주제이탈 감점)과 미정렬이 1차 원인 — STRUCTURE_JUDGE_TPL에 rubric 주입 후 재측정(5절 분석 참고) |
 | 규정 위반 Recall | 0.840 | ≥ 0.95 | 위반 탐지 프롬프트 튜닝 또는 규정 RAG 보강 |
 | NLI 사실추가율 | 0.100 | = 0 | 오탐 2건 원인 분석 (골든셋 or 프롬프트 문제) |
