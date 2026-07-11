@@ -26,7 +26,7 @@ sudo systemctl reload caddy
 
 echo ""
 echo "=== 완료 ==="
-echo "  https://$DOMAIN 은 FastAPI(API 전용)로 연결됩니다 — 프론트엔드는 이 스크립트 범위 밖입니다."
-echo "  (frontend/ 배포는 README.md '배포 (프로덕션)' 섹션의 안내 참고)"
+echo "  https://$DOMAIN 은 Next.js(3000, docker-compose frontend 서비스)로 연결됩니다."
+echo "  (docker compose up -d --build 로 app+frontend 컨테이너가 함께 떠 있어야 함)"
 echo "  인증서 상태: sudo caddy certificates"
 echo "  로그 확인:   sudo journalctl -u caddy -f"

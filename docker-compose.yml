@@ -14,6 +14,18 @@ services:
     environment:
       - LLM_BACKEND=${LLM_BACKEND:-local}
 
+  # Next.js UI. app 서비스 이름으로 컨테이너 간 통신하므로 localhost가 아닌
+  # 서비스명(app)을 BACKEND_URL로 사용 — frontend/app/api/*/route.ts가 이 값으로 프록시.
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - BACKEND_URL=http://app:8765
+    depends_on:
+      - app
+
 volumes:
   chroma_data:
   hf_cache:

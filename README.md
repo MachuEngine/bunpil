@@ -380,23 +380,22 @@ flowchart LR
     RunPod["⚡ RunPod 서버리스<br/>Qwen2.5-7B, vLLM"]
     EBS[("💾 EBS 10GB<br/>ChromaDB 저장")]
 
-    Browser --> Caddy --> EC2 --> RunPod
+    Browser --> Caddy --> Frontend["▲ Next.js<br/>frontend (3000)"]
+    Frontend --> EC2
+    EC2["🖥️ EC2 t3.medium<br/>FastAPI + ChromaDB (8765)"] --> RunPod
     EC2 -.-> EBS
 
-    class Browser,Caddy,EC2,RunPod,EBS neutral
+    class Browser,Caddy,Frontend,EC2,RunPod,EBS neutral
 
     classDef neutral fill:#F5F4F1,stroke:#8A8880,stroke-width:1px,color:#1A1A1A
 ```
 
-> ⚠️ **프론트엔드 배포 미완료** — 위 파이프라인(`Dockerfile`·`docker-compose.yml`·`Caddyfile`)은 FastAPI(API 전용, 8765)만 EC2에 올립니다. `frontend/`(Next.js)는 아직 빌드·배포 대상에 포함돼 있지 않아 현재 이 파이프라인만으로는 브라우저 UI에 접근할 수 없습니다.
+> **프론트엔드 배포**: `docker-compose.yml`의 `frontend` 서비스(`frontend/Dockerfile`, Next.js `output: "standalone"` 빌드)가 3000 포트로 UI를 서빙하고, `frontend/app/api/*/route.ts`가 컨테이너 내부에서 `BACKEND_URL=http://app:8765`로 FastAPI에 프록시합니다. Caddy는 3000만 바라보면 됩니다(아래 Caddyfile 참고). `docker compose up -d --build`로 `app`+`frontend`가 함께 뜹니다.
 
 <details>
-<summary><b>프론트엔드 배포 미완료 상세 (펼치기)</b></summary>
+<summary><b>대안: 외부 호스팅(Vercel 등)에 frontend만 분리 배포 (펼치기)</b></summary>
 
-과거 Gradio 기반 UI(`app/ui.py`)를 FastAPI가 직접 서빙하던 시절의 흔적이 일부 남아있었으나(Next.js 전환 후 `app/ui.py` 자체는 삭제됨), 전환 후 프론트엔드 배포 단계가 아직 이 저장소에 반영되지 않았습니다. 프로덕션에 띄우려면 둘 중 하나가 필요합니다:
-
-1. Next.js를 별도 호스팅(Vercel 등)하고 `BACKEND_URL`을 EC2 도메인으로 설정
-2. EC2에서 `next build && next start`를 상시 프로세스로 돌리고 Caddy에 경로별 리버스 프록시 추가
+지금 채택한 방식은 EC2 안에서 `frontend` 컨테이너를 상시 프로세스로 돌리는 방식(기존 인프라로 해결, 신규 계정 불필요)입니다. 대신 Next.js를 Vercel 등 외부 호스팅에 올리고 `BACKEND_URL` 환경변수만 EC2 도메인(`https://your-domain.com`)으로 맞추는 방식도 가능합니다 — 이 경우 `frontend` 컨테이너는 필요 없고, Caddy도 다시 FastAPI(8765)를 직접 바라보도록 되돌려야 합니다. CDN 엣지 배포로 프론트 응답이 더 빨라지는 대신 신규 외부 계정이 필요해 이 프로젝트에서는 채택하지 않았습니다.
 
 </details>
 
@@ -421,6 +420,7 @@ docker push <your-dockerhub>/bunpil-runpod:latest
 ```bash
 # EC2 (Ubuntu 22.04 t3.medium) 내부에서
 docker pull jongmin0826/bunpil-app:latest
+docker pull jongmin0826/bunpil-frontend:latest
 
 # EBS 볼륨 마운트 (처음 한 번)
 sudo mkfs.ext4 /dev/nvme1n1
@@ -428,17 +428,30 @@ sudo mkdir -p /data/chroma_db
 echo '/dev/nvme1n1 /data/chroma_db ext4 defaults,nofail 0 2' | sudo tee -a /etc/fstab
 sudo mount -a
 
-# 컨테이너 실행
+# app과 frontend가 컨테이너 이름으로 서로 통신할 수 있도록 전용 네트워크 생성
+docker network create bunpil-net
+
+# 컨테이너 실행 (FastAPI)
 docker run -d --name bunpil \
+  --network bunpil-net \
   -p 8765:8765 \
   --env-file /home/ubuntu/.env \
   -v /data/chroma_db:/data/chroma_db \
   jongmin0826/bunpil-app:latest
 
+# 컨테이너 실행 (Next.js — BACKEND_URL은 컨테이너 이름으로 접근)
+docker run -d --name bunpil-frontend \
+  --network bunpil-net \
+  -p 3000:3000 \
+  -e BACKEND_URL=http://bunpil:8765 \
+  jongmin0826/bunpil-frontend:latest
+
 # RAG 인덱싱 (처음 한 번 — EBS에 영구 저장됨)
 docker exec bunpil python scripts/index_regulations.py
 docker exec bunpil python scripts/index_standards.py
 ```
+
+> `docker-compose.yml`을 그대로 쓰는 경우(`docker compose up -d --build`)는 네트워크 생성이 자동이라 위 `docker network create`/`--network` 단계가 필요 없습니다. Docker Hub에 `bunpil-frontend` 이미지를 아직 안 올렸다면 `cd frontend && docker build -t jongmin0826/bunpil-frontend:latest . && docker push ...`로 먼저 푸시해야 합니다.
 
 ### 빌링 알람
 
