@@ -4,6 +4,7 @@
 보안: 마스킹은 모델 호출 전 / 입력 비저장 / 로그 PII 금지
 """
 import logging
+import re
 from typing import List, TypedDict
 
 from app.common.llm import get_llm_backend
@@ -24,8 +25,15 @@ WARNING = (
 
 # ── 규칙 기반 위반 탐지 (LLM 보완 — 명백한 패턴 결정론적 처리) ──
 _RULE_NEGATIVE = ["불성실", "부족", "낮은 편", "어려움이 있음", "개선이 필요", "주의가 필요", "발전이 필요", "보충이 필요"]
-_RULE_COMPARE  = ["에 비해", "보다 낮", "보다 부족", "하위권", "상위권", "서열"]
+_RULE_COMPARE  = ["에 비해", "보다 낮", "보다 부족", "하위권", "상위권", "서열", "비교할 때"]
+# "학생보다 ... 느린" 처럼 비교 표현과 열등 서술어가 떨어져 있는 경우까지 잡기 위한 근접 매칭
+_RULE_COMPARE_RE = re.compile(r"보다\s?.{0,25}?(느리|느린|느려|낮|부족|못하|뒤처|열등)")
 _RULE_GUESS    = ["것 같", "로 보임", "것으로 추측", "말에 따르면"]
+# 가정환경·종교·정치성향 언급은 내용의 긍/부정과 무관하게 그 자체가 위반(사생활·중립성 규정)
+_RULE_BACKGROUND = ["가정형편", "가정환경", "편부모", "한부모", "저소득", "결손가정", "다문화가정"]
+_RULE_RELIGION_POLITICS = ["종교적", "종교 활동", "신앙", "정치적", "정치성향", "지지 정당"]
+# 외모·신체 언급은 호의적 서술이어도 그 자체가 위반(생기부 기재요령 — 외모 평가 금지)
+_RULE_APPEARANCE = ["외모", "키가 작", "키가 커", "체격이", "생김새", "인상이 좋", "잘생", "예쁘"]
 
 
 def _rule_violations(text: str) -> List[str]:
@@ -33,10 +41,16 @@ def _rule_violations(text: str) -> List[str]:
     found: List[str] = []
     if any(kw in text for kw in _RULE_NEGATIVE):
         found.append("VIOLATION: 부정적·비하적 표현 포함")
-    if any(kw in text for kw in _RULE_COMPARE):
+    if any(kw in text for kw in _RULE_COMPARE) or _RULE_COMPARE_RE.search(text):
         found.append("VIOLATION: 비교·서열화 표현 포함")
     if any(kw in text for kw in _RULE_GUESS):
         found.append("VIOLATION: 추측·미확인 표현 포함")
+    if any(kw in text for kw in _RULE_BACKGROUND):
+        found.append("VIOLATION: 가정환경 언급 포함")
+    if any(kw in text for kw in _RULE_RELIGION_POLITICS):
+        found.append("VIOLATION: 종교·정치성향 언급 포함")
+    if any(kw in text for kw in _RULE_APPEARANCE):
+        found.append("VIOLATION: 외모·신체 언급 포함")
     _, pii = mask_pii(text)
     if pii:
         found.append(f"VIOLATION: 개인정보({', '.join(pii)}) 포함")
