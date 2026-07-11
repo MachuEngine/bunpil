@@ -14,13 +14,14 @@
 > retrieval_golden_final.json은 일회성 실험 스크립트(test_topk_recall.py,
 > eval_example_retrieval.py)에서도 기준값 측정용으로 재사용된다.
 
-## 2. 일회성 실험/조사 기록·아카이브 (6개) — 정기 평가에 안 쓰임, 각자 별도 스크립트 전용
+## 2. 일회성 실험/조사 기록·아카이브 (7개) — 정기 평가에 안 쓰임, 각자 별도 스크립트 전용
 
 | 파일 | 관련 스크립트 | 성격 |
 |---|---|---|
 | example_question_retrieval_test.json | eval_example_retrieval.py | 예시문제→성취기준 검색 정합성 조사 (라벨링 미완료) |
 | structure_golden_contaminated_examples.json | 없음(순수 아카이브) | 언어 오염 사례 보관 — 트러블슈팅/블로그 참고용 |
 | structure_golden_v1_labeled.json | 없음(순수 아카이브) | 유사도 게이트 적용 전 7B 출력 + 사람 라벨 v1 (Judge 신뢰도 v1 측정 기준 데이터, 2026-07-11 동결) |
+| structure_golden_v2_pre_retry_fix.json | 없음(순수 아카이브) | 유사도 게이트 적용, tool-calling 재시도 로직 적용 전 14B 출력 v2 중간본 (2026-07-11 동결, human_label 없음) |
 | _distractor_quality_compare.json | compare_distractor_quality.py | 오답매력도 A/B 실험 결과 |
 | _temperature_ab_compare.json | test_temperature_effect.py | temperature 0.7 vs 0.2 A/B 실험 결과 |
 | _topk_recall_compare.json | test_topk_recall.py | top_k 3→2 실험 결과 |
