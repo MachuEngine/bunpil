@@ -248,10 +248,9 @@ bunpil/
 ├── data/
 │   ├── regulations/      # 생기부 기재요령, 작성·관리지침
 │   ├── standards/        # 사회과 교육과정 PDF
-│   └── golden/           # 모든 골든셋 JSON (하드코딩 금지 — retrieval_golden_final.json,
-│                         # structure_golden.json, item_golden.json, masking_golden.json,
-│                         # hallucination_golden.json, violation_golden.json). 각 파일
-│                         # `_schema`에 필드 설명·provenance 포함
+│   └── golden/           # 모든 골든셋 JSON (하드코딩 금지). 정기 평가용 6개 +
+│                         # 일회성 실험 기록 5개 — 파일별 용도·라벨 필드·명명 규칙은
+│                         # data/golden/README.md 참고
 ├── scripts/
 │   ├── index_regulations.py      # regulations 컬렉션 인덱싱
 │   ├── index_standards.py        # standards 컬렉션 인덱싱
