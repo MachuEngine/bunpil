@@ -1,4 +1,8 @@
+<div align="center">
+
 # 분필 (bunpil)
+
+**고등학교 사회 교사를 위한 AI 어시스턴트 — 문항 출제 · 생활기록부 윤문**
 
 ![Skills](https://skillicons.dev/icons?i=python,fastapi,typescript,nextjs,tailwind,docker,react,aws)
 
@@ -11,10 +15,26 @@
 ![vLLM](https://img.shields.io/badge/vLLM-1B76C4?logo=vllm&logoColor=white)
 ![Caddy](https://img.shields.io/badge/Caddy-175F8C?logo=caddy&logoColor=white)
 
-문제 생성과 생기부 작성에 도움을 주는 AI 어시스턴트
+[개요](#개요) · [아키텍처](#아키텍처) · [설계 원칙](#설계-원칙) · [엔지니어링 하이라이트](#엔지니어링-하이라이트) · [품질 평가](#품질-평가) · [빠른 시작](#빠른-시작-로컬) · [배포](#배포-프로덕션)
 
-- **문항 출제** — 예시 문제 텍스트 붙여넣기 → 동일 구성(개수·유형·난이도)의 새 문항 세트 자동 출제
-- **생기부 다듬기** — 교사 관찰 메모 → PII 마스킹 → 학교생활기록부 문체 교정 → 규정 위반 플래그
+</div>
+
+---
+
+## 개요
+
+교사의 반복 업무 중 가장 시간이 많이 드는 두 가지 — **시험 문항 출제**와 **학교생활기록부 문구 작성** — 를 소형 오픈소스 LLM(Qwen2.5-7B)으로 보조하는 서비스입니다. 포트폴리오 프로젝트이자 현직 교사 1인이 실사용 중입니다.
+
+| 모듈 | 입력 | 처리 | 출력 |
+|---|---|---|---|
+| 📝 **문항 출제** | 예시 문제 텍스트 붙여넣기 | LangGraph ReAct 에이전트가 교육과정·규정 RAG를 참조하며 생성 → 형식·언어·개수 검증 → 미달 시 부족분만 이어서 재시도 | 지정 개수의 새 문항 세트 (예시와 유사한 유형·난이도 구성) |
+| ✍️ **생기부 윤문** | 교사 관찰 메모 | PII 마스킹(모델 호출 **전**) → 생기부 문체 교정 → 규정 위반 검증 | 교정된 문장 + 위반 플래그 + 교사 책임 고지 |
+
+프로젝트의 특징 세 가지:
+
+- **로컬 ↔ 프로덕션 전환 가능한 LLM 추상화** — 개발은 Ollama(로컬), 프로덕션은 RunPod 서버리스(vLLM). 환경변수 하나로 전환
+- **"LLM이 판단하고, 코드가 결정한다"** — 품질·유사도 판단은 LLM에게, 통과/재시도/개수/언어 검증은 결정론적 코드에 ([설계 원칙](#설계-원칙))
+- **평가 기반 개발** — 사람이 라벨링한 골든셋 6종으로 검색·생성·마스킹 품질을 수치로 추적 ([EVAL.md](./EVAL.md)), 삽질은 [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)에 기록
 
 ---
 
@@ -32,16 +52,19 @@ flowchart LR
 
     ExamMod["📝 출제 모듈<br/>LangGraph ReAct Agent"]
     RecordMod["✍️ 생기부 모듈<br/>Chain · 3단계"]
-    LLM["🧠 LLM 백엔드<br/>Ollama / RunPod"]
+    RAG[("📚 ChromaDB<br/>BGE-M3 임베딩 · BGE 리랭커<br/>규정 510 + 성취기준 573 청크")]
+    LLM["🧠 LLM 백엔드<br/>Ollama(개발) / RunPod vLLM(프로덕션)"]
 
     Browser --> API
     E1 --> ExamMod
     E2 --> ExamMod
     E3 --> RecordMod
+    ExamMod --> RAG
+    RecordMod --> RAG
     ExamMod --> LLM
     RecordMod --> LLM
 
-    class Browser,E1,E2,E3,LLM neutral
+    class Browser,E1,E2,E3,LLM,RAG neutral
     class ExamMod exam
     class RecordMod record
     style API fill:#FAFAF8,stroke:#C3C2B7,stroke-width:1px
@@ -51,14 +74,28 @@ flowchart LR
     classDef record fill:#ECFEFF,stroke:#0891B2,stroke-width:1.5px,color:#1A1A1A
 ```
 
-- **엔드포인트**: `/exam/stream`(SSE, UI 기본 경로) · `/exam`(JSON 단발, 대안) · `/record`(JSON 단발)
-- **출제 모듈 도구**: `search_regulations`(법령 RAG) · `search_standards`(성취기준 RAG) · `validate_item_format`(형식 자기교정) · `save_item`(문항 저장) · `record_score`(자체 품질 평가) · `similarity_judge`(구조 유사도 평가) — `passage_text`(예시 문제 원문)를 받아 에이전트가 세트 전체를 한 번에 생성, 도구는 모두 순수 계산(내부 LLM 호출 없음)
-- **생기부 모듈 체인**: `mask_pii`(regex, 모델 호출 전) → `polish`(Few-shot 문체 교정) → `validate`(규칙 + RAG 규정 검증)
-- **LLM 백엔드**: 개발 환경은 생성·Judge 모두 `qwen2.5:7b`(Ollama) 동일 모델 사용 — `OLLAMA_JUDGE_MODEL`로 분리 가능(14B는 하드웨어 확보 후 별도 테스트 예정)
+| 구분 | 기술 |
+|---|---|
+| 백엔드 | FastAPI (비동기) |
+| 프론트엔드 | Next.js (`frontend/`) |
+| 에이전트 | LangGraph (ReAct) |
+| 생기부 체인 | LangChain (수동 루프) |
+| RAG | ChromaDB + BGE-M3 임베딩 + BGE-reranker (모두 CPU) |
+| LLM 서빙 | Ollama (개발) / RunPod 서버리스 vLLM (프로덕션) |
+| 트레이싱 | LangSmith (선택, `LANGCHAIN_TRACING_V2=true` 시 자동 활성화) |
+| 배포 | AWS EC2 t3.medium + EBS + RunPod 서버리스 + Caddy HTTPS |
 
-### ReAct 에이전트 설계 원칙
+### 출제 모듈 — ReAct 에이전트
 
-에이전트(LLM)가 추론과 문항 생성을 **직접** 담당합니다. 도구는 검색·저장·검증의 **순수 계산**만 수행하며 내부 LLM 호출이 없습니다. 이를 통해 도구 내부에 LLM을 중첩하는 안티패턴을 제거했습니다.
+에이전트(LLM)가 추론과 문항 생성을 **직접** 담당하고, 도구 6개는 검색·저장·검증의 **순수 계산**만 수행합니다(도구 내부 LLM 호출 없음 — LLM을 도구 안에 중첩하는 안티패턴 제거).
+
+| 도구 | 역할 |
+|---|---|
+| `search_standards` / `search_regulations` | 성취기준·법령 RAG 검색 |
+| `validate_item_format` | 선지 4개·①②③④ 형식 등 결정론적 형식 검증 (오류 시 수정 지침 반환 → 자기교정) |
+| `save_item` | 문항 저장 — 한국어 검증 게이트 통과 시에만 저장 |
+| `record_score` | 문항 품질 자체 평가 기록 |
+| `similarity_judge` | 세트 완성 후 예시 문제와의 구조 유사도 자체 평가 |
 
 ```mermaid
 flowchart LR
@@ -68,7 +105,7 @@ flowchart LR
         direction LR
         Search["🔍 search_standards<br/>search_regulations"]
         Validate{"validate_item_format"}
-        Save["save_item"]
+        Save["save_item<br/>+ 한국어 게이트"]
         Score["record_score"]
 
         Search --> Validate
@@ -90,23 +127,14 @@ flowchart LR
     classDef exam fill:#FEF3C7,stroke:#D97706,stroke-width:1.5px,color:#1A1A1A
 ```
 
-문항별 루프가 세트 전체에 대해 반복되다가 작성이 모두 끝나면 `similarity_judge`가 예시 문제와의 구조 유사도를 한 번만 평가하고, 호출 즉시 루프가 종료됩니다.
-
-### 동시성 설계
-
-- **요청 간 세션 격리**: 출제 요청별 컨텍스트를 `contextvars.ContextVar`로 분리. `asyncio.to_thread` + `contextvars.copy_context()`로 worker 스레드에 전파.
-- **이벤트 루프 비블로킹**: `/exam`은 `asyncio.to_thread`로 LangGraph 실행. `/exam/stream`은 `graph.stream()`(동기 제너레이터)을 executor 스레드에서 돌리며 `asyncio.Queue`로 이벤트만 이벤트 루프에 전달. `/record`는 Chain 전체가 async이므로 `await chain.run()`으로 직접 호출.
-
-### SSE 스트리밍
-
-`/exam/stream`은 프론트엔드가 실제로 사용하는 기본 경로입니다. `graph.stream(stream_mode="updates")`로 LangGraph 노드(`plan`→`agent`→`validate`, 재시도 시 `agent`→`validate` 반복) 완료 시점마다 진행 이벤트를 `text/event-stream`으로 전달합니다. POST 요청이라 브라우저 네이티브 `EventSource`(GET 전용) 대신 프론트엔드에서 `fetch` + `ReadableStream`을 수동 파싱합니다.
+세트 전체는 LangGraph 그래프가 관리합니다. `validate` 노드가 코드로 판정(문항 개수 일치 + `similarity_judge` 결과 threshold)하고, 미달 시 최대 5회까지 `agent`로 재시도합니다 — 이때 **이미 만든 문항은 유지하고 부족분만 이어서 작성**합니다(부분 진행 보존).
 
 ```mermaid
 flowchart LR
     START(["START"])
-    plan["plan<br/>상태 초기화"]
-    agent["agent<br/>문항 세트 생성"]
-    validate{"validate"}
+    plan["plan<br/>세션 초기화 · 1회"]
+    agent["agent<br/>문항 생성<br/>(재시도 시 부족분만)"]
+    validate{"validate<br/>개수==num_items<br/>+ Judge threshold"}
     END(["END"])
 
     START --> plan --> agent --> validate
@@ -120,36 +148,157 @@ flowchart LR
     classDef exam fill:#FEF3C7,stroke:#D97706,stroke-width:1.5px,color:#1A1A1A
 ```
 
-`validate`는 `similarity_judge` 결과를 threshold로 판정합니다(미달 시 최대 5회까지 `agent`로 재시도). 노드가 완료될 때마다 아래처럼 진행 이벤트 하나씩 전송됩니다.
+### 생기부 모듈 — 3단계 체인
+
+순서가 고정된 파이프라인입니다. **PII 마스킹이 반드시 모델 호출보다 앞**에 있어, 원문 개인정보가 LLM에 도달하지 않습니다.
+
+```mermaid
+flowchart LR
+    Memo["📄 교사 관찰 메모"]
+    Mask["1️⃣ mask_pii<br/>정규식 · 모델 호출 전"]
+    Polish["2️⃣ polish<br/>Few-shot 문체 교정"]
+    Validate["3️⃣ validate<br/>규칙 + RAG 규정 검증"]
+    Out["✅ 교정 문장<br/>+ 위반 플래그 + 책임 고지"]
+
+    Memo --> Mask --> Polish --> Validate --> Out
+
+    class Memo,Out neutral
+    class Mask,Polish,Validate record
+
+    classDef neutral fill:#F5F4F1,stroke:#8A8880,stroke-width:1px,color:#1A1A1A
+    classDef record fill:#ECFEFF,stroke:#0891B2,stroke-width:1.5px,color:#1A1A1A
+```
+
+### API와 스트리밍
+
+- **`POST /exam/stream`** (SSE) — UI가 사용하는 기본 경로. `graph.stream(stream_mode="updates")`로 LangGraph 노드 완료 시점마다 진행 이벤트를 전송합니다. POST 요청이라 브라우저 네이티브 `EventSource`(GET 전용) 대신 프론트엔드가 `fetch` + `ReadableStream`을 수동 파싱합니다.
+- **`POST /exam`** (JSON 단발) — 동일 로직의 대안 엔드포인트 (curl 등 비-브라우저 클라이언트용)
+- **`POST /record`** (JSON 단발) — 생기부 윤문
 
 ```
 data: {"status": "truncated", "msg": "입력이 길어 앞부분만 반영되었습니다."}  # 8,000자 초과 시만
 data: {"status": "progress",  "msg": "준비 중..."}
 data: {"status": "progress",  "msg": "AI가 문항을 생성하고 있습니다. 수 분 소요됩니다..."}
 data: {"status": "progress",  "msg": "생성된 문항의 구조적 유사도를 검증하고 있습니다..."}
-data: {"status": "progress",  "msg": "문항 세트를 다시 생성하고 있습니다 (2번째 시도)..."}  # 검증 실패 시 재시도(최대 5회)마다 반복
+data: {"status": "progress",  "msg": "문항 세트를 다시 생성하고 있습니다 (2번째 시도)..."}  # 재시도(최대 5회)마다
 data: {"status": "done",      "items": [...], "validation_passed": true, "truncated": false}
 data: {"status": "error",     "msg": "...", "detail": "..."}  # 예외 발생 시
 ```
 
-`/exam`은 동일 로직을 JSON 단발 응답으로 제공하는 대안 엔드포인트입니다(curl 등 비-브라우저 클라이언트용).
+<details>
+<summary><b>동시성 설계 (펼치기)</b></summary>
+
+- **요청 간 세션 격리**: 출제 요청별 컨텍스트를 `contextvars.ContextVar`로 분리. `asyncio.to_thread` + `contextvars.copy_context()`로 worker 스레드에 전파.
+- **이벤트 루프 비블로킹**: `/exam`은 `asyncio.to_thread`로 LangGraph 실행. `/exam/stream`은 `graph.stream()`(동기 제너레이터)을 executor 스레드에서 돌리며 `asyncio.Queue`로 이벤트만 이벤트 루프에 전달. `/record`는 Chain 전체가 async이므로 `await chain.run()`으로 직접 호출.
+
+</details>
 
 ---
 
-## 스택
+## 설계 원칙
 
-| 구분 | 기술 |
+**1. LLM이 판단하고, 코드가 결정한다.**
+LLM의 자기 평가는 "기록"까지만 — 그것으로 무엇을 할지는 전부 결정론적 코드가 정합니다. 판단 로직을 LLM에 맡겼다가 회수한 이력이 이 프로젝트의 핵심 학습 곡선입니다.
+
+| 검증 대상 | 판단 주체 | 근거 |
+|---|---|---|
+| 구조 유사도 (유형·난이도) | LLM (`similarity_judge`) → threshold는 코드 | 정성 판단은 LLM이 낫고, 커트라인은 코드가 안정적 |
+| 문항 개수 | 코드 (`len(items) == num_items`) | LLM Judge에 맡겼다가 설계 오류 발견 후 이관 |
+| 언어 (한국어) | 코드 (`save_item` 한글 비율 게이트) | 중국어 오염 문항을 저장 전 차단 |
+| 재시도 여부 | 코드 (budget 루프) | LLM에 재시도 판단을 맡기면 수량 제어가 깨짐 |
+
+**2. 도구는 순수 계산만.**
+ReAct 도구 내부에 LLM 호출이 없습니다. 추론·생성은 에이전트가 직접, 도구는 검색·저장·검증만.
+
+**3. 보안 하드룰 (예외 없음).**
+실제 학생 데이터 미사용(전부 합성/익명) · PII 마스킹은 모델 호출 **이전** · 사용자 입력(메모·예시 문제) 비저장(요청 처리 중에만 메모리에 존재) · 로그·캐시에 PII 금지 · 생기부는 메모에 없는 사실 추가 금지("생성"이 아닌 "다듬기") + 교사 책임 고지.
+
+**4. 평가 기반 개발.**
+골든셋은 코드에 하드코딩하지 않고 전부 `data/golden/*.json`으로 관리하며(파일별 용도는 [data/golden/README.md](./data/golden/README.md)), 모델·프롬프트 변경마다 [EVAL.md](./EVAL.md)에 결과 이력을 남깁니다.
+
+---
+
+## 엔지니어링 하이라이트
+
+소형 LLM(7B)으로 에이전트를 만들며 겪은 문제와 해결 과정입니다. 상세 진단 기록은 [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) 참고.
+
+| 문제 | 진단 | 해결 |
+|---|---|---|
+| 골든셋 생성 성공률이 ~37%에서 갑자기 **6%로 급락**, 모델이 중국어·스페인어 섞인 응답 | 로컬 Ollama가 `num_ctx` 기본값 **4096**으로 실행 중이었음(모델은 32K 지원). 멀티턴 ReAct + RAG 검색 결과 누적이 몇 턴 만에 한도를 초과 → 컨텍스트가 잘리며 시스템 프롬프트 유실. 동일 케이스 재현: 4096에서 0/5문항 → 16384에서 5/5문항 | `num_ctx=16384` 명시. vLLM(프로덕션)은 모델 네이티브 값을 쓰므로 **로컬 개발 환경에만 있던 설정 격차**였음 — dev/prod parity의 실례 |
+| 생성 문항의 **45%에 중국어 오염** — "한국어로만 응답" 지시에도 발생 | LangSmith 트레이스 100건 정량 분석: 오염 출력의 입력 크기 중앙값 11,263자 vs 정상 8,009자 — 컨텍스트가 길수록 오염 확률이 오르는 **확률적 드리프트**. 오염 문항이 재시도 프롬프트에 실려 다음 시도로 전파되는 캐스케이드 경로도 확인 | `save_item`에 결정론적 한국어 게이트(한글 부재 또는 한자 비율 ≥5% 시 저장 거부 + 재작성 피드백). 기존 오염 사례 9건 소급 판정에서 수동 분류와 100% 일치 |
+| "생성 개수 = 예시 문제 개수" 전제로 만든 count_match 검증이 실제 요구사항과 불일치 | 개수는 예시와 무관하게 사용자가 지정하는 값(`num_items`)이어야 함 — **골든셋 라벨링 직전에 설계 전제 자체가 틀렸음을 발견** | count_match를 LLM Judge에서 제거하고 `len(items)==num_items` 코드 검증으로 이관. 골든셋 전면 재생성 |
+| 생성 프롬프트를 개선했는데 eval 수치가 **전혀 안 변함** | eval의 문항 품질 평가는 하드코딩된 고정 30문항을 채점하는 구조 — 생성 코드를 아무리 바꿔도 이 지표에 반영될 수 없었음 | 실제로 문항을 새로 생성해 채점하는 별도 검증 스크립트 작성. "eval이 존재하는가"와 "내 변경이 eval이 실제로 exercise하는 경로에 있는가"는 별개 |
+| 재시도마다 이전 시도의 문항까지 전부 폐기 → num_items가 클수록 성공률 급락 | 재시도 구조가 세트 전체 재생성 방식이었음 | **부분 진행 보존**: 재시도 시 저장된 문항은 유지하고 "나머지 N개만 작성" 프롬프트로 이어서 생성. 개수 기준으로 적용 전 14건 중 부족 실패 8건 → 적용 후 6건 전부 목표 근접 달성(통제 실험은 아닌 생성 이력 기반 비교) |
+
+---
+
+## 품질 평가
+
+> 지표 전체 목록·골든셋 현황·결과 이력은 [EVAL.md](./EVAL.md)에서 계속 갱신합니다. 아래는 최신 스냅샷(2026-07 기준, qwen2.5:7b)입니다.
+
+### 출제 모듈 — `scripts/eval_exam.py`
+
+| 지표 | n | 기준 | 실측 |
+|---|---|---|---|
+| 검색 Recall@5 | 21 | ≥ 0.80 | **0.905** ✅ |
+| 검색 MRR | 21 | 참고값 | 0.659 |
+| LLM Judge 종합평균 | 30 | ≥ 4.0 / 5 | 3.68 ❌ |
+| Judge 신뢰도 (Cohen's κ) | 30 | ≥ 0.4 | 0.328 ❌ |
+| Judge 신뢰도 (±1 일치율) | 30 | ≥ 0.7 | **0.800** ✅ |
+| 구조 유사도 Judge 신뢰도 | 20 | 미정 | 라벨링 대기 |
+
+- 검색 수치는 LLM과 무관한 BGE-M3 + reranker 파이프라인 성능. past_exams 컬렉션 제거 후 0.679→0.905로 상승
+- Judge 종합평균 미달의 주원인은 오답매력도(2.5/5) — 생성 프롬프트에 오답 구성 지시·Judge 프롬프트에 5점 앵커를 추가해 2.50→2.85로 개선 중(목표 4.0, 로드맵 참고)
+- 구조 유사도 골든셋(n=20)은 실제 qwen2.5:7b 출력 기반으로 전면 재생성 완료, 사람 라벨링 대기 중
+
+### 생기부 모듈 — `scripts/eval_record.py`
+
+| 지표 | n | 기준 | 실측 |
+|---|---|---|---|
+| PII 마스킹 FN율 | 20 | = 0 | **0.000** ✅ |
+| 키워드 사실추가율 | 20 | = 0 | **0.000** ✅ |
+| NLI 사실추가율 | 20 | = 0 | 0.100 ❌ |
+| 규정 위반 Recall | 50 | ≥ 0.95 | 0.840 ❌ |
+| 규정 위반 F1 | 50 | 참고값 | 0.857 |
+
+- PII 마스킹·키워드 검사는 규칙 기반이라 모델 크기와 무관하게 안정적
+- NLI 사실추가율·위반 Recall은 1.5b→7b 전환으로 크게 개선(0.7~0.9→0.1, 0.6→0.84)됐으나 기준 미달 — 위반 탐지 프롬프트·규정 RAG 보강 예정
+
+<details>
+<summary><b>기능 검증 결과 — test_*.py (펼치기)</b></summary>
+
+| 레이어 | 스크립트 | 목적 | 실행 시점 |
+|---|---|---|---|
+| 기능 검증 | `test_*.py` | 파이프라인이 에러 없이 동작하는가 | 개발 중 수시 |
+| 품질 평가 | `eval_*.py` | 얼마나 잘 하는가 (수치 지표) | 모델·프롬프트 변경 시 |
+
+| 테스트 | 항목 | 결과 |
+|---|---|---|
+| `test_rag.py` | PDF 파싱·청킹·임베딩·ChromaDB 저장/검색 | ✅ |
+| `test_rag.py` | 검색 + BGE-reranker 재정렬 | ✅ |
+| `test_llm.py` | Ollama 응답 수신 | ✅ |
+| `test_llm.py` | local → RunPod 백엔드 전환 | ✅ |
+| `test_exam.py` | passage_text → 에이전트 세트 생성 → similarity_judge 흐름 (그래프 무크래시, 도구 오류 자기수정) | ✅ |
+| `test_record.py` | PII 마스킹 4케이스 (전화번호·주민번호·학교명·이메일) | ✅ |
+| `test_record.py` | 관찰 메모 → 생기부 문체 교정 | ✅ |
+| `test_record.py` | 교사 책임 고지 출력 | ✅ |
+
+</details>
+
+<details>
+<summary><b>프로덕션 검증 결과 — RunPod Qwen2.5-7B, RTX A5000 (펼치기)</b></summary>
+
+| 항목 | 결과 |
 |---|---|
-| 백엔드 | FastAPI (비동기) |
-| 프론트엔드 | Next.js (frontend/) |
-| 에이전트 | LangGraph (ReAct) |
-| 생기부 체인 | LangChain (수동 루프) |
-| 벡터스토어 | ChromaDB |
-| 임베딩 | BGE-M3 (CPU) |
-| 리랭킹 | BGE-reranker-base (CPU) |
-| LLM 서빙 | Ollama (개발) / RunPod vLLM (프로덕션) |
-| 트레이싱 | LangSmith (선택, `LANGCHAIN_TRACING_V2=true` 시 자동 활성화) |
-| 배포 | AWS EC2 t3.medium + EBS + RunPod 서버리스 + Caddy HTTPS |
+| 에이전트 tool calling (ChatRunPod → vLLM) | ✅ |
+| 세트 출제 (save_item → record_score → similarity_judge) | 리디자인 후 RunPod 재검증 필요 |
+| validate_item_format 자기교정 루프 | ✅ |
+| RAG 인덱싱 (규정·성취기준 2개 컬렉션) | ✅ regulations 510 / standards 573 청크 |
+| EBS 영구 저장 | ✅ 컨테이너 재시작 후 재인덱싱 불필요 |
+| 업로드 PDF 인덱싱 제거 | ✅ passage_text 붙여넣기로 인덱싱 자체가 불필요해짐 |
+| 추론 속도 (세트) | 리디자인 후 재측정 필요 (구 수치: ~2–3분/1문항, RTX A5000, min workers=1) |
+
+</details>
 
 ---
 
@@ -183,7 +332,7 @@ ollama pull qwen2.5:7b
 # ollama pull qwen2.5:1.5b
 ```
 
-> **참고**: Ollama는 별도 설정이 없으면 `num_ctx`를 4096으로 제한합니다(모델 자체는 32K 네이티브 지원). 출제 에이전트의 멀티턴 ReAct 루프는 RAG 검색 결과가 누적되며 몇 턴 만에 4096을 넘기기 쉬워, 컨텍스트가 잘리면 모델 응답이 깨지는 원인이 됩니다. `app/modules/exam/llm.py`에서 `num_ctx=16384`로 이미 올려뒀습니다 — 별도 조치 불필요.
+> **참고**: Ollama는 별도 설정이 없으면 `num_ctx`를 4096으로 제한합니다(모델 자체는 32K 지원). 멀티턴 ReAct 루프는 이를 몇 턴 만에 초과해 응답이 깨질 수 있어, `app/modules/exam/llm.py`에서 `num_ctx=16384`로 이미 올려뒀습니다 — 별도 조치 불필요. ([상세 기록](./TROUBLESHOOTING.md))
 
 ### 3. RAG 데이터 인덱싱
 
@@ -221,152 +370,6 @@ BACKEND_URL=http://localhost:8765 npm run dev
 
 ---
 
-## 데이터
-
-| 컬렉션 | 경로 | 출처 | 용도 |
-|---|---|---|---|
-| `regulations` | `data/regulations/` | 학교생활기록부 종합지원포털 | 생기부 규정 위반 검증 + 출제 시 교육과정 법령 참조 |
-| `standards` | `data/standards/` | 국가교육과정정보센터(NCIC) | 출제 시 성취기준 원문 검색 (`search_standards` 도구) |
-
-> `past_exams` 컬렉션(수능·모평 기출)은 리디자인으로 완전히 제거됨 — `check_duplicate` 폐기, 2028 수능 개편으로 과목별 구조 자체가 무의미해짐.
-
----
-
-## 디렉토리 구조
-
-```
-bunpil/
-├── app/
-│   ├── common/
-│   │   ├── llm/          # LLM 추상화 (OllamaBackend / RunPodBackend / ChatRunPod)
-│   │   └── rag/          # PDF 파싱, 임베딩, 리랭킹, ChromaDB
-│   ├── modules/
-│   │   ├── exam/         # 출제 모듈 (LangGraph ReAct Agent, 6개 도구)
-│   │   └── record/       # 생기부 모듈 (수동 루프 Chain)
-│   └── main.py           # FastAPI (/exam/stream + /record)
-├── frontend/             # Next.js UI
-├── data/
-│   ├── regulations/      # 생기부 기재요령, 작성·관리지침
-│   ├── standards/        # 사회과 교육과정 PDF
-│   └── golden/           # 모든 골든셋 JSON (하드코딩 금지). 정기 평가용 6개 +
-│                         # 일회성 실험 기록 5개 — 파일별 용도·라벨 필드·명명 규칙은
-│                         # data/golden/README.md 참고
-├── scripts/
-│   ├── index_regulations.py      # regulations 컬렉션 인덱싱
-│   ├── index_standards.py        # standards 컬렉션 인덱싱
-│   ├── gen_golden_retrieval.py   # 실제 컬렉션 기반 검색 골든셋 초안 생성
-│   ├── gen_structure_golden.py   # 실제 출제 그래프(qwen2.5:7b)로 STRUCTURE_GOLDEN 생성
-│   ├── test_llm.py               # LLM 추상화 레이어 검증
-│   ├── test_rag.py               # RAG 파이프라인 검증
-│   ├── test_exam.py              # 출제 모듈 통합 테스트 (passage_text 리디자인 반영)
-│   ├── test_record.py            # 생기부 모듈 통합 테스트
-│   ├── eval_exam.py              # 출제 평가 (Recall@5, MRR, LLM Judge, 구조 유사도 Judge 신뢰도) — 골든셋은 전부 data/golden/*.json에서 로드
-│   ├── eval_record.py            # 생기부 평가 (마스킹 FN, 사실추가율, 위반 Recall) — 골든셋은 전부 data/golden/*.json에서 로드
-│   └── eval_example_retrieval.py # 예시 문제 문장 스타일 쿼리 vs standards 검색 정합성 비교
-├── runpod_handler/       # RunPod 서버리스 핸들러 (Qwen2.5-7B vLLM)
-├── deploy/               # EC2·Caddy·빌링알람 프로비저닝 스크립트
-├── Dockerfile
-├── docker-compose.yml
-└── Caddyfile
-```
-
----
-
-## 검증
-
-### 검증 구조
-
-| 레이어 | 스크립트 | 목적 | 실행 시점 |
-|---|---|---|---|
-| 기능 검증 | `test_*.py` | 파이프라인이 에러 없이 동작하는가 | 개발 중 수시 |
-| 품질 평가 | `eval_*.py` | 얼마나 잘 하는가 (수치 지표) | 모델 교체 시 |
-
-### 현재 검증 환경
-
-- **LLM**: `qwen2.5:7b` (Ollama 로컬) — 생성·Judge 모두 동일 모델
-- **다음 단계**: 하드웨어 확보 후 `qwen2.5:14b`로 Judge 모델 분리 테스트 예정
-
-### 기능 검증 결과 (qwen2.5:1.5b)
-
-| 테스트 | 항목 | 결과 |
-|---|---|---|
-| `test_rag.py` | PDF 파싱·청킹·임베딩·ChromaDB 저장/검색 | ✅ |
-| `test_rag.py` | 검색 + BGE-reranker 재정렬 | ✅ |
-| `test_llm.py` | Ollama 응답 수신 | ✅ |
-| `test_llm.py` | local → RunPod 백엔드 전환 | ✅ |
-| `test_exam.py` | passage_text 입력 → 에이전트 세트 생성 → 저장 → similarity_judge 흐름(그래프 무크래시, 도구 오류 자기수정) | ✅ (1.5b는 지시 미준수로 문항 0개 생성 — 7B 이상에서 검증 필요) |
-| `test_record.py` | PII 마스킹 4케이스 (전화번호·주민번호·학교명·이메일) | ✅ |
-| `test_record.py` | 관찰 메모 → 생기부 문체 교정 | ✅ |
-| `test_record.py` | 교사 책임 고지 출력 | ✅ |
-
-> 1.5b 모델로 생성된 문항 품질(문장·정확도)은 낮을 수 있음. 파이프라인 로직 검증 목적.
-
-### 품질 평가 지표
-
-> 지표 전체 목록·골든셋 현황·결과 이력은 [EVAL.md](./EVAL.md)에서 계속 갱신합니다. 아래는 최신 스냅샷입니다.
-
-**출제 모듈**
-
-```bash
-.venv/bin/python scripts/eval_exam.py
-```
-
-검색 평가는 실제 `standards` / `regulations` 컬렉션 기반 골든셋 22개 중 `reviewed: true` 21개(`data/golden/retrieval_golden_final.json`, past_exams 참조 8개 제거 후)를 사용합니다.
-
-| 지표 | n | 기준 | 실측 |
-|---|---|---|---|
-| Recall@5 | 21 | ≥ 0.80 | 0.905 ✓ |
-| MRR | 21 | 참고값 | 0.659 |
-| 구조 유사도 Judge 신뢰도 (STRUCTURE_GOLDEN) | 14 | difficulty 일치율, overall MAE (count는 코드가 직접 검증) | 라벨링 대기 — 2026-07-09 num_items 아키텍처로 실제 qwen2.5:7b 출력 전면 재생성 완료(옛 1.5b 부트스트랩 3개 수치는 폐기) |
-| LLM Judge 종합평균 | 30 | ≥ 4.0 / 5 | 3.68 ✗ (7B, 리디자인 이전 측정) |
-| Judge 신뢰도 (Cohen's kappa) | 30 | ≥ 0.4 | 0.328 ✗ (7B) |
-| Judge 신뢰도 (±1 일치율) | 30 | ≥ 0.7 | 0.800 ✓ (7B) |
-
-> 검색 수치(Recall@5, MRR)는 LLM 모델과 무관하며 BGE-M3 + BGE-reranker 파이프라인 성능입니다. past_exams 제거 후 n이 28→21(reviewed 기준)로 줄면서 Recall@5가 0.679→0.905로 상승 — past_exams 항목이 상대적으로 검색 난도가 높았던 것으로 보입니다.
-> LLM Judge/신뢰도 수치(3.68/0.328/0.800)는 리디자인 이전 7B 실측치 — ITEM_GOLDEN 기반 문항 품질 평가 자체는 이번 리디자인으로 바뀌지 않아 여전히 유효함. 미달 원인은 오답매력도(2.43/5)가 낮은 것 — 출제 프롬프트 튜닝 예정(로드맵 참고).
-> 세트 제약(유형·난이도·중복률) 검증은 리디자인으로 폐기되고 구조 유사도 Judge 신뢰도 검증으로 대체됨. 2026-07-09: "생성 개수가 예시 문제 개수와 일치해야 한다"(`count_match`)는 전제 자체가 잘못됐음이 확인되어 폐기 — 개수는 `ExamSpec.num_items`로 예시와 무관하게 별도 지정되고 코드가 직접 검증한다. STRUCTURE_GOLDEN은 Claude 합성 부트스트랩을 전부 폐기하고 실제 qwen2.5:7b 출력 기반으로 전면 재생성함(`data/golden/structure_golden.json`의 `_schema.provenance` 참고) — human_label은 사람이 직접 채움.
-
-**생기부 모듈**
-
-```bash
-.venv/bin/python scripts/eval_record.py
-```
-
-| 지표 | n | 기준 | 7B 실측 |
-|---|---|---|---|
-| PII 마스킹 FN율 | 20 | = 0 | 0.000 ✓ |
-| 키워드 사실추가율 | 20 | = 0 | 0.000 ✓ |
-| NLI 사실추가율 | 20 | = 0 | 0.100 ✗ |
-| 규정 위반 Recall | 50 | ≥ 0.95 | 0.840 ✗ |
-| 규정 위반 F1 | 50 | 참고값 | 0.857 |
-
-> PII 마스킹·키워드 검사는 규칙 기반이라 소형 모델에서도 안정적.
-> NLI 사실추가율·규정 위반 Recall은 1.5b 대비 크게 개선(각각 0.7~0.9→0.1, 0.6→0.84)됐으나 아직 기준 미달 — 위반 탐지 프롬프트·규정 RAG 보강 예정(로드맵 참고). 수치는 qwen2.5:7b 기준.
-
-### 프로덕션 검증 결과 (RunPod Qwen2.5-7B, RTX A5000)
-
-| 항목 | 결과 |
-|---|---|
-| 에이전트 tool calling (ChatRunPod → vLLM) | ✅ |
-| 세트 출제 (save_item → record_score → similarity_judge) | 리디자인 후 RunPod 재검증 필요 |
-| validate_item_format 자기교정 루프 | ✅ |
-| RAG 인덱싱 (규정·성취기준 2개 컬렉션) | ✅ regulations 510 / standards 573 청크 (past_exams 제거) |
-| EBS 영구 저장 | ✅ 컨테이너 재시작 후 재인덱싱 불필요 |
-| 업로드 PDF 인덱싱 제거 | ✅ passage_text 붙여넣기로 인덱싱 자체가 불필요해짐 |
-| 추론 속도 (세트) | 리디자인 후 재측정 필요 (구 수치: ~2–3분/1문항, RTX A5000, min workers=1) |
-
----
-
-## 보안 원칙
-
-- 실제 학생 데이터 미사용 — 전부 합성/익명
-- PII 마스킹은 모델 호출 **이전**에 수행
-- 사용자 입력(메모·붙여넣은 예시 문제) **비저장** (요청 처리 중에만 메모리에 존재, 응답 후 폐기)
-- 로그·캐시에 **PII 기록 금지**
-- 생기부: 메모에 없는 사실 **추가 금지**. 출력에 교사 책임 고지 표시
-
----
-
 ## 배포 (프로덕션)
 
 ```mermaid
@@ -385,7 +388,17 @@ flowchart LR
     classDef neutral fill:#F5F4F1,stroke:#8A8880,stroke-width:1px,color:#1A1A1A
 ```
 
-> ⚠️ **프론트엔드 배포 미완료**: 위 파이프라인(`Dockerfile`·`docker-compose.yml`·`Caddyfile`)은 FastAPI(API 전용, 8765)만 EC2에 올립니다. `frontend/`(Next.js)는 빌드·배포 대상에 포함돼 있지 않아, 현재 이 파이프라인만으로는 브라우저에서 접근 가능한 UI가 없습니다. 과거 Gradio 기반 UI(`app/ui.py`)를 FastAPI가 직접 서빙하던 시절의 흔적이 일부 남아있었으나(→ Next.js 전환 후 `app/ui.py` 자체는 삭제됨), 전환 후 프론트엔드 배포 단계가 아직 이 저장소에 반영되지 않았습니다. 프로덕션에 띄우려면 Next.js를 별도 호스팅(Vercel 등)하며 `BACKEND_URL`을 EC2 도메인으로 설정하거나, EC2에서 `next build && next start`를 상시 프로세스로 돌리고 Caddy에 경로별 리버스 프록시를 추가하는 작업이 필요합니다.
+> ⚠️ **프론트엔드 배포 미완료** — 위 파이프라인(`Dockerfile`·`docker-compose.yml`·`Caddyfile`)은 FastAPI(API 전용, 8765)만 EC2에 올립니다. `frontend/`(Next.js)는 아직 빌드·배포 대상에 포함돼 있지 않아 현재 이 파이프라인만으로는 브라우저 UI에 접근할 수 없습니다.
+
+<details>
+<summary><b>프론트엔드 배포 미완료 상세 (펼치기)</b></summary>
+
+과거 Gradio 기반 UI(`app/ui.py`)를 FastAPI가 직접 서빙하던 시절의 흔적이 일부 남아있었으나(Next.js 전환 후 `app/ui.py` 자체는 삭제됨), 전환 후 프론트엔드 배포 단계가 아직 이 저장소에 반영되지 않았습니다. 프로덕션에 띄우려면 둘 중 하나가 필요합니다:
+
+1. Next.js를 별도 호스팅(Vercel 등)하고 `BACKEND_URL`을 EC2 도메인으로 설정
+2. EC2에서 `next build && next start`를 상시 프로세스로 돌리고 Caddy에 경로별 리버스 프록시 추가
+
+</details>
 
 ### RunPod 서버리스 설정
 
@@ -433,7 +446,57 @@ docker exec bunpil python scripts/index_standards.py
 bash deploy/billing_alarm.sh   # 월 $10 초과 시 이메일 알람
 ```
 
+### 월 운영비 (1인 기준)
+
+| 항목 | 비용 |
+|---|---|
+| EC2 t3.medium | ~$30 |
+| RunPod 서버리스 (추론만 과금, min workers=1) | ~$5–15 |
+| EBS 10GB | ~$1 |
+| **합계** | **~$36–46** |
+
+데모/개발 중에는 EC2를 필요할 때만 켜서 절감 가능. min workers=0 설정 시 RunPod 비용 대폭 절감 (단, 콜드스타트 30–60초 발생).
+
 ---
+
+## 데이터
+
+| 컬렉션 | 경로 | 출처 | 용도 |
+|---|---|---|---|
+| `regulations` | `data/regulations/` | 학교생활기록부 종합지원포털 | 생기부 규정 위반 검증 + 출제 시 교육과정 법령 참조 |
+| `standards` | `data/standards/` | 국가교육과정정보센터(NCIC) | 출제 시 성취기준 원문 검색 (`search_standards` 도구) |
+
+> `past_exams` 컬렉션(수능·모평 기출)은 리디자인으로 완전히 제거됨 — `check_duplicate` 폐기, 2028 수능 개편으로 과목별 구조 자체가 무의미해짐.
+
+## 디렉토리 구조
+
+```
+bunpil/
+├── app/
+│   ├── common/
+│   │   ├── llm/          # LLM 추상화 (OllamaBackend / RunPodBackend / ChatRunPod)
+│   │   └── rag/          # PDF 파싱, 임베딩, 리랭킹, ChromaDB
+│   ├── modules/
+│   │   ├── exam/         # 출제 모듈 (LangGraph ReAct Agent, 6개 도구)
+│   │   └── record/       # 생기부 모듈 (수동 루프 Chain)
+│   └── main.py           # FastAPI (/exam/stream + /record)
+├── frontend/             # Next.js UI
+├── data/
+│   ├── regulations/      # 생기부 기재요령, 작성·관리지침
+│   ├── standards/        # 사회과 교육과정 PDF
+│   └── golden/           # 골든셋 JSON — 정기 평가용 6개 + 실험 기록 5개
+│                         # (파일별 용도·라벨 필드는 data/golden/README.md 참고)
+├── scripts/
+│   ├── index_*.py        # RAG 컬렉션 인덱싱
+│   ├── test_*.py         # 기능 검증 (LLM·RAG·출제·생기부)
+│   ├── eval_*.py         # 품질 평가 (골든셋 기반 수치 지표)
+│   └── gen_*.py          # 골든셋 생성 도구
+├── runpod_handler/       # RunPod 서버리스 핸들러 (Qwen2.5-7B vLLM)
+├── deploy/               # EC2·Caddy·빌링알람 프로비저닝 스크립트
+├── Dockerfile
+├── docker-compose.yml
+└── Caddyfile
+```
 
 ## 환경변수
 
@@ -443,7 +506,7 @@ bash deploy/billing_alarm.sh   # 월 $10 초과 시 이메일 알람
 |---|---|---|
 | `LLM_BACKEND` | `local` 또는 `runpod` | `local` |
 | `OLLAMA_MODEL` | 로컬 개발 생성 모델명 | `qwen2.5:7b` |
-| `OLLAMA_JUDGE_MODEL` | 로컬 개발 Judge 모델명 (미설정 시 `OLLAMA_MODEL`로 폴백) | — (선택, 현재 생성 모델과 동일 7B) |
+| `OLLAMA_JUDGE_MODEL` | 로컬 개발 Judge 모델명 (미설정 시 `OLLAMA_MODEL`로 폴백) | — (선택) |
 | `OLLAMA_BASE_URL` | Ollama 서버 주소 | `http://localhost:11434` |
 | `RUNPOD_API_KEY` | RunPod API 키 | — |
 | `RUNPOD_ENDPOINT_ID` | RunPod 엔드포인트 ID | — |
@@ -453,16 +516,3 @@ bash deploy/billing_alarm.sh   # 월 $10 초과 시 이메일 알람
 | `LANGCHAIN_TRACING_V2` | LangSmith 트레이싱 활성화 (`true` / `false`) | — (선택) |
 | `LANGCHAIN_API_KEY` | LangSmith API 키 | — (선택) |
 | `LANGCHAIN_PROJECT` | LangSmith 프로젝트명 | `bunpil` |
-
----
-
-## 월 운영비 (1인 기준)
-
-| 항목 | 비용 |
-|---|---|
-| EC2 t3.medium | ~$30 |
-| RunPod 서버리스 (추론만 과금, min workers=1) | ~$5–15 |
-| EBS 10GB | ~$1 |
-| **합계** | **~$36–46** |
-
-데모/개발 중에는 EC2를 필요할 때만 켜서 절감 가능. min workers=0으로 설정 시 RunPod 비용 대폭 절감 (단, 콜드스타트 30–60초 발생).
