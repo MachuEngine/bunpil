@@ -180,24 +180,42 @@ def eval_item_quality(items: list, llm, limit: int = 8) -> dict:
     }
 
 
+# overall_score 채점 기준 — structure_golden.json의 _schema.overall_score_rubric과 반드시 동기 유지.
+# 2026-07-11 첫 정식 측정에서 사람 라벨은 이 rubric(중복·복사·주제 이탈 감점)을 따르는데
+# Judge 프롬프트는 유형·난이도 구조만 물어봐 overall κ가 -0.103까지 무너지는 미정렬을 확인,
+# rubric을 프롬프트에 주입함(EVAL.md 5절 참고).
 STRUCTURE_JUDGE_TPL = PromptTemplate(
     system=(
-        "예시 문제와 새로 생성된 문항 세트를 비교해 구조적 유사도를 평가하세요. "
-        "문항 개수 일치 여부는 판단하지 마세요 — 개수는 예시 문제와 무관하게 별도로 지정되므로 "
-        "이 평가와는 무관합니다.\n"
+        "예시 문제와 새로 생성된 문항 세트를 비교해 평가하세요. "
+        "문항 개수 일치 여부는 판단하지 마세요 — 개수는 별도로 코드가 검증합니다.\n"
         "다음 3가지를 JSON으로만 응답하세요.\n"
-        "기준: type_ratio_score(유형 구성 비율 유사도, 0.0~1.0), "
-        "difficulty_match(난이도 구성 부합, true/false), overall_score(종합 유사도, 0~5 정수)\n"
+        "- type_ratio_score(유형 구성 비율 유사도, 0.0~1.0)\n"
+        "- difficulty_match(난이도 구성 부합, true/false)\n"
+        "- overall_score(0~5 정수): 단순한 유형·난이도 일치가 아니라, 예시의 주제·형식을 "
+        "유지하면서 '새로운' 문항 세트로 변환했는지를 종합 평가합니다. "
+        "예시 문제를 그대로 복사한 경우, 세트 안에 같은 문항이 반복되는 경우(완전 중복), "
+        "주제가 이탈한 경우, 한국어가 아닌 텍스트가 섞인 경우는 반드시 감점하세요.\n"
+        "  5: 유형·난이도·주제·형식이 매우 잘 맞고, 새 문항으로 충분히 변형되며 중복·심각한 오류 없음\n"
+        "  4: 전반적으로 잘 맞으나 경미한 반복, 표현 오류, 일부 내용 결함\n"
+        "  3: 핵심 구조는 유지하지만 뚜렷한 중복, 오류, 환각, 일부 유형·주제 손상\n"
+        "  2: 일부 구조만 재현하며 유형 누락, 큰 주제 이탈, 심한 품질 저하\n"
+        "  1: 원문 단순 복사 또는 완전 중복에 의존해 새 문항 생성으로 보기 어려움(형식 일치는 최소한 있음)\n"
+        "  0: 유형 완전 반전, 언어 오염, 구조 붕괴 등으로 사실상 사용 불가\n"
         '형식: {"type_ratio_score": 실수, "difficulty_match": true/false, "overall_score": 정수}'
     ),
     few_shots=[
         {
-            "user": '{"예시_문제": "1문항(객관식)", "생성된_세트": [{"item_type":"객관식","difficulty":"중"}]}',
+            "user": '{"예시_문제": "1. 시장 실패의 원인은?(객관식)", "생성된_세트": [{"question":"공공재의 특성으로 옳은 것은?","item_type":"객관식","difficulty":"중"}]}',
             "assistant": '{"type_ratio_score": 1.0, "difficulty_match": true, "overall_score": 5}',
         },
         {
-            "user": '{"예시_문제": "3문항(객관식2+서술형1)", "생성된_세트": [{"item_type":"객관식","difficulty":"하"}]}',
-            "assistant": '{"type_ratio_score": 0.5, "difficulty_match": false, "overall_score": 1}',
+            # 유형·난이도는 일치하지만 세트 내부가 완전 중복 → 구조 점수와 무관하게 낮은 overall
+            "user": '{"예시_문제": "1. 기본권 중 자유권은?(객관식)", "생성된_세트": [{"question":"기본권 중 자유권에 해당하는 것은?","item_type":"객관식","difficulty":"중"},{"question":"기본권 중 자유권에 해당하는 것은?","item_type":"객관식","difficulty":"중"},{"question":"기본권 중 자유권에 해당하는 것은?","item_type":"객관식","difficulty":"중"}]}',
+            "assistant": '{"type_ratio_score": 1.0, "difficulty_match": true, "overall_score": 1}',
+        },
+        {
+            "user": '{"예시_문제": "1. 선거 원칙?(객관식2+서술형1)", "생성된_세트": [{"question":"보통 선거의 의미는?","item_type":"객관식","difficulty":"하"}]}',
+            "assistant": '{"type_ratio_score": 0.5, "difficulty_match": false, "overall_score": 2}',
         },
     ],
 )

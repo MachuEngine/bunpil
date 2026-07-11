@@ -1,6 +1,6 @@
 {
   "_schema": {
-    "description": "eval_structure_judge 신뢰도 검증 raw 결과 (사람 라벨 vs qwen2.5:7b Judge, 2026-07-11). 골든셋 아님 — 재실행 시 덮어씀."
+    "description": "eval_structure_judge 신뢰도 검증 raw 결과 (사람 라벨 vs qwen2.5:7b Judge). rubric 주입 후 재측정본(2026-07-11). 골든셋 아님 — 재실행 시 덮어씀."
   },
   "results": [
     {
@@ -11,9 +11,9 @@
         "overall_score": 4
       },
       "judge": {
-        "type_ratio_score": 1.0,
+        "type_ratio_score": 0.8,
         "difficulty_match": true,
-        "overall_score": 5
+        "overall_score": 4
       }
     },
     {
@@ -24,9 +24,9 @@
         "overall_score": 5
       },
       "judge": {
-        "type_ratio_score": 1.0,
+        "type_ratio_score": 0.7,
         "difficulty_match": true,
-        "overall_score": 5
+        "overall_score": 4
       }
     },
     {
@@ -37,9 +37,9 @@
         "overall_score": 5
       },
       "judge": {
-        "type_ratio_score": 1.0,
+        "type_ratio_score": 0.8,
         "difficulty_match": true,
-        "overall_score": 5
+        "overall_score": 4
       }
     },
     {
@@ -50,9 +50,9 @@
         "overall_score": 2
       },
       "judge": {
-        "type_ratio_score": 1.0,
+        "type_ratio_score": 0.6,
         "difficulty_match": true,
-        "overall_score": 4
+        "overall_score": 3
       }
     },
     {
@@ -65,7 +65,7 @@
       "judge": {
         "type_ratio_score": 1.0,
         "difficulty_match": true,
-        "overall_score": 4
+        "overall_score": 5
       }
     },
     {
@@ -76,9 +76,9 @@
         "overall_score": 0
       },
       "judge": {
-        "type_ratio_score": 1.0,
+        "type_ratio_score": 0.3,
         "difficulty_match": false,
-        "overall_score": 3
+        "overall_score": 0
       }
     },
     {
@@ -89,7 +89,7 @@
         "overall_score": 2
       },
       "judge": {
-        "type_ratio_score": 1.0,
+        "type_ratio_score": 0.714,
         "difficulty_match": true,
         "overall_score": 4
       }
@@ -104,7 +104,7 @@
       "judge": {
         "type_ratio_score": 1.0,
         "difficulty_match": true,
-        "overall_score": 4
+        "overall_score": 5
       }
     },
     {
@@ -117,7 +117,7 @@
       "judge": {
         "type_ratio_score": 1.0,
         "difficulty_match": true,
-        "overall_score": 4
+        "overall_score": 5
       }
     },
     {
@@ -141,9 +141,9 @@
         "overall_score": 3
       },
       "judge": {
-        "type_ratio_score": 1.0,
+        "type_ratio_score": 0.6,
         "difficulty_match": false,
-        "overall_score": 2
+        "overall_score": 3
       }
     },
     {
@@ -155,8 +155,8 @@
       },
       "judge": {
         "type_ratio_score": 0.8,
-        "difficulty_match": true,
-        "overall_score": 4
+        "difficulty_match": false,
+        "overall_score": 3
       }
     },
     {
@@ -167,9 +167,9 @@
         "overall_score": 0
       },
       "judge": {
-        "type_ratio_score": 0.67,
-        "difficulty_match": true,
-        "overall_score": 3
+        "type_ratio_score": 0.6,
+        "difficulty_match": false,
+        "overall_score": 2
       }
     },
     {
@@ -180,9 +180,9 @@
         "overall_score": 2
       },
       "judge": {
-        "type_ratio_score": 1.0,
-        "difficulty_match": true,
-        "overall_score": 4
+        "type_ratio_score": 0.6,
+        "difficulty_match": false,
+        "overall_score": 3
       }
     },
     {
@@ -193,9 +193,9 @@
         "overall_score": 1
       },
       "judge": {
-        "type_ratio_score": 1.0,
+        "type_ratio_score": 0.7,
         "difficulty_match": true,
-        "overall_score": 5
+        "overall_score": 3
       }
     },
     {
@@ -206,9 +206,9 @@
         "overall_score": 2
       },
       "judge": {
-        "type_ratio_score": 0.5,
-        "difficulty_match": true,
-        "overall_score": 3
+        "type_ratio_score": 0.6,
+        "difficulty_match": false,
+        "overall_score": 2
       }
     },
     {
@@ -219,9 +219,9 @@
         "overall_score": 0
       },
       "judge": {
-        "type_ratio_score": 0.5,
+        "type_ratio_score": 0.7,
         "difficulty_match": true,
-        "overall_score": 3
+        "overall_score": 4
       }
     },
     {
@@ -234,7 +234,7 @@
       "judge": {
         "type_ratio_score": 1.0,
         "difficulty_match": true,
-        "overall_score": 4
+        "overall_score": 5
       }
     },
     {
@@ -245,7 +245,7 @@
         "overall_score": 2
       },
       "judge": {
-        "type_ratio_score": 1.0,
+        "type_ratio_score": 0.8,
         "difficulty_match": true,
         "overall_score": 4
       }
