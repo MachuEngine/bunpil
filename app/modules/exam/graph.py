@@ -1,4 +1,5 @@
 import logging
+import re
 import time
 from typing import Literal
 
@@ -27,6 +28,17 @@ def _invoke_with_retry(llm, messages, retries: int = 2, delay: float = 2.0):
             if attempt < retries:
                 time.sleep(delay)
     raise last_err
+
+
+# tool_calls가 비었을 때, 모델이 정말 자발적으로 끝낸 것인지 도구 호출을 시도했으나
+# 형식이 깨진 것인지 구분하는 휴리스틱. 2026-07-11 발견 — qwen2.5:7b/14b 둘 다 재현됨
+# (TROUBLESHOOTING.md 참고): content에 `{"name": ...}` 형태의 JSON이나 `<tool_call>`류
+# 태그 흔적이 있으면 도구를 부르려던 시도로 간주한다.
+_BROKEN_TOOL_CALL_RE = re.compile(r'"name"\s*:\s*"|</?tool_call>', re.IGNORECASE)
+
+
+def _looks_like_broken_tool_call(content) -> bool:
+    return bool(_BROKEN_TOOL_CALL_RE.search(str(content or "")))
 
 
 def plan_node(state: ExamState) -> dict:
@@ -141,13 +153,27 @@ def agent_node(state: ExamState) -> dict:
     llm = get_langchain_model().bind_tools(TOOLS)
     messages = [SystemMessage(content=system_prompt), HumanMessage(content=user_content)]
 
+    # 형식이 깨진 tool_call 응답에 대한 연속 재시도 카운터. 2026-07-11: tool_calls가
+    # 비어있으면 무조건 "에이전트가 자발적으로 끝냈다"고 오판해 즉시 루프를 끊었는데,
+    # 실제로는 모델이 도구를 부르려다 형식만 깨뜨린 경우가 섞여 있었음(TROUBLESHOOTING.md).
+    # 연속 2회까지는 형식 오류로 보고 재작성을 요청하고, 그래도 안 되면 원래대로 종료
+    # (바깥쪽 turn cap 14가 항상 최종 방어선 — 무한루프는 불가능).
+    malformed_streak = 0
     for _ in range(14):
         response = _invoke_with_retry(llm, messages)
         messages.append(response)
 
         if not getattr(response, "tool_calls", []):
+            if _looks_like_broken_tool_call(response.content) and malformed_streak < 2:
+                malformed_streak += 1
+                messages.append(HumanMessage(
+                    content="방금 응답의 도구 호출 형식이 손상되었습니다. 설명 없이, "
+                    "정확한 tool call 형식으로 다시 시도하세요."
+                ))
+                continue
             break
 
+        malformed_streak = 0
         judged = False
         for tc in response.tool_calls:
             fn = tool_map.get(tc["name"])
