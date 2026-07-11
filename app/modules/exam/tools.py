@@ -26,21 +26,24 @@ def _get_ctx() -> dict:
     return _request_ctx.get()
 
 
-def init_session() -> None:
+def init_session(passage_text: str = "") -> None:
     # LangGraph는 각 노드를 context.run()으로 격리 실행하므로
     # plan_node 내에서 set()한 새 dict가 agent_node에 전파되지 않는다.
     # 해결: asyncio.to_thread 호출 전 main.py에서 먼저 set()으로 dict를 생성하고,
     # 이후 호출(plan_node)에서는 같은 dict를 in-place로 초기화해 모든 노드가 공유한다.
+    # passage_text: save_item의 원문 복사 게이트가 참조 (plan_node가 spec에서 전달)
     try:
         ctx = _request_ctx.get()
         ctx["items"] = []
         ctx["scores"] = {}
         ctx["judge_result"] = {}
+        ctx["passage_text"] = passage_text
     except LookupError:
         _request_ctx.set({
             "items": [],
             "scores": {},
             "judge_result": {},
+            "passage_text": passage_text,
         })
 
 
@@ -144,10 +147,48 @@ def _check_korean(question: str, options: list, answer: str) -> str | None:
     return None
 
 
+# ── 유사도 게이트 ──
+# qwen2.5:7b가 예시 문제를 그대로 복사하거나 세트 안에 같은 문항을 반복 생성하는 문제
+# (2026-07-11, 사람 라벨 20건 중 최다 감점 사유)의 결정론적 차단. 7B Judge는 rubric을
+# 줘도 텍스트 동일성 대조를 못 해내서(EVAL.md 5절) 코드로 이관함.
+# 임계값 근거: 라벨링된 골든셋 실측 분포 — 완전 복사는 containment 1.00, 정상적인 주제
+# 유사 변형은 ~0.73 이하 / 진짜 중복은 jaccard 0.86~1.00, 정상 변형은 ~0.67 이하.
+_SIMILARITY_STRIP_RE = re.compile(r"[\s\d①②③④.,?!()\[\]·:;'\"—\-~%]")
+_PASSAGE_COPY_THRESHOLD = 0.90
+_DUPLICATE_JACCARD_THRESHOLD = 0.80
+
+
+def _bigrams(text: str) -> set:
+    t = _SIMILARITY_STRIP_RE.sub("", str(text))
+    return {t[i:i + 2] for i in range(len(t) - 1)}
+
+
+def _check_similarity(question: str) -> str | None:
+    """예시 문제 원문 복사·세트 내 중복을 검사한다. 통과하면 None, 아니면 거부 사유 반환."""
+    qb = _bigrams(question)
+    if len(qb) < 8:  # 극단적으로 짧은 질문은 판정 불가 — 길이 검증은 validate_item_format 몫
+        return None
+    ctx = _get_ctx()
+    passage = ctx.get("passage_text", "")
+    if passage:
+        pb = _bigrams(passage)
+        if pb and len(qb & pb) / len(qb) >= _PASSAGE_COPY_THRESHOLD:
+            return ("저장 거부 — 이 문항은 예시 문제를 거의 그대로 복사한 것입니다. "
+                    "예시는 참고만 하고, 같은 주제라도 질문·선지를 새로 구성해 다시 저장하세요.")
+    for existing in ctx["items"]:
+        eb = _bigrams(existing.get("question", ""))
+        union = qb | eb
+        if union and len(qb & eb) / len(union) >= _DUPLICATE_JACCARD_THRESHOLD:
+            return ("저장 거부 — 이미 저장된 문항과 사실상 동일합니다. "
+                    "다른 개념이나 다른 관점을 묻는 새 문항을 작성해 저장하세요.")
+    return None
+
+
 @tool
 def save_item(question: str, options: list, answer: str, item_type: str, difficulty: str = "중", standard: str = "") -> str:
     """검증된 문항을 저장합니다. 에이전트가 직접 작성한 내용을 저장합니다.
-    (한국어가 아닌 문항은 저장이 거부됩니다 — 거부 시 한국어로 다시 작성해 재시도하세요.)
+    (다음 문항은 저장이 거부됩니다 — 한국어가 아닌 문항, 예시 문제를 그대로 복사한 문항,
+    이미 저장된 문항과 동일한 문항. 거부 시 안내에 따라 새로 작성해 재시도하세요.)
     question: 문제 질문
     options: 선지 목록 (객관식: ["①...", "②...", "③...", "④..."], 서술형: [])
     answer: 정답 (객관식: "①"~"④", 서술형: "")
@@ -155,7 +196,7 @@ def save_item(question: str, options: list, answer: str, item_type: str, difficu
     difficulty: 상|중|하
     standard: 성취기준명 (선택)
     """
-    rejection = _check_korean(question, options, answer)
+    rejection = _check_korean(question, options, answer) or _check_similarity(question)
     if rejection:
         return rejection
     item_id = uuid.uuid4().hex[:8]

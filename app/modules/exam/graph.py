@@ -33,8 +33,8 @@ def plan_node(state: ExamState) -> dict:
     """세션을 초기화한다. 요청 전체에서 단 한 번만 호출됨 — 재시도 시에는 agent_node가
     문항을 유지한 채 reset_judge()만 호출한다(부분 진행을 재시도마다 버리지 않기 위함,
     2026-07-10 개선. 이전에는 agent_node가 매 재시도마다 init_session()으로 전체
-    초기화를 했었음)."""
-    init_session()
+    초기화를 했었음). passage_text는 save_item의 원문 복사 게이트가 참조."""
+    init_session(state["spec"].get("passage_text", ""))
     return {
         "validation_passed": False,
         "similarity_judge_result": {},
@@ -61,7 +61,10 @@ def _build_system_prompt(passage_text: str, num_items: int, existing_items: list
         count_instruction = (
             "예시 문제는 스타일·주제·난이도 참고용입니다. 문항 개수는 예시 개수와 무관하게 "
             f"지정된 개수({num_items}개)에 맞춰 작성하세요. 유형(객관식/서술형) 구성과 난이도 수준은 "
-            "예시를 참고해 구성하되, 개수만은 반드시 지정된 개수를 따르세요."
+            "예시를 참고해 구성하되, 개수만은 반드시 지정된 개수를 따르세요.\n\n"
+            "**예시 문제의 질문·선지 문구를 그대로 또는 거의 그대로 재사용하면 저장이 거부됩니다.** "
+            "같은 주제라도 묻는 지점(개념 정의, 사례 적용, 비교, 원인/결과 등)을 바꿔 완전히 새로운 "
+            "질문과 선지를 작성하세요. 세트 안에서 같은 문항을 반복해도 저장이 거부됩니다."
         )
         action_instruction = "문항마다 다음 순서로 도구를 호출하세요:"
     elif remaining > 0:
