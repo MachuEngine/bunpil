@@ -29,12 +29,12 @@
 | 사실 추가율 (NLI Judge) | LLM Judge | = 0 |
 | 규정 위반 Recall | 함수 | ≥ 0.95 |
 
-### 추가 예정
+### 출제 모듈 RAG 품질 (`eval_ragas.py`)
 
-| 지표 | 도구 | 상태 |
+| 지표 | 방식 | 상태 |
 |---|---|---|
-| Faithfulness | Ragas | ⬜ 미착수 |
-| Answer Relevancy | Ragas | ⬜ 미착수 |
+| Faithfulness | 자체 구현(Ragas 알고리즘, LLM Judge) — `scripts/eval_ragas.py` | ✅ 첫 측정 완료(n=5, 0.600) — Ragas 패키지는 의존성 충돌로 미사용, 8절 참고 |
+| Answer Relevancy | 자체 구현(Ragas 알고리즘, 임베딩 코사인 유사도) — `scripts/eval_ragas.py` | ✅ 첫 측정 완료(n=5, 0.631) — 8절 참고 |
 
 ## 2. 골든셋 현황
 
@@ -600,3 +600,67 @@ API 키에 `api.usage.read` 스코프가 없어 OpenAI 사용량 API로는 조�
 
 `data/golden/_model_comparison_results.json` — 모델별 15개 샘플 생성 결과·개별 Judge 점수
 전량 보존(골든셋 아님, 재실행 시 모델별로 갱신).
+
+## 8. RAG 품질 평가 — Faithfulness / Answer Relevancy (2026-07-12)
+
+로드맵 항목 6(Ragas + LangSmith Experiments 연동)의 2단계. **Ragas 라이브러리는 쓰지
+않고 알고리즘만 직접 구현**했다 — `ragas`(0.3.9, 0.4.3 둘 다 확인)가
+`langchain_community.chat_models.vertexai`에서 `ChatVertexAI`를 무조건 import하는데
+이 경로가 최신 `langchain-community`(0.4.2)에서 완전히 제거돼 있음(ragas 쪽 알려진
+상류 버그, GitHub vibrantlabsai/ragas #2741·#2745). 호환되는 구버전
+`langchain-community`로 낮추면 이번엔 `langchain-core`가 0.3.x대로 끌려 내려가
+이 프로젝트가 이미 쓰는 langgraph/langchain-openai/langchain-ollama(전부
+langchain-core 1.x 요구) 전체가 깨짐 — 사용자 확인 후 Ragas 패키지 의존을 포기하고
+`scripts/eval_ragas.py`에 알고리즘만 우리 LLM(qwen2.5:7b) + 기존 `BGEEmbedder`로
+재구현하기로 결정.
+
+**측정 대상 매핑**: 출제 모듈의 RAG 검색→생성 흐름을 Ragas의 (question, context,
+answer) 3종 세트에 대응시킴 — `passage_text`=질문, 검색된 achievement-standard
+청크=컨텍스트, 실제로 생성된 문항 세트=답변. `retrieval_golden_final.json`은 검색
+자체의 Recall/MRR 평가용이라 이 3종 세트가 없어, `gen_structure_golden.py`의
+`PASSAGE_SAMPLES` 중 8개 + 실제 그래프 실행(qwen2.5:7b, budget=1)으로 새로 구성.
+
+- **Faithfulness**: 답변을 원자적 주장(atomic claim) 목록으로 분해 → 각 주장이
+  컨텍스트로 뒷받침되는지 LLM이 판정 → (뒷받침된 주장 수 / 전체 주장 수). Ragas
+  원 알고리즘 그대로.
+- **Answer Relevancy**: 답변으로부터 역질문 3개 생성 → 원래 질문과의 임베딩 코사인
+  유사도 평균. 역시 Ragas 원 알고리즘 그대로.
+
+**구현 중 발견·수정한 문제 2건**:
+1. 문항 텍스트(의문문)를 그대로 "주장"으로 취급하면 참/거짓 판단 대상이 아니라
+   품질과 무관하게 낮게 나옴 — 객관식은 정답 선지 내용까지 포함해 "질문 (정답: ...)"
+   형태로 만들고, 이를 서술문으로 변환하도록 `CLAIM_DECOMPOSE_TPL`을 보강(few-shot
+   3개로 확장). 서술형 문항은 정해진 정답이 없어 검증 가능한 주장을 못 뽑는 경우가
+   있는데, 이 경우 0.0(불성실)이 아니라 채점 대상 제외(`score: None`)로 처리
+2. **qwen2.5:7b의 언어 오염 버그(TROUBLESHOOTING.md)가 이 스크립트의 자체 LLM
+   호출(claim 분해·역질문 생성)에서도 재현됨** — 시스템 프롬프트에 "한국어로만
+   응답하세요"를 추가해도 완전히 막히지 않음(예: 역질문에 "정치 참여 중哪些不应该
+   被包括在内？"처럼 중국어가 섞여 나옴). `app/modules/exam/tools.py`의
+   `_check_korean()`과 동일한 판정 로직(`_HANGUL_RE`/`_HAN_RE`, 한자 비율 ≥5%)을
+   재사용해 오염된 claim/질문을 채점에서 제외하는 필터를 추가. **부수 발견**: 원래
+   생성된 문항 자체("유엔환경계획의 주요 활动式")에도 한자가 5% 미만 비율로 살짝
+   섞인 사례를 발견 — 기존 `_check_korean()` 게이트가 못 잡는 낮은 비율의 오염이
+   실제로 존재함을 이 새 eval 도구가 처음으로 드러냄(임계값 조정은 이번 범위 밖,
+   후속 과제로 기록)
+
+**측정 결과 (4회 반복, n=8 시도)**:
+
+| 회차 | 문항 생성 성공 | Faithfulness (n) | Answer Relevancy (n) |
+|---|---|---|---|
+| 1회 | 4/8 | 0.250 (4) — claim 분해 버그로 신뢰 불가 | - |
+| 2회(claim 분해 수정 후) | 7/8 | 0.417 (6) | 0.526 (7) |
+| 3회 | 3/8 | 1.000 (2) | 0.636 (3) |
+| **4회(언어 오염 필터 추가, 최종)** | **7/8** | **0.600 (5)** | **0.631 (5)** |
+
+n이 회차마다 들쭉날쭉한 건 두 가지 독립적인 실패 모드가 겹쳐서다: (a) budget=1
+조건에서 qwen2.5:7b의 문항 0개 생성 실패율(이 세션에서 계속 관찰된 ~30~60%대
+변동), (b) 이 스크립트 자체의 claim/역질문 생성 호출에서 언어 오염이 발생해
+채점 불가 처리되는 비율. 둘 다 근본 원인은 같은 qwen2.5:7b의 알려진 확률적
+결함(TROUBLESHOOTING.md)이라, 표본이 작고(n=5) 노이즈가 크다 — 이번 수치는
+"첫 측정 기준선"으로 기록하고, 절대적 품질 판단보다는 향후 프롬프트/모델 변경
+시 상대 비교용으로 쓰는 것을 권장.
+
+### raw 데이터
+
+`data/golden/_ragas_eval_results.json` — 샘플별 claim·역질문·유사도 전량 보존
+(골든셋 아님, 재실행 시 덮어씀).

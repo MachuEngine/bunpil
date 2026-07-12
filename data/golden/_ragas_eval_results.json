@@ -1,0 +1,164 @@
+{
+  "n": 7,
+  "n_faithfulness_applicable": 5,
+  "n_answer_relevancy_applicable": 5,
+  "avg_faithfulness": 0.6,
+  "avg_answer_relevancy": 0.631,
+  "results": [
+    {
+      "id": "str_001",
+      "n_items": 1,
+      "faithfulness": {
+        "claims": [
+          "근로의 권리가 헌법이 보장하는 기본권 중 사회적 권리에 해당한다."
+        ],
+        "supported": 1,
+        "total": 1,
+        "score": 1.0
+      },
+      "answer_relevancy": {
+        "reverse_questions": [],
+        "score": null
+      }
+    },
+    {
+      "id": "str_002",
+      "n_items": 1,
+      "faithfulness": {
+        "claims": [],
+        "supported": 0,
+        "total": 0,
+        "score": null
+      },
+      "answer_relevancy": {
+        "reverse_questions": [
+          "시장 가격이 어떻게 결정되는가?",
+          "수요와 공급이 어떻게 관련된가?",
+          "경제학에서 가격 결정 과정을 설명해 보시오?"
+        ],
+        "similarities": [
+          0.545,
+          0.64,
+          0.549
+        ],
+        "score": 0.578
+      }
+    },
+    {
+      "id": "str_006",
+      "n_items": 1,
+      "faithfulness": {
+        "claims": [
+          "비정부기구(NGO)는 국제 사회에서는 인도적 지원과 감시 활동을 수행한다."
+        ],
+        "supported": 1,
+        "total": 1,
+        "score": 1.0
+      },
+      "answer_relevancy": {
+        "reverse_questions": [
+          "비정부기구(NGO)가 국제 사회에서 주로 어떤 역할을 하는가?",
+          "NGO의 주요 활동들에는 무엇이 있나?",
+          "인도적 지원과 감시 활동 외에 NGO가 수행하는 주요 역할은 무엇인가?"
+        ],
+        "similarities": [
+          0.713,
+          0.609,
+          0.659
+        ],
+        "score": 0.661
+      }
+    },
+    {
+      "id": "str_009",
+      "n_items": 1,
+      "faithfulness": {
+        "claims": [
+          "문화 접변이 발생한 유형은 글로벌화이다.",
+          "해외에서 한국 드라마가 큰 인기를 얻음으로써 한국의 대중문화가 전 세계로 확산되고 있으므로, 이는 글로벌화를 나타내는 현상이다."
+        ],
+        "supported": 1,
+        "total": 2,
+        "score": 0.5
+      },
+      "answer_relevancy": {
+        "reverse_questions": [],
+        "score": null
+      }
+    },
+    {
+      "id": "str_013",
+      "n_items": 2,
+      "faithfulness": {
+        "claims": [
+          "헌법재판소 결정 내용 공유는 정치 참여 유형이 아니다."
+        ],
+        "supported": 0,
+        "total": 1,
+        "score": 0.0
+      },
+      "answer_relevancy": {
+        "reverse_questions": [
+          "헌법재판소 결정 내용 공유가 무엇인가?",
+          "정치 참여의 종류가 무엇인가?",
+          "정치 참여 유형 중 하나를 설명해보시오."
+        ],
+        "similarities": [
+          0.42,
+          0.669,
+          0.704
+        ],
+        "score": 0.598
+      }
+    },
+    {
+      "id": "str_023",
+      "n_items": 1,
+      "faithfulness": {
+        "claims": [
+          "언론의 자유는 정보의 흐름을 보장하고 사회적 논의를 촉진한다.",
+          "알 권리는 시민들이 정부 및 기관들의 활동을 이해하고 참여할 수 있는 기본적인 권리이다."
+        ],
+        "supported": 1,
+        "total": 2,
+        "score": 0.5
+      },
+      "answer_relevancy": {
+        "reverse_questions": [
+          "언론의 자유와 알 권리는 왜 중요한가?",
+          "알권리와 언론자유가 사회에 어떤 영향을 미치는가?",
+          "왜 언론의 자유와 알 권리가 보장되어야 하는가?"
+        ],
+        "similarities": [
+          0.728,
+          0.583,
+          0.678
+        ],
+        "score": 0.663
+      }
+    },
+    {
+      "id": "str_033",
+      "n_items": 1,
+      "faithfulness": {
+        "claims": [],
+        "supported": 0,
+        "total": 0,
+        "score": null
+      },
+      "answer_relevancy": {
+        "reverse_questions": [
+          "유엔환경계획(UNEP)의 주요 활동은 무엇인가?",
+          "UNEP이 수행하는 주요 업무는 무엇인가?",
+          "UNEP이 실행하는 중요한 프로그램 중 하나는 무엇인가?"
+        ],
+        "similarities": [
+          0.723,
+          0.65,
+          0.599
+        ],
+        "score": 0.657
+      }
+    }
+  ]
+}

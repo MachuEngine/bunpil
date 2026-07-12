@@ -87,12 +87,18 @@
 4. **생기부 모듈 eval 개선 (2026-07-12 야간 자율 세션 — EVAL.md 5·6절 참고)**
    - 규정 위반 Recall: 규칙 기반 키워드 3종(가정환경/종교·정치/외모) + 비교 표현 근접 정규식 + VALIDATE_TPL 위반유형 한정으로 0.840 → 0.920~1.000(3회 평균 0.927) 개선. 잔여 FP 1건·부정적 낙인 카테고리 LLM 판단 변동은 과적합 위험으로 보류. **⚠️ 알려진 리스크**: RAG 검색 자체의 약점(가정환경/종교 규정이 검색 상위에 안 잡힘)을 고친 게 아니라 규칙+프롬프트로 우회한 것 — 골든셋에 없는 새 표현 유형은 놓칠 수 있음(EVAL.md 5절 참고)
    - NLI 사실추가율: 원인 분석(문체 다듬기 vs 사실 추가 경계 모호) 후 사용자가 경계 사례를 직접 검토해 기준 확정("정도부사·평가어 중첩=NO / 구체 행위·결과 신규 서술=YES") → NLI_TPL few-shot 보강, 0.050~0.200(변동) → 0.000~0.050(3회 재측정, 안정화)로 개선
-5. **Ragas 연동 + LangSmith Experiments 연동**
-   - Faithfulness, Answer Relevancy 지표 추가 (`eval_ragas.py` 신규 스크립트)
-   - eval 실행 시 결과가 LangSmith Experiments에 자동 기록되도록 연동
-   - 모델/프롬프트 변경 시 Experiments 탭에서 결과 비교 가능
-   - EVAL.md 결과 이력 수동 업데이트 → LangSmith 자동 기록으로 전환
-   - **완료 직후 코드 리뷰 1건 추가**: `eval_ragas.py`는 완전 신규 스크립트라 "핵심 구조를 설명할 수 있는 수준" 원칙상 리뷰 필요. STRUCTURE_GOLDEN용 스크립트나 모델 비교 실험 코드는 기존 `graph.py`/`eval_exam.py` 호출 재사용 수준이라 작성하면서 바로 이해되므로 별도 리뷰 라운드 불필요 — `eval_ragas.py` 하나만 핵심으로 본다.
+5. **Ragas 연동 + LangSmith Experiments 연동** (2026-07-12 진행 중)
+   - ✅ 1단계: LangSmith dev/prod 프로젝트 자동 분리 완료(`app/common/llm/tracing.py`)
+   - ✅ 2단계: `eval_ragas.py` 작성 완료 — **Ragas 패키지는 의존성 충돌(langchain-community
+     제거된 경로를 무조건 import하는 상류 버그, GitHub vibrantlabsai/ragas #2741·#2745)로
+     사용 포기**, 알고리즘만 직접 구현(사용자 확인 후 결정). 구현 중 qwen2.5:7b 언어 오염
+     버그가 이 스크립트의 자체 LLM 호출에서도 재현되는 것을 발견해 필터 추가, 기존 문항
+     생성물에서도 `_check_korean()` 임계값(한자 비율 5%)이 못 잡는 낮은 비율 오염 사례를
+     새로 발견(후속 과제로 기록). 첫 측정: Faithfulness 0.600(n=5), Answer Relevancy
+     0.631(n=5) — EVAL.md 8절 참고
+   - ⬜ 3단계: eval 실행 시 결과가 LangSmith Experiments에 자동 기록되도록 연동
+   - ⬜ 4단계: EVAL.md를 "최신 결과는 Experiments 탭, EVAL.md는 마일스톤/의사결정 기록용"으로 안내 전환
+   - ⬜ 5단계: `eval_ragas.py` 코드 리뷰 — 완전 신규 스크립트라 "핵심 구조를 설명할 수 있는 수준" 원칙상 필요. STRUCTURE_GOLDEN용 스크립트나 모델 비교 실험 코드는 기존 `graph.py`/`eval_exam.py` 호출 재사용 수준이라 작성하면서 바로 이해되므로 별도 리뷰 라운드 불필요 — `eval_ragas.py` 하나만 핵심으로 본다.
 6. **GitHub Actions CI** — eval 자동화
 7. **문서화 및 포트폴리오 정리**
 

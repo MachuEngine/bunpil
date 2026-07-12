@@ -14,7 +14,7 @@
 > retrieval_golden_final.json은 일회성 실험 스크립트(test_topk_recall.py,
 > eval_example_retrieval.py)에서도 기준값 측정용으로 재사용된다.
 
-## 2. 일회성 실험/조사 기록·아카이브 (7개) — 정기 평가에 안 쓰임, 각자 별도 스크립트 전용
+## 2. 일회성 실험/조사 기록·아카이브 (10개) — 정기 평가에 안 쓰임, 각자 별도 스크립트 전용
 
 | 파일 | 관련 스크립트 | 성격 |
 |---|---|---|
@@ -25,6 +25,9 @@
 | _distractor_quality_compare.json | compare_distractor_quality.py | 오답매력도 A/B 실험 결과 |
 | _temperature_ab_compare.json | test_temperature_effect.py | temperature 0.7 vs 0.2 A/B 실험 결과 |
 | _topk_recall_compare.json | test_topk_recall.py | top_k 3→2 실험 결과 |
+| _structure_judge_eval_results.json | eval_exam.py (구조 Judge 신뢰도 측정 시 수동 실행) | 사람 라벨 vs Judge 점수 대조 raw 결과, 재실행 시 덮어씀 |
+| _model_comparison_results.json | compare_models.py | 모델 비교 실험(Qwen2.5-7B/14B, Llama3.1-8B, GPT-4o-mini) 생성·채점 raw 결과 |
+| _ragas_eval_results.json | eval_ragas.py | Faithfulness/Answer Relevancy(Ragas 알고리즘 자체 구현) 측정 raw 결과, 재실행 시 덮어씀 |
 
 ## 명명 규칙
 
