@@ -207,6 +207,9 @@ STRUCTURE_JUDGE_TPL = PromptTemplate(
         "  2: 일부 구조만 재현하며 유형 누락, 큰 주제 이탈, 심한 품질 저하\n"
         "  1: 원문 단순 복사 또는 완전 중복에 의존해 새 문항 생성으로 보기 어려움(형식 일치는 최소한 있음)\n"
         "  0: 유형 완전 반전, 언어 오염, 구조 붕괴 등으로 사실상 사용 불가\n"
+        "판단이 애매하다고 해서 무조건 3점으로 두지 마세요. 3점도 다른 점수와 마찬가지로 "
+        "명확한 근거가 있을 때만 주는 점수입니다 — 각 점수 정의를 다시 검토해 가장 부합하는 "
+        "점수를 선택하세요.\n"
         '형식: {"type_ratio_score": 실수, "difficulty_match": true/false, "overall_score": 정수}'
     ),
     few_shots=[
@@ -229,6 +232,15 @@ STRUCTURE_JUDGE_TPL = PromptTemplate(
             # (str_048류 사례, EVAL.md 5절 참고).
             "user": '{"예시_문제": "1. 소비자의 기본 권리로 옳은 것은?(객관식)", "생성된_세트": [{"question":"소비자의 기본 권리에 해당하는 것은?","item_type":"객관식","difficulty":"중"},{"question":"소비자가 갖는 권리로 옳은 것은?","item_type":"객관식","difficulty":"중"},{"question":"다음 중 소비자 권리에 해당하는 것은 무엇인가?","item_type":"객관식","difficulty":"중"}]}',
             "assistant": '{"type_ratio_score": 1.0, "difficulty_match": true, "overall_score": 1}',
+        },
+        {
+            # 3점 앵커(2026-07-12 추가): 기존 few-shot 점수 분포가 {1,1,2,4,5}로 3점이
+            # 비어있어, 애매한 사례(특히 유의어 치환 반복류, str_010/047 참고)를 만나면
+            # Judge가 판단을 회피하듯 3점으로 수렴하는 경향이 확인됨(n=45 재측정, EVAL.md
+            # 5절). 세트 절반은 유의어 치환 반복(문항1·2), 나머지 절반은 서로 다른 지점을
+            # 묻는 정상 문항(문항3·4)인 "부분적 결함" 사례로 3점을 명확히 앵커링.
+            "user": '{"예시_문제": "1. 지방분권이 필요한 이유로 가장 적절한 것은?(객관식)", "생성된_세트": [{"question":"지방분권이 필요한 배경으로 가장 적절한 것은?","item_type":"객관식","difficulty":"중"},{"question":"지방분권이 요구되는 이유 중 가장 적절한 것은?","item_type":"객관식","difficulty":"중"},{"question":"지방분권 실시 이후 나타날 수 있는 부작용으로 옳은 것은?","item_type":"객관식","difficulty":"중"},{"question":"지방분권과 중앙집권의 균형을 맞추기 위한 제도적 장치를 서술하시오.","item_type":"서술형","difficulty":"중"}]}',
+            "assistant": '{"type_ratio_score": 0.5, "difficulty_match": true, "overall_score": 3}',
         },
         {
             # 균형 예시: 같은 주제(선거)라도 서로 다른 지점(원칙 구분, 제도 비교, 사례 적용)을

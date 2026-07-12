@@ -1,22 +1,22 @@
 {
   "_schema": {
-    "description": "eval_structure_judge 신뢰도 검증 raw 결과. n=45(20+신규25) 확대 후 첫 재측정, C안 프롬프트 그대로, Judge=qwen2.5:14b, 2026-07-12. 골든셋 아님 — 재실행 시 덮어씀."
+    "description": "eval_structure_judge 신뢰도 검증 raw 결과. n=45, STRUCTURE_JUDGE_TPL에 3점 앵커 few-shot 추가 후 재측정, Judge=qwen2.5:14b, 2026-07-12. 노이즈 확인을 위해 동일 조건 3회 반복 실행했고 이 파일은 그중 3번째(run3) 결과 — 3회 평균값은 EVAL.md 5절 표 참고(MAE 1.185/±1 0.659/편향 +0.978/이진κ 0.167/Pearson r 0.248/Spearman ρ 0.269/diff κ 0.424). 골든셋 아님 — 재실행 시 덮어씀."
   },
   "n": 45,
-  "overall_mae": 1.356,
-  "within_1_agreement": 0.556,
-  "bias": 1.178,
-  "binary_kappa": 0.126,
-  "pearson_r": 0.143,
-  "spearman_rho": 0.181,
-  "diff_kappa": 0.509,
+  "overall_mae": 1.178,
+  "within_1_agreement": 0.667,
+  "bias": 1.0,
+  "binary_kappa": 0.161,
+  "pearson_r": 0.308,
+  "spearman_rho": 0.33,
+  "diff_kappa": 0.463,
   "human_avg": 2.04,
-  "judge_avg": 3.22,
+  "judge_avg": 3.04,
   "per_item": [
     {
       "id": "str_001",
       "human_overall": 2,
-      "judge_overall": 3,
+      "judge_overall": 2,
       "human_diff": false,
       "judge_diff": false
     },
@@ -25,7 +25,7 @@
       "human_overall": 3,
       "judge_overall": 3,
       "human_diff": true,
-      "judge_diff": false
+      "judge_diff": true
     },
     {
       "id": "str_010",
@@ -86,49 +86,49 @@
     {
       "id": "str_036",
       "human_overall": 2,
-      "judge_overall": 4,
+      "judge_overall": 3,
       "human_diff": true,
       "judge_diff": true
     },
     {
       "id": "str_037",
       "human_overall": 2,
-      "judge_overall": 3,
+      "judge_overall": 4,
       "human_diff": true,
       "judge_diff": true
     },
     {
       "id": "str_039",
       "human_overall": 5,
-      "judge_overall": 3,
+      "judge_overall": 4,
       "human_diff": true,
       "judge_diff": true
     },
     {
       "id": "str_041",
       "human_overall": 3,
-      "judge_overall": 3,
+      "judge_overall": 2,
       "human_diff": true,
-      "judge_diff": true
+      "judge_diff": false
     },
     {
       "id": "str_042",
       "human_overall": 2,
-      "judge_overall": 3,
+      "judge_overall": 2,
       "human_diff": true,
-      "judge_diff": true
+      "judge_diff": false
     },
     {
       "id": "str_043",
       "human_overall": 1,
-      "judge_overall": 3,
+      "judge_overall": 2,
       "human_diff": false,
       "judge_diff": false
     },
     {
       "id": "str_047",
       "human_overall": 1,
-      "judge_overall": 4,
+      "judge_overall": 3,
       "human_diff": true,
       "judge_diff": true
     },
@@ -184,21 +184,21 @@
     {
       "id": "str_056",
       "human_overall": 2,
-      "judge_overall": 4,
+      "judge_overall": 3,
       "human_diff": true,
       "judge_diff": true
     },
     {
       "id": "str_057",
       "human_overall": 2,
-      "judge_overall": 5,
+      "judge_overall": 4,
       "human_diff": true,
       "judge_diff": true
     },
     {
       "id": "str_058",
       "human_overall": 2,
-      "judge_overall": 4,
+      "judge_overall": 3,
       "human_diff": true,
       "judge_diff": true
     },
@@ -240,7 +240,7 @@
     {
       "id": "str_064",
       "human_overall": 1,
-      "judge_overall": 3,
+      "judge_overall": 1,
       "human_diff": true,
       "judge_diff": true
     },
@@ -254,7 +254,7 @@
     {
       "id": "str_066",
       "human_overall": 3,
-      "judge_overall": 3,
+      "judge_overall": 4,
       "human_diff": true,
       "judge_diff": true
     },
