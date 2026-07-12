@@ -28,6 +28,9 @@ load_dotenv()
 
 os.environ.setdefault("CHROMA_PERSIST_DIR", "./chroma_db")
 
+from app.common.llm.tracing import init_langsmith_project
+init_langsmith_project()
+
 from gen_structure_golden import PASSAGE_SAMPLES  # noqa: E402
 
 # 15개 대표 샘플 — num_items 3/5/7 및 단일·다중 지문형을 고르게 섞음

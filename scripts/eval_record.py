@@ -19,6 +19,9 @@ os.environ.setdefault("LLM_BACKEND", "local")
 os.environ.setdefault("OLLAMA_MODEL", "qwen2.5:1.5b")
 os.environ.setdefault("CHROMA_PERSIST_DIR", "./chroma_db_record_eval")
 
+from app.common.llm.tracing import init_langsmith_project
+init_langsmith_project()
+
 try:
     from langsmith import traceable
 except ImportError:

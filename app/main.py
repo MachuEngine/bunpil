@@ -8,6 +8,9 @@ logger = logging.getLogger(__name__)
 from dotenv import load_dotenv
 load_dotenv()
 
+from app.common.llm.tracing import init_langsmith_project
+init_langsmith_project()
+
 if os.getenv("LANGCHAIN_TRACING_V2") == "true":
     logger.info("LangSmith tracing enabled (project: %s)", os.getenv("LANGCHAIN_PROJECT", "default"))
 

@@ -31,6 +31,9 @@ os.environ.setdefault("LLM_BACKEND", "local")
 os.environ.setdefault("OLLAMA_MODEL", "qwen2.5:7b")
 os.environ.setdefault("CHROMA_PERSIST_DIR", "./chroma_db")
 
+from app.common.llm.tracing import init_langsmith_project
+init_langsmith_project()
+
 from app.modules.exam import ExamSpec, get_exam_graph
 from app.modules.exam.tools import init_session
 
