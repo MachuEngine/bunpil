@@ -1,267 +1,332 @@
 {
   "_schema": {
-    "description": "eval_structure_judge 신뢰도 검증 raw 결과. v3 골든셋 + 저점1개/균형 few-shot(C안) + str_010/047 라벨 재검토 반영 후 재측정, Judge=qwen2.5:14b, 2026-07-12. 골든셋 아님 — 재실행 시 덮어씀."
+    "description": "eval_structure_judge 신뢰도 검증 raw 결과. n=45(20+신규25) 확대 후 첫 재측정, C안 프롬프트 그대로, Judge=qwen2.5:14b, 2026-07-12. 골든셋 아님 — 재실행 시 덮어씀."
   },
-  "results": [
+  "n": 45,
+  "overall_mae": 1.356,
+  "within_1_agreement": 0.556,
+  "bias": 1.178,
+  "binary_kappa": 0.126,
+  "pearson_r": 0.143,
+  "spearman_rho": 0.181,
+  "diff_kappa": 0.509,
+  "human_avg": 2.04,
+  "judge_avg": 3.22,
+  "per_item": [
     {
       "id": "str_001",
-      "human": {
-        "type_ratio_score": 1.0,
-        "difficulty_match": false,
-        "overall_score": 2
-      },
-      "judge": {
-        "type_ratio_score": 0.7,
-        "difficulty_match": true,
-        "overall_score": 3
-      }
+      "human_overall": 2,
+      "judge_overall": 3,
+      "human_diff": false,
+      "judge_diff": false
     },
     {
       "id": "str_004",
-      "human": {
-        "type_ratio_score": 0.5,
-        "difficulty_match": true,
-        "overall_score": 3
-      },
-      "judge": {
-        "type_ratio_score": 0.7,
-        "difficulty_match": true,
-        "overall_score": 3
-      }
+      "human_overall": 3,
+      "judge_overall": 3,
+      "human_diff": true,
+      "judge_diff": false
     },
     {
       "id": "str_010",
-      "human": {
-        "type_ratio_score": 1.0,
-        "difficulty_match": true,
-        "overall_score": 1
-      },
-      "judge": {
-        "type_ratio_score": 1.0,
-        "difficulty_match": true,
-        "overall_score": 5
-      }
+      "human_overall": 1,
+      "judge_overall": 5,
+      "human_diff": true,
+      "judge_diff": true
     },
     {
       "id": "str_011",
-      "human": {
-        "type_ratio_score": 1.0,
-        "difficulty_match": true,
-        "overall_score": 4
-      },
-      "judge": {
-        "type_ratio_score": 0.8,
-        "difficulty_match": true,
-        "overall_score": 4
-      }
+      "human_overall": 4,
+      "judge_overall": 3,
+      "human_diff": true,
+      "judge_diff": true
     },
     {
       "id": "str_012",
-      "human": {
-        "type_ratio_score": 1.0,
-        "difficulty_match": true,
-        "overall_score": 3
-      },
-      "judge": {
-        "type_ratio_score": 0.8,
-        "difficulty_match": true,
-        "overall_score": 4
-      }
+      "human_overall": 3,
+      "judge_overall": 5,
+      "human_diff": true,
+      "judge_diff": true
     },
     {
       "id": "str_014",
-      "human": {
-        "type_ratio_score": 0.5,
-        "difficulty_match": true,
-        "overall_score": 3
-      },
-      "judge": {
-        "type_ratio_score": 0.75,
-        "difficulty_match": true,
-        "overall_score": 3
-      }
+      "human_overall": 3,
+      "judge_overall": 5,
+      "human_diff": true,
+      "judge_diff": true
     },
     {
       "id": "str_019",
-      "human": {
-        "type_ratio_score": 1.0,
-        "difficulty_match": true,
-        "overall_score": 3
-      },
-      "judge": {
-        "type_ratio_score": 0.8,
-        "difficulty_match": true,
-        "overall_score": 4
-      }
+      "human_overall": 3,
+      "judge_overall": 3,
+      "human_diff": true,
+      "judge_diff": true
     },
     {
       "id": "str_024",
-      "human": {
-        "type_ratio_score": 1.0,
-        "difficulty_match": false,
-        "overall_score": 3
-      },
-      "judge": {
-        "type_ratio_score": 0.8,
-        "difficulty_match": true,
-        "overall_score": 4
-      }
+      "human_overall": 3,
+      "judge_overall": 3,
+      "human_diff": false,
+      "judge_diff": false
     },
     {
       "id": "str_029",
-      "human": {
-        "type_ratio_score": 1.0,
-        "difficulty_match": true,
-        "overall_score": 3
-      },
-      "judge": {
-        "type_ratio_score": 1.0,
-        "difficulty_match": true,
-        "overall_score": 5
-      }
+      "human_overall": 3,
+      "judge_overall": 5,
+      "human_diff": true,
+      "judge_diff": true
     },
     {
       "id": "str_035",
-      "human": {
-        "type_ratio_score": 1.0,
-        "difficulty_match": true,
-        "overall_score": 4
-      },
-      "judge": {
-        "type_ratio_score": 0.8,
-        "difficulty_match": false,
-        "overall_score": 3
-      }
+      "human_overall": 4,
+      "judge_overall": 3,
+      "human_diff": true,
+      "judge_diff": true
     },
     {
       "id": "str_036",
-      "human": {
-        "type_ratio_score": 0.5,
-        "difficulty_match": true,
-        "overall_score": 2
-      },
-      "judge": {
-        "type_ratio_score": 0.6,
-        "difficulty_match": true,
-        "overall_score": 3
-      }
+      "human_overall": 2,
+      "judge_overall": 4,
+      "human_diff": true,
+      "judge_diff": true
     },
     {
       "id": "str_037",
-      "human": {
-        "type_ratio_score": 0.5,
-        "difficulty_match": true,
-        "overall_score": 2
-      },
-      "judge": {
-        "type_ratio_score": 0.75,
-        "difficulty_match": true,
-        "overall_score": 3
-      }
+      "human_overall": 2,
+      "judge_overall": 3,
+      "human_diff": true,
+      "judge_diff": true
     },
     {
       "id": "str_039",
-      "human": {
-        "type_ratio_score": 1.0,
-        "difficulty_match": true,
-        "overall_score": 5
-      },
-      "judge": {
-        "type_ratio_score": 0.6,
-        "difficulty_match": true,
-        "overall_score": 3
-      }
+      "human_overall": 5,
+      "judge_overall": 3,
+      "human_diff": true,
+      "judge_diff": true
     },
     {
       "id": "str_041",
-      "human": {
-        "type_ratio_score": 1.0,
-        "difficulty_match": true,
-        "overall_score": 3
-      },
-      "judge": {
-        "type_ratio_score": 0.7,
-        "difficulty_match": true,
-        "overall_score": 4
-      }
+      "human_overall": 3,
+      "judge_overall": 3,
+      "human_diff": true,
+      "judge_diff": true
     },
     {
       "id": "str_042",
-      "human": {
-        "type_ratio_score": 0.5,
-        "difficulty_match": true,
-        "overall_score": 2
-      },
-      "judge": {
-        "type_ratio_score": 0.6,
-        "difficulty_match": true,
-        "overall_score": 3
-      }
+      "human_overall": 2,
+      "judge_overall": 3,
+      "human_diff": true,
+      "judge_diff": true
     },
     {
       "id": "str_043",
-      "human": {
-        "type_ratio_score": 0.5,
-        "difficulty_match": false,
-        "overall_score": 1
-      },
-      "judge": {
-        "type_ratio_score": 0.6,
-        "difficulty_match": false,
-        "overall_score": 3
-      }
+      "human_overall": 1,
+      "judge_overall": 3,
+      "human_diff": false,
+      "judge_diff": false
     },
     {
       "id": "str_047",
-      "human": {
-        "type_ratio_score": 1.0,
-        "difficulty_match": true,
-        "overall_score": 1
-      },
-      "judge": {
-        "type_ratio_score": 0.8,
-        "difficulty_match": true,
-        "overall_score": 4
-      }
+      "human_overall": 1,
+      "judge_overall": 4,
+      "human_diff": true,
+      "judge_diff": true
     },
     {
       "id": "str_048",
-      "human": {
-        "type_ratio_score": 0.5,
-        "difficulty_match": true,
-        "overall_score": 1
-      },
-      "judge": {
-        "type_ratio_score": 0.8,
-        "difficulty_match": true,
-        "overall_score": 3
-      }
+      "human_overall": 1,
+      "judge_overall": 2,
+      "human_diff": true,
+      "judge_diff": false
     },
     {
       "id": "str_050",
-      "human": {
-        "type_ratio_score": 1.0,
-        "difficulty_match": true,
-        "overall_score": 3
-      },
-      "judge": {
-        "type_ratio_score": 0.8,
-        "difficulty_match": true,
-        "overall_score": 3
-      }
+      "human_overall": 3,
+      "judge_overall": 3,
+      "human_diff": true,
+      "judge_diff": true
     },
     {
       "id": "str_051",
-      "human": {
-        "type_ratio_score": 0.5,
-        "difficulty_match": false,
-        "overall_score": 2
-      },
-      "judge": {
-        "type_ratio_score": 0.8,
-        "difficulty_match": true,
-        "overall_score": 4
-      }
+      "human_overall": 2,
+      "judge_overall": 2,
+      "human_diff": false,
+      "judge_diff": false
+    },
+    {
+      "id": "str_052",
+      "human_overall": 1,
+      "judge_overall": 3,
+      "human_diff": true,
+      "judge_diff": true
+    },
+    {
+      "id": "str_053",
+      "human_overall": 2,
+      "judge_overall": 3,
+      "human_diff": true,
+      "judge_diff": true
+    },
+    {
+      "id": "str_054",
+      "human_overall": 1,
+      "judge_overall": 3,
+      "human_diff": true,
+      "judge_diff": true
+    },
+    {
+      "id": "str_055",
+      "human_overall": 2,
+      "judge_overall": 4,
+      "human_diff": true,
+      "judge_diff": true
+    },
+    {
+      "id": "str_056",
+      "human_overall": 2,
+      "judge_overall": 4,
+      "human_diff": true,
+      "judge_diff": true
+    },
+    {
+      "id": "str_057",
+      "human_overall": 2,
+      "judge_overall": 5,
+      "human_diff": true,
+      "judge_diff": true
+    },
+    {
+      "id": "str_058",
+      "human_overall": 2,
+      "judge_overall": 4,
+      "human_diff": true,
+      "judge_diff": true
+    },
+    {
+      "id": "str_059",
+      "human_overall": 2,
+      "judge_overall": 4,
+      "human_diff": true,
+      "judge_diff": true
+    },
+    {
+      "id": "str_060",
+      "human_overall": 1,
+      "judge_overall": 3,
+      "human_diff": true,
+      "judge_diff": true
+    },
+    {
+      "id": "str_061",
+      "human_overall": 2,
+      "judge_overall": 3,
+      "human_diff": true,
+      "judge_diff": true
+    },
+    {
+      "id": "str_062",
+      "human_overall": 1,
+      "judge_overall": 5,
+      "human_diff": true,
+      "judge_diff": true
+    },
+    {
+      "id": "str_063",
+      "human_overall": 2,
+      "judge_overall": 2,
+      "human_diff": true,
+      "judge_diff": false
+    },
+    {
+      "id": "str_064",
+      "human_overall": 1,
+      "judge_overall": 3,
+      "human_diff": true,
+      "judge_diff": true
+    },
+    {
+      "id": "str_065",
+      "human_overall": 2,
+      "judge_overall": 2,
+      "human_diff": true,
+      "judge_diff": false
+    },
+    {
+      "id": "str_066",
+      "human_overall": 3,
+      "judge_overall": 3,
+      "human_diff": true,
+      "judge_diff": true
+    },
+    {
+      "id": "str_067",
+      "human_overall": 1,
+      "judge_overall": 3,
+      "human_diff": true,
+      "judge_diff": true
+    },
+    {
+      "id": "str_068",
+      "human_overall": 1,
+      "judge_overall": 1,
+      "human_diff": true,
+      "judge_diff": true
+    },
+    {
+      "id": "str_069",
+      "human_overall": 2,
+      "judge_overall": 3,
+      "human_diff": true,
+      "judge_diff": true
+    },
+    {
+      "id": "str_070",
+      "human_overall": 1,
+      "judge_overall": 2,
+      "human_diff": true,
+      "judge_diff": false
+    },
+    {
+      "id": "str_071",
+      "human_overall": 2,
+      "judge_overall": 3,
+      "human_diff": true,
+      "judge_diff": true
+    },
+    {
+      "id": "str_072",
+      "human_overall": 1,
+      "judge_overall": 3,
+      "human_diff": true,
+      "judge_diff": true
+    },
+    {
+      "id": "str_073",
+      "human_overall": 1,
+      "judge_overall": 2,
+      "human_diff": true,
+      "judge_diff": false
+    },
+    {
+      "id": "str_074",
+      "human_overall": 2,
+      "judge_overall": 3,
+      "human_diff": true,
+      "judge_diff": true
+    },
+    {
+      "id": "str_075",
+      "human_overall": 2,
+      "judge_overall": 3,
+      "human_diff": true,
+      "judge_diff": true
+    },
+    {
+      "id": "str_076",
+      "human_overall": 2,
+      "judge_overall": 3,
+      "human_diff": true,
+      "judge_diff": true
     }
   ]
 }
