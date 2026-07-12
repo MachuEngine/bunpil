@@ -24,5 +24,9 @@ langchain-core>=0.3.0
 langchain-ollama>=0.2.0
 langsmith>=0.1.0
 
+# 모델 비교 실험 — GPT-4o-mini (langchain_openai가 이미 공식 BaseChatModel 통합을
+# 제공해 RunPod처럼 직접 구현할 필요 없음)
+langchain-openai>=1.3.0
+
 # Phase 7 — UI (커스텀 웹 UI: app/static/index.html, FastAPI static 서빙)
 # 레거시 Gradio UI(app/ui.py) 실행 시: pip install "gradio>=4.0.0,<5.0.0"
