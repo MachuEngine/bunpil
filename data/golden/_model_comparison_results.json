@@ -1,0 +1,3442 @@
+{
+  "qwen2.5-7b": {
+    "summary": {
+      "model": "qwen2.5-7b",
+      "n": 15,
+      "fail_count": 6,
+      "fail_rate": 0.4,
+      "avg_elapsed_sec": 50.3,
+      "avg_item_quality": 3.88,
+      "avg_structure_score": 3.67
+    },
+    "generations": [
+      {
+        "id": "str_002",
+        "passage_text": "1. 수요와 공급의 법칙에 따라 균형 가격이 형성되는 원리를 서술하시오.",
+        "num_items": 5,
+        "generated_items": [],
+        "elapsed_sec": 25.5,
+        "error": null,
+        "item_quality_avg_overall": 0.0,
+        "item_quality_scores": [],
+        "structure_score": {
+          "type_ratio_score": 0.0,
+          "difficulty_match": false,
+          "overall_score": 0
+        }
+      },
+      {
+        "id": "str_005",
+        "passage_text": "1. 근로자의 단결권·단체교섭권·단체행동권을 통틀어 이르는 말은?\n① 노동 3권 ② 사회권 ③ 자유권 ④ 청구권\n\n2. 부당 해고를 당한 근로자가 구제받을 수 있는 기관으로 옳은 것은?\n① 헌법재판소 ② 노동위원회 ③ 국가인권위원회 ④ 감사원\n\n3. 최저임금제도가 노동 시장에 미치는 영향을 서술하시오.\n\n4. 비정규직 근로자 보호를 위한 제도적 방안을 두 가지 이상 서술하시오.",
+        "num_items": 7,
+        "generated_items": [
+          {
+            "question": " 근로자의 단결권, 단체교섭권, 단체행동권을 포함한 개념으로는 무엇을 말하나?",
+            "options": [
+              "① 노동 3권 (단결권, 단체교섭권, 단체행동권)",
+              "② 사회권",
+              "③ 자유권",
+              "④ 청구권"
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 59.1,
+        "error": null,
+        "item_quality_avg_overall": 4.0,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.75,
+          "difficulty_match": true,
+          "overall_score": 3
+        }
+      },
+      {
+        "id": "str_006",
+        "passage_text": "1. 국제 사회에서 비정부기구(NGO)의 역할로 가장 적절한 것은?\n① 조약 체결의 당사자가 된다 ② 인도적 지원과 감시 활동을 한다 ③ 군사력을 행사한다 ④ 관세를 부과한다",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "비정부기구(NGO)의 역할은 무엇인가요?",
+            "options": [
+              "① 정부와 비슷한 권위를 가진 행정 기관으로 작용한다.",
+              "② 인도적 지원과 감시 활동을 한다.",
+              "③ 군사력을 이용하여 분쟁 지역에 개입한다.",
+              "④ 국제 무역 규제를 설정하고 관리한다."
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 29.7,
+        "error": null,
+        "item_quality_avg_overall": 4.0,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.8,
+          "difficulty_match": true,
+          "overall_score": 3
+        }
+      },
+      {
+        "id": "str_009",
+        "passage_text": "1. 다음 사례에서 나타난 문화 접변의 유형을 쓰고, 그렇게 판단한 근거를 서술하시오.",
+        "num_items": 3,
+        "generated_items": [],
+        "elapsed_sec": 71.4,
+        "error": null,
+        "item_quality_avg_overall": 0.0,
+        "item_quality_scores": [],
+        "structure_score": {
+          "type_ratio_score": 0.0,
+          "difficulty_match": false,
+          "overall_score": 0
+        }
+      },
+      {
+        "id": "str_013",
+        "passage_text": "1. 다음 중 정치 참여 유형이 다른 것은?\n① 선거 투표 ② 정당 가입 ③ 이익집단 활동 ④ 헌법재판소 위헌 결정\n\n2. 이익집단과 정당의 차이점을 서술하시오.\n\n3. 시민의 정치 참여가 저조할 때 나타나는 문제점을 서술하시오.",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "1. 다음 중 시민의 정치 참여 방법이 아닌 것은?\n① 미디어를 통해 정치 정보 수집\n② 정당 가입\n③ 선거 투표\n④ 과학 박람회 참가",
+            "options": [
+              "① 미디어를 통해 정치 정보 수집",
+              "② 정당 가입",
+              "③ 선거 투표",
+              "④ 과학 박람회 참가"
+            ],
+            "answer": "④",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "2. 다음 중 직접적인 정치 참여 방법이 아닌 것은?\n① 정치인에게 편지를 보내는 것\n② 지역사회에서의 자원봉사 활동\n③ 정치 참여에 대한 뉴스 기사를 작성하는 것\n④ 학교 행정부와 대화를 나누는 것",
+            "options": [
+              "① 정치인에게 편지를 보내는 것\n② 지역사회에서의 자원봉사 활동\n③ 정치 참여에 대한 뉴스 기사를 작성하는 것\n④ 학교 행정부와 대화를 나누는 것"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 72.7,
+        "error": null,
+        "item_quality_avg_overall": 3.83,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 2,
+            "근거성": 5,
+            "overall": 3.67
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.5,
+          "difficulty_match": true,
+          "overall_score": 3
+        }
+      },
+      {
+        "id": "str_016",
+        "passage_text": "1. 소비자 잉여에 대한 설명으로 옳은 것은?\n① 생산자가 얻는 이윤 ② 소비자가 지불할 용의보다 실제로 적게 지불해 얻는 이득 ③ 정부가 거두는 세금 ④ 시장에서 발생하는 손실",
+        "num_items": 5,
+        "generated_items": [],
+        "elapsed_sec": 100.4,
+        "error": null,
+        "item_quality_avg_overall": 0.0,
+        "item_quality_scores": [],
+        "structure_score": {
+          "type_ratio_score": 0.0,
+          "difficulty_match": false,
+          "overall_score": 0
+        }
+      },
+      {
+        "id": "str_020",
+        "passage_text": "1. 국민참여재판제도에서 배심원의 역할로 옳은 것은?\n① 판결의 최종 확정 ② 유·무죄에 대한 의견 제시 ③ 형량의 강제 결정 ④ 검사 역할 대행",
+        "num_items": 3,
+        "generated_items": [
+          {
+            "question": "국민참여재판제도에서 배심원의 주요 역할은?",
+            "options": [
+              "① 최종 판결을 내리기",
+              "② 배심원이 유·무죄에 대한 의견 제시",
+              "③ 형량 결정 권한 행사",
+              "④ 검사 역할 대행"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 55.2,
+        "error": null,
+        "item_quality_avg_overall": 4.0,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 1.0,
+          "difficulty_match": true,
+          "overall_score": 5
+        }
+      },
+      {
+        "id": "str_023",
+        "passage_text": "1. 언론의 자유가 민주주의에서 중요한 이유를 서술하시오.",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "언론의 자유와 알 권리가 민주주의에 중요한 이유를 서술하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 19.9,
+        "error": null,
+        "item_quality_avg_overall": 3.67,
+        "item_quality_scores": [
+          {
+            "정답유일성": 4,
+            "오답매력도": 2,
+            "근거성": 5,
+            "overall": 3.67
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 1.0,
+          "difficulty_match": true,
+          "overall_score": 5
+        }
+      },
+      {
+        "id": "str_027",
+        "passage_text": "1. 사회 갈등이 순기능을 하는 경우로 옳은 것은?\n① 갈등이 폭력으로 번질 때 ② 갈등을 통해 문제를 공론화하고 해결책을 모색할 때 ③ 갈등이 장기화될 때 ④ 갈등 당사자가 소통을 거부할 때",
+        "num_items": 5,
+        "generated_items": [],
+        "elapsed_sec": 33.4,
+        "error": null,
+        "item_quality_avg_overall": 0.0,
+        "item_quality_scores": [],
+        "structure_score": {
+          "type_ratio_score": 0.0,
+          "difficulty_match": false,
+          "overall_score": 0
+        }
+      },
+      {
+        "id": "str_030",
+        "passage_text": "1. 헌법 개정 절차 중 국민투표가 필요한 이유를 서술하시오.",
+        "num_items": 3,
+        "generated_items": [],
+        "elapsed_sec": 7.8,
+        "error": null,
+        "item_quality_avg_overall": 0.0,
+        "item_quality_scores": [],
+        "structure_score": {
+          "type_ratio_score": 0.0,
+          "difficulty_match": false,
+          "overall_score": 0
+        }
+      },
+      {
+        "id": "str_033",
+        "passage_text": "1. 국제기구 유엔환경계획(UNEP)의 주요 활동으로 옳은 것은?\n① 군사 개입 ② 국제 환경 문제에 대한 조사·연구·정책 조정 ③ 관세 부과 ④ 통화 발행",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "유엔환경계획(UNEP)의 주요 역할은?",
+            "options": [
+              "① 군사 개입",
+              "② 환경 보호와 관련한 국제 협력 활동",
+              "③ 국가 간 무역 규제 조치",
+              "④ 통화 가치 결정과 관리"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 55.0,
+        "error": null,
+        "item_quality_avg_overall": 4.0,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.8,
+          "difficulty_match": true,
+          "overall_score": 4
+        }
+      },
+      {
+        "id": "str_038",
+        "passage_text": "1. 국제 사회에서 국가 주권 평등의 원칙이 지니는 의의로 옳은 것은?\n① 강대국의 우월한 지위를 인정 ② 모든 국가가 국제법상 동등한 지위를 가짐 ③ 약소국의 발언권을 제한 ④ 국제기구의 결정을 무시할 수 있음\n\n2. 국가 주권 평등 원칙이 현실에서 제약받는 사례를 서술하시오.",
+        "num_items": 7,
+        "generated_items": [
+          {
+            "question": "국가 주권 평등 원칙이 국제 사회에서 기반으로 하는 가치로 옳은 것은?",
+            "options": [
+              "① 강대국의 지위를 인정하지 않음",
+              "② 모든 국가가 동등한 입장에서 협상할 수 있음",
+              "③ 약소국에게 불리한 조건을 impose함",
+              "④ 국제 기구 결정에 무관심"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "국제 사회에서 주권 국가들은 어떤 원칙에 따라 행동해야 하는가?",
+            "options": [
+              "① 국제 연합에서 대표국가를 선정하지 않음",
+              "② 주권 국가들이 국제 관계에서 협력하기 위해 합의한 원칙",
+              "③ 모든 나라가 공평하게 다뤄져야 함",
+              "④ 각 나라가 자신들의 이익을 위해 행동할 수 있음"
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "주권 국가들이 국제 사회에서 평등하게 행동하기 위해 따르는 원칙 중 옳은 것은?",
+            "options": [
+              "① 무한대국제법의 적용을 거부함",
+              "② 모든 국가가 공평하게 대우받아야 함",
+              "③ 강력한 군사력을 보유하고 있음을 인정함",
+              "④ 국제회의에서 투표권이 주어지지 않음"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 60.0,
+        "error": null,
+        "item_quality_avg_overall": 3.45,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 2,
+            "오답매력도": 3,
+            "근거성": 3,
+            "overall": 2.67
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.67
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.7,
+          "difficulty_match": true,
+          "overall_score": 3
+        }
+      },
+      {
+        "id": "str_040",
+        "passage_text": "1. 대의 민주주의에서 정당의 역할로 가장 적절한 것은?\n① 사법부 견제 ② 국민의 다양한 의사를 결집해 정책으로 제시 ③ 행정부 대체 ④ 언론 통제\n\n2. 대의 민주주의의 한계를 보완하는 직접 민주주의적 요소를 두 가지 이상 서술하시오.\n\n3. 정당 명부식 비례대표제가 지역구 국회의원 선거와 다른 점을 서술하시오.",
+        "num_items": 5,
+        "generated_items": [],
+        "elapsed_sec": 58.9,
+        "error": null,
+        "item_quality_avg_overall": 0.0,
+        "item_quality_scores": [],
+        "structure_score": {
+          "type_ratio_score": 0.0,
+          "difficulty_match": false,
+          "overall_score": 0
+        }
+      },
+      {
+        "id": "str_044",
+        "passage_text": "1. 국제 하천을 둘러싼 국가 간 갈등의 해결 방식으로 가장 적절한 것은?\n① 상류 국가의 일방적 개발 ② 국제 협약을 통한 공동 관리 ③ 군사적 봉쇄 ④ 하류 국가의 보상 포기\n\n2. 국제 환경 협약이 실효성을 갖기 어려운 이유를 서술하시오.",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "1. 국제 환경 갈등을 해결하기 위한 가장 적절한 방안은 무엇인가?",
+            "options": [
+              "① 강제적인 군사적 조치",
+              "② 국제 협약과 공동 관리",
+              "③ 각국의 경제 제재",
+              "④ 단독 국가의 개발 프로젝트"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 51.1,
+        "error": null,
+        "item_quality_avg_overall": 4.0,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.5,
+          "difficulty_match": false,
+          "overall_score": 2
+        }
+      },
+      {
+        "id": "str_046",
+        "passage_text": "1. 실업의 유형 중 경기적 실업에 해당하는 것은?\n① 더 나은 직장을 찾는 과정에서 생기는 실업 ② 산업 구조 변화로 기존 기술이 쓸모없어져 생기는 실업 ③ 경기 침체로 노동 수요가 줄어 생기는 실업 ④ 계절 변화에 따라 생기는 실업",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "1. 실업의 유형 중 경기적 실업에 해당하는 것은?\n① 더 나은 직장을 찾는 과정에서 생기는 실업\n② 산업 구조 변화로 기술이 낡아져 생기는 실업\n③ 경기 침체로 일자리가 줄어들면서 생기는 실업\n④ 계절적인 특성으로 인해 일시적으로 일자리가 부족한 상황에서 생기는 실업",
+            "options": [
+              "① 더 나은 직장을 찾는 과정에서 생기는 실업",
+              "② 산업 구조 변화로 기술이 낡아져 생기는 실업",
+              "③ 경기 침체로 일자리가 줄어들면서 생기는 실업",
+              "④ 계절적인 특성으로 인해 일시적으로 일자리가 부족한 상황에서 생기는 실업"
+            ],
+            "answer": "③",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 53.9,
+        "error": null,
+        "item_quality_avg_overall": 4.0,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 1.0,
+          "difficulty_match": true,
+          "overall_score": 5
+        }
+      }
+    ]
+  },
+  "qwen2.5-14b": {
+    "summary": {
+      "model": "qwen2.5-14b",
+      "n": 15,
+      "fail_count": 0,
+      "fail_rate": 0.0,
+      "avg_elapsed_sec": 158.1,
+      "avg_item_quality": 3.81,
+      "avg_structure_score": 3.33
+    },
+    "generations": [
+      {
+        "id": "str_002",
+        "passage_text": "1. 수요와 공급의 법칙에 따라 균형 가격이 형성되는 원리를 서술하시오.",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "시장 가격이 어떻게 결정되는지 설명하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          },
+          {
+            "question": "시장 가격이 변동하는 주된 원인은 무엇인가?",
+            "options": [
+              "① 수요와 공급의 변화",
+              "② 생산량만의 증가",
+              "③ 소비자의 요구만",
+              "④ 정부의 규제 외에 다른 요인"
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "上"
+          },
+          {
+            "question": "시장 가격 변동에 가장 큰 영향을 미치는 요인은 무엇인가?",
+            "options": [
+              "① 시장에서의 경쟁 강도",
+              "② 소비자 수요와 공급 변화",
+              "③ 생산자의 기술 개발만",
+              "④ 정부의 통제 대상"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 124.9,
+        "error": null,
+        "item_quality_avg_overall": 3.89,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.67
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.8,
+          "difficulty_match": true,
+          "overall_score": 4
+        }
+      },
+      {
+        "id": "str_005",
+        "passage_text": "1. 근로자의 단결권·단체교섭권·단체행동권을 통틀어 이르는 말은?\n① 노동 3권 ② 사회권 ③ 자유권 ④ 청구권\n\n2. 부당 해고를 당한 근로자가 구제받을 수 있는 기관으로 옳은 것은?\n① 헌법재판소 ② 노동위원회 ③ 국가인권위원회 ④ 감사원\n\n3. 최저임금제도가 노동 시장에 미치는 영향을 서술하시오.\n\n4. 비정규직 근로자 보호를 위한 제도적 방안을 두 가지 이상 서술하시오.",
+        "num_items": 7,
+        "generated_items": [
+          {
+            "question": "노동자의 근로시간을 보장하기 위한 법적 제도는?",
+            "options": [
+              "① 최저임금제",
+              "② 노동조합 설립 facilition",
+              "③ 주휴수당제",
+              "④ 산업재해보상보험"
+            ],
+            "answer": "③",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "산업재해로부터 근로자를 보호하기 위한 법적 제도는?",
+            "options": [
+              "① 산업안전보건법",
+              "② 노동조합 설립 facilition",
+              "③ 최저임금제",
+              "④ 주휴수당제"
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "근로자의 단결권, 단체교섭권, 단체행동권을 보장하는 법적 제도는?",
+            "options": [
+              "① 공무원법",
+              "② 노동조합 설립 facilition",
+              "③ 산업재해보상보험",
+              "④ 주휴수당제"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "노동자의 노동시간을 보장하기 위한 법적 제도는?",
+            "options": [
+              "① 산업재해보상보험",
+              "② 주휴수당제",
+              "③ 최저임금법",
+              "④ 공무원법"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "근로자의 단결권·단체교섭권·단체행동권을 보장하기 위한 법적 제도는?",
+            "options": [
+              "① 산업재해보상보험",
+              "② 노동조합 설립 facilition",
+              "③ 최저임금법",
+              "④ 공무원법"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "노동자의 단결권·단체교섭권·단체행동권이 보장되는 근거는?",
+            "options": [
+              "① 주휴수당제",
+              "② 산업재해보상보험",
+              "③ 노동조합 설립 facilition",
+              "④ 공무원법"
+            ],
+            "answer": "③",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 282.2,
+        "error": null,
+        "item_quality_avg_overall": 3.83,
+        "item_quality_scores": [
+          {
+            "정답유일성": 4,
+            "오답매력도": 2,
+            "근거성": 5,
+            "overall": 3.67
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.67
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.67
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.5,
+          "difficulty_match": false,
+          "overall_score": 3
+        }
+      },
+      {
+        "id": "str_006",
+        "passage_text": "1. 국제 사회에서 비정부기구(NGO)의 역할로 가장 적절한 것은?\n① 조약 체결의 당사자가 된다 ② 인도적 지원과 감시 활동을 한다 ③ 군사력을 행사한다 ④ 관세를 부과한다",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "국제 사회에서 비정부기구(NGO)의 주요 활동으로 적절하지 않은 것은?",
+            "options": [
+              "① 인도적 지원 제공",
+              "② 환경 보호 캠페인 전개",
+              "③ 군사 개입 수행",
+              "④ 인권 감시 활동 실시"
+            ],
+            "answer": "③",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "국제 문제 해결을 위한 국제 사회의 역할 중 가장 적절한 것은?",
+            "options": [
+              "① 국가 간 협정 체결",
+              "② 국제 NGO 활동 지원",
+              "③ 경제적 제재 강화",
+              "④ 군사력 증강"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "상"
+          },
+          {
+            "question": "20세기 후반부터 지속된 세계화 흐름의 부정적 영향 중 하나는?",
+            "options": [
+              "① 세계화의 긍정적 측면 강조",
+              "② 각국 간 경쟁 증대",
+              "③ 빈부 격차 확대",
+              "④ 지역 간 협력 증가"
+            ],
+            "answer": "③",
+            "item_type": "객관식",
+            "difficulty": "하"
+          },
+          {
+            "question": "21세기 국제 사회에서 가장 중요한 이슈 중 하나는?",
+            "options": [
+              "① 전쟁의 단절",
+              "② 경제적 번영",
+              "③ 문화 혼합",
+              "④ 환경 문제"
+            ],
+            "answer": "④",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "20세기 후반부터 지속된 국제 사회에서 가장 긍정적인 변화는?",
+            "options": [
+              "① 국가 간 경쟁 강화",
+              "② 지역 간 협력 증대",
+              "③ 세계화를 반대하는 움직임 활성화",
+              "④ 각국의 독자적인 정책 추진"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "하"
+          }
+        ],
+        "elapsed_sec": 125.2,
+        "error": null,
+        "item_quality_avg_overall": 3.8,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 3,
+            "근거성": 5,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 3,
+            "근거성": 5,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 2,
+            "근거성": 3,
+            "overall": 3.0
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.7,
+          "difficulty_match": true,
+          "overall_score": 4
+        }
+      },
+      {
+        "id": "str_009",
+        "passage_text": "1. 다음 사례에서 나타난 문화 접변의 유형을 쓰고, 그렇게 판단한 근거를 서술하시오.",
+        "num_items": 3,
+        "generated_items": [
+          {
+            "question": "한국의 한 지역에서 일본 스타일의 주택이 많이 지어졌다면, 이를 설명하는 가장 적절한 문화 접변 유형은 무엇인가?",
+            "options": [
+              "① 문화 병존",
+              "② 문화 융합",
+              "③ 문화 동화",
+              "④ 문화 갈등"
+            ],
+            "answer": "② 문화 융합",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "일본 스타일의 주택이 한국에서 늘어나면서 전통적인 한국 주택에 대한 인식이 바뀌고 있다. 이 현상을 설명하면서 문화 접변의 한 가지 유형을 적용하여 서술하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서述型",
+            "difficulty": "中"
+          }
+        ],
+        "elapsed_sec": 80.6,
+        "error": null,
+        "item_quality_avg_overall": 3.83,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.67
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.4,
+          "difficulty_match": true,
+          "overall_score": 2
+        }
+      },
+      {
+        "id": "str_013",
+        "passage_text": "1. 다음 중 정치 참여 유형이 다른 것은?\n① 선거 투표 ② 정당 가입 ③ 이익집단 활동 ④ 헌법재판소 위헌 결정\n\n2. 이익집단과 정당의 차이점을 서술하시오.\n\n3. 시민의 정치 참여가 저조할 때 나타나는 문제점을 서술하시오.",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "정치 참여의 주체들이 어떤 방식을 사용하여 민주주의를 실현하려고 하는가에 대해 서술하시오.",
+            "options": [],
+            "answer": "정치 참여의 주체들은 정보를 바탕으로 투표, 시위, 이익집단 활동 등을 통해 민주주의를 실현하려고 노력한다.",
+            "item_type": "서술형",
+            "difficulty": "중"
+          },
+          {
+            "question": "다음 중 옳지 않은 것은?",
+            "options": [
+              "① 헌법재판소의 위헌 결정은 일반 시민이 정치에 참여하는 방법이다.",
+              "② 이익집단 활동은 투표와 같은 직접적인 정치 참여보다 효과가 낮다.",
+              "③ 공영 미디어 채널의 프로그램을 통해 정보 수집은 간접적인 정치 참여 방식이다.",
+              "④ 지역구에서 후보자 토론회 참석은 투표 이전에 중요한 정치 참여 활동이다."
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "민주주의 사회에서 시민들의 정치 참여가 왜 중요한가에 대해 서술하시오.",
+            "options": [],
+            "answer": "민주주의를 실현하려면 시민들이 정보 수집, 토론, 이익집단 활동 등을 통해 다양한 방식으로 정치에 참여해야 한다.",
+            "item_type": "서술형",
+            "difficulty": "중"
+          },
+          {
+            "question": "다음 중 옳은 것은?",
+            "options": [
+              "① 헌법재판소의 위헌 결정은 시민들의 직접적인 정치 참여 활동이다.",
+              "② 이익집단의 활동이 민주주의 사회에서 중요하지 않다.",
+              "③ 공영 미디어 채널을 통해 정보를 수집하는 것은 간접적인 정치 참여 방식이다.",
+              "④ 토론과 시위는 민주주의 사회에서 직접적인 정치 참여 방법으로 여겨지지 않는다."
+            ],
+            "answer": "③",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 151.1,
+        "error": null,
+        "item_quality_avg_overall": 3.42,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 1,
+            "근거성": 4,
+            "overall": 3.33
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 1,
+            "근거성": 5,
+            "overall": 3.33
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 2,
+            "근거성": 3,
+            "overall": 3.0
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.7,
+          "difficulty_match": true,
+          "overall_score": 3
+        }
+      },
+      {
+        "id": "str_016",
+        "passage_text": "1. 소비자 잉여에 대한 설명으로 옳은 것은?\n① 생산자가 얻는 이윤 ② 소비자가 지불할 용의보다 실제로 적게 지불해 얻는 이득 ③ 정부가 거두는 세금 ④ 시장에서 발생하는 손실",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "시장에서 공급자가 얻는 이익을 설명하는 개념은?",
+            "options": [
+              "① 소비자 잉여",
+              "② 생산자 잉여",
+              "③ 시장 불균형",
+              "④ 경제 성장"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "경제활동에서 합리적 선택의 중요성을 설명하는 원칙은?",
+            "options": [
+              "① 합리적 선택의 원칙은 자원이 희소하다는 사실에 근거한다.",
+              "② 소비자의 선택은 항상 생산자의 이익을 증가시킨다.",
+              "③ 경제 활동에서 선택 문제는 발생하지 않는다.",
+              "④ 각 지역 간 교류는 서로 독립적이다."
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "상"
+          },
+          {
+            "question": "시장에서 수요와 공급 사이의 불일치가 어떤 결과를 초래할 수 있는지를 설명하시오.",
+            "options": [
+              "① 시장 불균형은 항상 부정적인 영향만 준다.",
+              "② 생산과 소비가 완전히 일치하면 불균형이 발생한다.",
+              "③ 수요와 공급의 불일치로 인해 가격 변동이 생길 수 있다.",
+              "④ 경제 성장이 시장 불균형을 방지한다."
+            ],
+            "answer": "③",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "경제 성장을 장기적으로 볼 때, 다음 중 가장 정확한 설명은?",
+            "options": [
+              "① 경제 성장은 장기적으로 실업률 감소와 관련이 있을 수 있다.",
+              "② 경제 성장이 항상 실업률을 증가시킨다.",
+              "③ 경제 성장과 실업률 사이에는 직접적인 연관성이 없다.",
+              "④ 경제 성장은 단기적으로만 실업률에 영향을 미친다."
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 142.2,
+        "error": null,
+        "item_quality_avg_overall": 3.92,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.67
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.6,
+          "difficulty_match": false,
+          "overall_score": 3
+        }
+      },
+      {
+        "id": "str_020",
+        "passage_text": "1. 국민참여재판제도에서 배심원의 역할로 옳은 것은?\n① 판결의 최종 확정 ② 유·무죄에 대한 의견 제시 ③ 형량의 강제 결정 ④ 검사 역할 대행",
+        "num_items": 3,
+        "generated_items": [
+          {
+            "question": "국민참여재판제도에서 배심원의 역할로 옳지 않은 것은?",
+            "options": [
+              "① 판결의 최종 확정",
+              "② 유·무죄에 대한 의견 제시",
+              "③ 형량의 강제 결정",
+              "④ 검사 역할 대행"
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "국민참여재판제도에서 배심원이 할 수 있는 활동으로 옳지 않은 것은?",
+            "options": [
+              "① 재판부의 판결에 대한 의견 제시",
+              "② 피고인에게 직접 질문하기",
+              "③ 법률 조항 검토 및 해석",
+              "④ 증거 수집 및 검증"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "국민참여재판제도가 추구하는 목적 중 옳지 않은 것은?",
+            "options": [
+              "① 배심원의 의견을 반영한 판결 확정",
+              "② 재판부의 판결에 대한 법적 심사",
+              "③ 검찰의 항소 또는 상고 제기",
+              "④ 범죄예방과 사회통합의 기여"
+            ],
+            "answer": "③",
+            "item_type": "객관식",
+            "difficulty": "상"
+          }
+        ],
+        "elapsed_sec": 106.7,
+        "error": null,
+        "item_quality_avg_overall": 3.89,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.67
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.8,
+          "difficulty_match": true,
+          "overall_score": 4
+        }
+      },
+      {
+        "id": "str_023",
+        "passage_text": "1. 언론의 자유가 민주주의에서 중요한 이유를 서술하시오.",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "언론의 자유가 민주주의 국가에서 중요한 이유는 무엇인가요?",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          },
+          {
+            "question": "'알 권리' 개념은 다음과 같은 상황에서 가장 중요하게 작동합니다:",
+            "options": [
+              "① 개인이 정보를 숨기려 할 때",
+              "② 정부가 중요한 정보를 은폐할 때",
+              "③ 대중이 무언가에 대해 잘 모르는 경우",
+              "④ 언론사가 기사를 작성할 때"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "다음 중 '알 권리'와 관련성이 가장 낮은 것은 무엇입니까?",
+            "options": [
+              "① 정부의 정보공개 청구법",
+              "② 개인의 사생활 보호법",
+              "③ 언론사의 비판적 보도",
+              "④ 학교에서 시험 점수 공개"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 114.6,
+        "error": null,
+        "item_quality_avg_overall": 3.78,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 1,
+            "근거성": 4,
+            "overall": 3.33
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 3,
+            "근거성": 5,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.7,
+          "difficulty_match": true,
+          "overall_score": 3
+        }
+      },
+      {
+        "id": "str_027",
+        "passage_text": "1. 사회 갈등이 순기능을 하는 경우로 옳은 것은?\n① 갈등이 폭력으로 번질 때 ② 갈등을 통해 문제를 공론화하고 해결책을 모색할 때 ③ 갈등이 장기화될 때 ④ 갈등 당사자가 소통을 거부할 때",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "사회 갈등이 발생한 경우 그 기능으로 옳은 것은?",
+            "options": [
+              "① 갈등을 해결하지 않고 방치할 때",
+              "② 갈등 당사자가 문제를 제기하고 토론할 때",
+              "③ 갈등의 원인을 분명히 파악하지 못한 상태에서 대처할 때",
+              "④ 사회적 지위가 높은 집단이 협상을 주도할 때"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 150.2,
+        "error": null,
+        "item_quality_avg_overall": 4.0,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.6,
+          "difficulty_match": true,
+          "overall_score": 3
+        }
+      },
+      {
+        "id": "str_030",
+        "passage_text": "1. 헌법 개정 절차 중 국민투표가 필요한 이유를 서술하시오.",
+        "num_items": 3,
+        "generated_items": [
+          {
+            "question": "헌법 개정 과정에서 국민투표의 역할과 필요성을 설명하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          },
+          {
+            "question": "헌법 개정 절차 중 대통령 또는 국회의장이 발기인으로 제안된 헌법 개정안은 어떻게 처리되나?",
+            "options": [
+              "① 국회에 바로 상정",
+              "② 국민투표로 결정",
+              "③ 국가기관의 재검토",
+              "④ 법률위원회에서 심사"
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "헌법 제110조는 어떤 의미를 가지며, 이를 통해 무엇을 실현하려고 하는가?",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 106.4,
+        "error": null,
+        "item_quality_avg_overall": 3.56,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.67
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.67
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 1,
+            "근거성": 4,
+            "overall": 3.33
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.8,
+          "difficulty_match": true,
+          "overall_score": 4
+        }
+      },
+      {
+        "id": "str_033",
+        "passage_text": "1. 국제기구 유엔환경계획(UNEP)의 주요 활동으로 옳은 것은?\n① 군사 개입 ② 국제 환경 문제에 대한 조사·연구·정책 조정 ③ 관세 부과 ④ 통화 발행",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "지속가능발전목표(SDGs) 중 기후변화 관련 국제환경기구의 주요 활동은 무엇인가?",
+            "options": [
+              "① 군사 개입",
+              "② 기후 변화에 대한 조사·연구·정책 조정",
+              "③ 관세 부과",
+              "④ 통화 발행"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "국제환경기구는 어떤 주요 활동을 수행하는가?",
+            "options": [
+              "① 군사 개입",
+              "② 환경적 자원 관리 및 보호 활동 수행",
+              "③ 관세 부과",
+              "④ 통화 발행"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 125.4,
+        "error": null,
+        "item_quality_avg_overall": 4.0,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.8,
+          "difficulty_match": true,
+          "overall_score": 4
+        }
+      },
+      {
+        "id": "str_038",
+        "passage_text": "1. 국제 사회에서 국가 주권 평등의 원칙이 지니는 의의로 옳은 것은?\n① 강대국의 우월한 지위를 인정 ② 모든 국가가 국제법상 동등한 지위를 가짐 ③ 약소국의 발언권을 제한 ④ 국제기구의 결정을 무시할 수 있음\n\n2. 국가 주권 평등 원칙이 현실에서 제약받는 사례를 서술하시오.",
+        "num_items": 7,
+        "generated_items": [
+          {
+            "question": "국가 주권 평등 원칙이 의미하는 바를 설명하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          },
+          {
+            "question": "국제 사회에서 국가 주권 평등 원칙은 무엇을 의미하는가?",
+            "options": [
+              "① 강대국 중심주의가 지배하는 국제 질서",
+              "② 국제 기구의 결정을 무시할 수 있는 권한",
+              "③ 모든 국가가 동등하게 대우받는 원칙",
+              "④ 주권 없는 약소국에 대한 보호 체제"
+            ],
+            "answer": "③",
+            "item_type": "객관식",
+            "difficulty": "상"
+          },
+          {
+            "question": "강대국의 영향력 아래에서 국가 주권 평등 원칙이 어떻게 제약받는가?",
+            "options": [
+              "① 강대국이 주도하는 국제 질서에서 약소국의 권리는 제한됨",
+              "② 모든 국가가 법적으로 동등한 지위를 갖는다.",
+              "③ 강대국은 국제법을 위반할 수 있다.",
+              "④ 약소국은 강대국과 평등하게 교류할 수 있는 권리를 가진다."
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "하"
+          }
+        ],
+        "elapsed_sec": 329.0,
+        "error": null,
+        "item_quality_avg_overall": 3.89,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.67
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.7,
+          "difficulty_match": true,
+          "overall_score": 4
+        }
+      },
+      {
+        "id": "str_040",
+        "passage_text": "1. 대의 민주주의에서 정당의 역할로 가장 적절한 것은?\n① 사법부 견제 ② 국민의 다양한 의사를 결집해 정책으로 제시 ③ 행정부 대체 ④ 언론 통제\n\n2. 대의 민주주의의 한계를 보완하는 직접 민주주의적 요소를 두 가지 이상 서술하시오.\n\n3. 정당 명부식 비례대표제가 지역구 국회의원 선거와 다른 점을 서술하시오.",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "정당의 주요 역할 중 하나는 무엇인가?",
+            "options": [
+              "① 사법부 견제",
+              "② 정책 제안 및 대표",
+              "③ 행정부 통치",
+              "④ 언론 감시"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "대의 민주주의에서 직접 민주주의 요소가 필요한 이유를 두 가지 이상 설명하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "상"
+          },
+          {
+            "question": "비례대표제와 소선거구제의 장단점을 각각 서술하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          },
+          {
+            "question": "대의 민주주의에서 정당의 역할 중 가장 중요한 것은 무엇인가?",
+            "options": [
+              "① 언론 통제",
+              "② 사법부 견제",
+              "③ 정책 제안 및 대표",
+              "④ 행정부 통치"
+            ],
+            "answer": "③",
+            "item_type": "객관식",
+            "difficulty": "하"
+          },
+          {
+            "question": "비례대표제가 사용되는 주요 이유는?",
+            "options": [
+              "① 대표자의 선거",
+              "② 정당의 명부와 비례대표제",
+              "③ 지역구 선거만으로 구성",
+              "④ 개인 투표수에 따라"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "하"
+          }
+        ],
+        "elapsed_sec": 91.2,
+        "error": null,
+        "item_quality_avg_overall": 3.8,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 1,
+            "근거성": 5,
+            "overall": 3.33
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.67
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.6,
+          "difficulty_match": true,
+          "overall_score": 3
+        }
+      },
+      {
+        "id": "str_044",
+        "passage_text": "1. 국제 하천을 둘러싼 국가 간 갈등의 해결 방식으로 가장 적절한 것은?\n① 상류 국가의 일방적 개발 ② 국제 협약을 통한 공동 관리 ③ 군사적 봉쇄 ④ 하류 국가의 보상 포기\n\n2. 국제 환경 협약이 실효성을 갖기 어려운 이유를 서술하시오.",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "기후 변화에 따른 국제 협약의 주요 쟁점은 무엇인가?",
+            "options": [
+              "① 개발도상국의 산업화 지원",
+              "② 온실가스 배출량 감축 목표 설정",
+              "③ 재난 대응 시설 확충",
+              "④ 세계 경제 성장률 유지"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "국제 환경 협약이 효과적으로 이행되기 위해서는 무엇이 필요하다고 생각하나?",
+            "options": [
+              "① 모든 국가의 동의를 얻기 위해 노력해야 함",
+              "② 각국별로 유연하게 적용할 수 있는 조항을 마련해야 함",
+              "③ 국제법으로 강제력을 부여해야 함",
+              "④ 재정적 지원과 기술 협력이 필요함"
+            ],
+            "answer": "③",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "기후 변화와 관련된 국가 간 분쟁을 예방하기 위한 외교 방안은 무엇인가?",
+            "options": [
+              "① 화해 조정 프로세스 구축",
+              "② 국제법 강화",
+              "③ 대체 에너지 연구개발 지원",
+              "④ 경제적 보상 제공"
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "세계 각국이 기후 변화 문제에 공동으로 대응하기 위해서는 어떤 자세가 필요하다고 생각하나?",
+            "options": [
+              "① 각국의 이익을 우선시하는 태도를 취해야 함",
+              "② 모든 국가의 동참을 기대하며 행동하지 않아도 됨",
+              "③ 국제적 협력과 상호 신뢰 구축이 필요함",
+              "④ 개발도상국만의 문제로 생각하고 돕지 않아야 함"
+            ],
+            "answer": "③",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "기후 변화와 관련된 국제 환경 협약의 실효성을 높이기 위한 구체적인 제안을 서술하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "상"
+          }
+        ],
+        "elapsed_sec": 143.3,
+        "error": null,
+        "item_quality_avg_overall": 3.53,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 3,
+            "근거성": 5,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 3,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 1,
+            "근거성": 3,
+            "overall": 2.67
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.6,
+          "difficulty_match": true,
+          "overall_score": 3
+        }
+      },
+      {
+        "id": "str_046",
+        "passage_text": "1. 실업의 유형 중 경기적 실업에 해당하는 것은?\n① 더 나은 직장을 찾는 과정에서 생기는 실업 ② 산업 구조 변화로 기존 기술이 쓸모없어져 생기는 실업 ③ 경기 침체로 노동 수요가 줄어 생기는 실업 ④ 계절 변화에 따라 생기는 실업",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "실업의 주요 원인 중 하나는 산업 구조 변화에 따른 기술 혁신입니다. 이러한 상황에서 가장 적절한 대책은 무엇일까요?",
+            "options": [
+              "① 고용보험 청구",
+              "② 직업 교육 및 재교육 프로그램 참여",
+              "③ 소득 보장 정책 신청",
+              "④ 일시적 실업 지원금 수령"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "실업의 유형 중 구조적 실업에 해당하는 것은 무엇인가?",
+            "options": [
+              "① 기술 변화로 인한 일자리 부족",
+              "② 경제 성장률 하락으로 인한 일시적 고용 감소",
+              "③ 계절 변동에 따른 일시적인 고용 상실",
+              "④ 노동 조건 개선을 요구하며 일시적으로 발생하는 실업"
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "경제 성장률 하락이 실업과 어떤 연관성이 있을까요?",
+            "options": [
+              "① 경제 성장률 하락은 일시적인 고용 감소를 초래하지만, 장기적으로는 고용 증가를 이끌어 낼 수 있다.",
+              "② 경제 성장률 하락은 고정 자본 투자 촉진으로 인해 실업을 완화할 수 있다.",
+              "③ 경제 성장률 하락은 기술 혁신에 따른 구조적 실업 증가를 초래한다",
+              "④ 경제 성장률 하락은 일시적인 고용 감소로 이어져 실업률 상승을 가져올 수 있다."
+            ],
+            "answer": "④",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "실업의 유형 중 계절적 실업에 해당하는 것은 무엇인가?",
+            "options": [
+              "① 특정 산업 부문에서 일시적으로 발생하는 실업",
+              "② 기술 변화로 인한 일자리 감소",
+              "③ 계절 변동으로 발생하는 일시적인 고용 상실",
+              "④ 경제 성장률 하락으로 인한 고용 감소"
+            ],
+            "answer": "③",
+            "item_type": "객관식",
+            "difficulty": "하"
+          },
+          {
+            "question": "실업 대책 중 가장 효과적인 것은 무엇인가?",
+            "options": [
+              "① 최저임금 인상 정책",
+              "② 직업 훈련 프로그램 참여",
+              "③ 일시적 실업 지원금 지급",
+              "④ 경제 성장률 상승"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 298.7,
+        "error": null,
+        "item_quality_avg_overall": 4.0,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 3,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 3.33
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.6,
+          "difficulty_match": false,
+          "overall_score": 3
+        }
+      }
+    ]
+  },
+  "llama3.1-8b": {
+    "summary": {
+      "model": "llama3.1-8b",
+      "n": 15,
+      "fail_count": 9,
+      "fail_rate": 0.6,
+      "avg_elapsed_sec": 59.4,
+      "avg_item_quality": 3.61,
+      "avg_structure_score": 2.5
+    },
+    "generations": [
+      {
+        "id": "str_002",
+        "passage_text": "1. 수요와 공급의 법칙에 따라 균형 가격이 형성되는 원리를 서술하시오.",
+        "num_items": 5,
+        "generated_items": [],
+        "elapsed_sec": 101.2,
+        "error": null,
+        "item_quality_avg_overall": 0.0,
+        "item_quality_scores": [],
+        "structure_score": {
+          "type_ratio_score": 0.0,
+          "difficulty_match": false,
+          "overall_score": 0
+        }
+      },
+      {
+        "id": "str_005",
+        "passage_text": "1. 근로자의 단결권·단체교섭권·단체행동권을 통틀어 이르는 말은?\n① 노동 3권 ② 사회권 ③ 자유권 ④ 청구권\n\n2. 부당 해고를 당한 근로자가 구제받을 수 있는 기관으로 옳은 것은?\n① 헌법재판소 ② 노동위원회 ③ 국가인권위원회 ④ 감사원\n\n3. 최저임금제도가 노동 시장에 미치는 영향을 서술하시오.\n\n4. 비정규직 근로자 보호를 위한 제도적 방안을 두 가지 이상 서술하시오.",
+        "num_items": 7,
+        "generated_items": [],
+        "elapsed_sec": 61.4,
+        "error": null,
+        "item_quality_avg_overall": 0.0,
+        "item_quality_scores": [],
+        "structure_score": {
+          "type_ratio_score": 0.0,
+          "difficulty_match": false,
+          "overall_score": 0
+        }
+      },
+      {
+        "id": "str_006",
+        "passage_text": "1. 국제 사회에서 비정부기구(NGO)의 역할로 가장 적절한 것은?\n① 조약 체결의 당사자가 된다 ② 인도적 지원과 감시 활동을 한다 ③ 군사력을 행사한다 ④ 관세를 부과한다",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "국제 사회의 행위 주체는?",
+            "options": [
+              "①국가",
+              "②언론",
+              "③NGO",
+              "④기업"
+            ],
+            "answer": "①",
+            "item_type": "multiple_choice_question",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 25.6,
+        "error": null,
+        "item_quality_avg_overall": 4.0,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.5,
+          "difficulty_match": false,
+          "overall_score": 2
+        }
+      },
+      {
+        "id": "str_009",
+        "passage_text": "1. 다음 사례에서 나타난 문화 접변의 유형을 쓰고, 그렇게 판단한 근거를 서술하시오.",
+        "num_items": 3,
+        "generated_items": [],
+        "elapsed_sec": 35.6,
+        "error": null,
+        "item_quality_avg_overall": 0.0,
+        "item_quality_scores": [],
+        "structure_score": {
+          "type_ratio_score": 0.0,
+          "difficulty_match": false,
+          "overall_score": 0
+        }
+      },
+      {
+        "id": "str_013",
+        "passage_text": "1. 다음 중 정치 참여 유형이 다른 것은?\n① 선거 투표 ② 정당 가입 ③ 이익집단 활동 ④ 헌법재판소 위헌 결정\n\n2. 이익집단과 정당의 차이점을 서술하시오.\n\n3. 시민의 정치 참여가 저조할 때 나타나는 문제점을 서술하시오.",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "정치 참여의 유형에 대해 학습할 때, 무엇을 주안점으로 하도록 한다?",
+            "options": [
+              "①미디어 리터러시를 함양하도록 하자.",
+              "②정당, 이익집단, 시민단체, 언론 등 정치 참여 주체들의 기능과 역할을 이해하도록 하자.",
+              "③선거 제도의 특징과 문제점을 분석하도록 하자."
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "정치 참여의 방법에 대해 학습할 때, 무엇을 주안점으로 하도록 한다?",
+            "options": [
+              "①정당 활동을 통해 정치 참여를 하자.",
+              "②선거에 직접 참여하거나 모의 투표를 통해 정치 참여를 하자.",
+              "③이익집단 또는 시민단체에서 활동을 통해 정치 참여를 하자.",
+              "④미디어를 통한 비판적 사고력 함양을 통해 정치 참여를 하자."
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 60.6,
+        "error": null,
+        "item_quality_avg_overall": 3.0,
+        "item_quality_scores": [
+          {
+            "정답유일성": 3,
+            "오답매력도": 2,
+            "근거성": 2,
+            "overall": 2.33
+          },
+          {
+            "정답유일성": 3,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 3.67
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.5,
+          "difficulty_match": false,
+          "overall_score": 3
+        }
+      },
+      {
+        "id": "str_016",
+        "passage_text": "1. 소비자 잉여에 대한 설명으로 옳은 것은?\n① 생산자가 얻는 이윤 ② 소비자가 지불할 용의보다 실제로 적게 지불해 얻는 이득 ③ 정부가 거두는 세금 ④ 시장에서 발생하는 손실",
+        "num_items": 5,
+        "generated_items": [],
+        "elapsed_sec": 33.9,
+        "error": null,
+        "item_quality_avg_overall": 0.0,
+        "item_quality_scores": [],
+        "structure_score": {
+          "type_ratio_score": 0.0,
+          "difficulty_match": false,
+          "overall_score": 0
+        }
+      },
+      {
+        "id": "str_020",
+        "passage_text": "1. 국민참여재판제도에서 배심원의 역할로 옳은 것은?\n① 판결의 최종 확정 ② 유·무죄에 대한 의견 제시 ③ 형량의 강제 결정 ④ 검사 역할 대행",
+        "num_items": 3,
+        "generated_items": [
+          {
+            "question": "국민참여재판제도의 장점으로 옳은 것은?",
+            "options": [
+              "① 법무부의 권한 강화",
+              "② 민간단체 참여가 가능",
+              "③ 사법면에서의 재판 진행",
+              "④ 법학 분야의 연구 개발"
+            ],
+            "answer": "② 민간단체 참여가 가능",
+            "item_type": "multiple_choice",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 39.2,
+        "error": null,
+        "item_quality_avg_overall": 3.0,
+        "item_quality_scores": [
+          {
+            "정답유일성": 4,
+            "오답매력도": 2,
+            "근거성": 3,
+            "overall": 3.0
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.5,
+          "difficulty_match": false,
+          "overall_score": 2
+        }
+      },
+      {
+        "id": "str_023",
+        "passage_text": "1. 언론의 자유가 민주주의에서 중요한 이유를 서술하시오.",
+        "num_items": 5,
+        "generated_items": [],
+        "elapsed_sec": 92.3,
+        "error": null,
+        "item_quality_avg_overall": 0.0,
+        "item_quality_scores": [],
+        "structure_score": {
+          "type_ratio_score": 0.0,
+          "difficulty_match": false,
+          "overall_score": 0
+        }
+      },
+      {
+        "id": "str_027",
+        "passage_text": "1. 사회 갈등이 순기능을 하는 경우로 옳은 것은?\n① 갈등이 폭력으로 번질 때 ② 갈등을 통해 문제를 공론화하고 해결책을 모색할 때 ③ 갈등이 장기화될 때 ④ 갈등 당사자가 소통을 거부할 때",
+        "num_items": 5,
+        "generated_items": [],
+        "elapsed_sec": 49.1,
+        "error": null,
+        "item_quality_avg_overall": 0.0,
+        "item_quality_scores": [],
+        "structure_score": {
+          "type_ratio_score": 0.0,
+          "difficulty_match": false,
+          "overall_score": 0
+        }
+      },
+      {
+        "id": "str_030",
+        "passage_text": "1. 헌법 개정 절차 중 국민투표가 필요한 이유를 서술하시오.",
+        "num_items": 3,
+        "generated_items": [
+          {
+            "question": "헌법 개정 절차를 다음 중 어떤 것과 연결지을 수 있나요?",
+            "options": [
+              "① 헌법 개정을 위한 국민투표가 반드시 필요합니다.",
+              "② 헌법 개정이 이루어질 수 있는 경우에만 국민투표는 불필요합니다.",
+              "③ 헌법개정을 위한 국민투표가 필요합니다.",
+              "④ 헌법개정이 이루어질 수 없는 경우에만 국민투표는 가능합니다."
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 33.1,
+        "error": null,
+        "item_quality_avg_overall": 3.0,
+        "item_quality_scores": [
+          {
+            "정답유일성": 3,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.0
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.5,
+          "difficulty_match": false,
+          "overall_score": 2
+        }
+      },
+      {
+        "id": "str_033",
+        "passage_text": "1. 국제기구 유엔환경계획(UNEP)의 주요 활동으로 옳은 것은?\n① 군사 개입 ② 국제 환경 문제에 대한 조사·연구·정책 조정 ③ 관세 부과 ④ 통화 발행",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "국제환경기구의 역할은?",
+            "options": [
+              "① 환경정책 및 협력",
+              "② 환경보호와 지속가능발전을 위한 국제협력",
+              "③ 재생 가능한 에너지 개발과 보급",
+              "④ 위급한 환경문제에 대한 국제긴급조치"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 46.3,
+        "error": null,
+        "item_quality_avg_overall": 4.67,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.8,
+          "difficulty_match": true,
+          "overall_score": 3
+        }
+      },
+      {
+        "id": "str_038",
+        "passage_text": "1. 국제 사회에서 국가 주권 평등의 원칙이 지니는 의의로 옳은 것은?\n① 강대국의 우월한 지위를 인정 ② 모든 국가가 국제법상 동등한 지위를 가짐 ③ 약소국의 발언권을 제한 ④ 국제기구의 결정을 무시할 수 있음\n\n2. 국가 주권 평등 원칙이 현실에서 제약받는 사례를 서술하시오.",
+        "num_items": 7,
+        "generated_items": [],
+        "elapsed_sec": 65.8,
+        "error": null,
+        "item_quality_avg_overall": 0.0,
+        "item_quality_scores": [],
+        "structure_score": {
+          "type_ratio_score": 0.0,
+          "difficulty_match": false,
+          "overall_score": 0
+        }
+      },
+      {
+        "id": "str_040",
+        "passage_text": "1. 대의 민주주의에서 정당의 역할로 가장 적절한 것은?\n① 사법부 견제 ② 국민의 다양한 의사를 결집해 정책으로 제시 ③ 행정부 대체 ④ 언론 통제\n\n2. 대의 민주주의의 한계를 보완하는 직접 민주주의적 요소를 두 가지 이상 서술하시오.\n\n3. 정당 명부식 비례대표제가 지역구 국회의원 선거와 다른 점을 서술하시오.",
+        "num_items": 5,
+        "generated_items": [],
+        "elapsed_sec": 96.5,
+        "error": null,
+        "item_quality_avg_overall": 0.0,
+        "item_quality_scores": [],
+        "structure_score": {
+          "type_ratio_score": 0.0,
+          "difficulty_match": false,
+          "overall_score": 0
+        }
+      },
+      {
+        "id": "str_044",
+        "passage_text": "1. 국제 하천을 둘러싼 국가 간 갈등의 해결 방식으로 가장 적절한 것은?\n① 상류 국가의 일방적 개발 ② 국제 협약을 통한 공동 관리 ③ 군사적 봉쇄 ④ 하류 국가의 보상 포기\n\n2. 국제 환경 협약이 실효성을 갖기 어려운 이유를 서술하시오.",
+        "num_items": 5,
+        "generated_items": [],
+        "elapsed_sec": 92.6,
+        "error": null,
+        "item_quality_avg_overall": 0.0,
+        "item_quality_scores": [],
+        "structure_score": {
+          "type_ratio_score": 0.0,
+          "difficulty_match": false,
+          "overall_score": 0
+        }
+      },
+      {
+        "id": "str_046",
+        "passage_text": "1. 실업의 유형 중 경기적 실업에 해당하는 것은?\n① 더 나은 직장을 찾는 과정에서 생기는 실업 ② 산업 구조 변화로 기존 기술이 쓸모없어져 생기는 실업 ③ 경기 침체로 노동 수요가 줄어 생기는 실업 ④ 계절 변화에 따라 생기는 실업",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "실업의 유형은 어떤 것일까요?",
+            "options": [
+              "① 경기적 실업",
+              "② 산업 구조 변화로 기존 기술이 쓸모없어져 생기는 실업",
+              "③ 경기 침체로 노동 수요가 줄어 생기는 실업",
+              "④ 계절 변화에 따라 생기는 실업"
+            ],
+            "answer": "③ 경기 침체로 노동 수요가 줄어 생기는 실업",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 57.4,
+        "error": null,
+        "item_quality_avg_overall": 4.0,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.7,
+          "difficulty_match": true,
+          "overall_score": 3
+        }
+      }
+    ]
+  },
+  "gpt-4o-mini": {
+    "summary": {
+      "model": "gpt-4o-mini",
+      "n": 15,
+      "fail_count": 0,
+      "fail_rate": 0.0,
+      "avg_elapsed_sec": 18.1,
+      "avg_item_quality": 3.69,
+      "avg_structure_score": 3.47
+    },
+    "generations": [
+      {
+        "id": "str_002",
+        "passage_text": "1. 수요와 공급의 법칙에 따라 균형 가격이 형성되는 원리를 서술하시오.",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "수요와 공급의 변화가 시장 가격에 미치는 영향을 설명하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          },
+          {
+            "question": "다음 중 시장 가격 결정에 영향을 미치는 요소가 아닌 것은 무엇인가?",
+            "options": [
+              "① 소비자의 선호도",
+              "② 생산 비용",
+              "③ 정부의 규제",
+              "④ 자원의 희소성"
+            ],
+            "answer": "④",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "수요와 공급의 변동으로 인해 발생할 수 있는 시장 가격의 변화 예시를 제시하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          },
+          {
+            "question": "다음 중 수요 법칙을 가장 잘 설명한 것은 무엇인가?",
+            "options": [
+              "① 가격이 상승하면 수요가 증가한다.",
+              "② 가격이 하락하면 수요가 증가한다.",
+              "③ 가격과 수요는 무관하다.",
+              "④ 수요는 항상 일정하다."
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "공급 법칙이 성립하는 상황을 설명하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 25.6,
+        "error": null,
+        "item_quality_avg_overall": 3.67,
+        "item_quality_scores": [
+          {
+            "정답유일성": 4,
+            "오답매력도": 2,
+            "근거성": 5,
+            "overall": 3.67
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 3,
+            "근거성": 5,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 1,
+            "근거성": 4,
+            "overall": 3.33
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 1,
+            "근거성": 4,
+            "overall": 3.33
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.8,
+          "difficulty_match": true,
+          "overall_score": 4
+        }
+      },
+      {
+        "id": "str_005",
+        "passage_text": "1. 근로자의 단결권·단체교섭권·단체행동권을 통틀어 이르는 말은?\n① 노동 3권 ② 사회권 ③ 자유권 ④ 청구권\n\n2. 부당 해고를 당한 근로자가 구제받을 수 있는 기관으로 옳은 것은?\n① 헌법재판소 ② 노동위원회 ③ 국가인권위원회 ④ 감사원\n\n3. 최저임금제도가 노동 시장에 미치는 영향을 서술하시오.\n\n4. 비정규직 근로자 보호를 위한 제도적 방안을 두 가지 이상 서술하시오.",
+        "num_items": 7,
+        "generated_items": [
+          {
+            "question": "근로자의 권리 중에서 사용자가 보장해야 할 의무가 포함되지 않은 것은 무엇인가?",
+            "options": [
+              "① 안전하고 건강한 근무환경 제공",
+              "② 적정한 임금 지급",
+              "③ 근로시간의 단축",
+              "④ 근로자의 개인 정보 보호"
+            ],
+            "answer": "③",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "근로기준법에 명시된 근로자의 기본 권리에 해당하지 않는 것은?",
+            "options": [
+              "① 휴식 시간 보장",
+              "② 연차 유급휴가 부여",
+              "③ 노동조합 결성의 자유",
+              "④ 근로자 개인의 사생활 보호"
+            ],
+            "answer": "④",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "최저임금제가 도입된 이유를 설명하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          },
+          {
+            "question": "근로계약서 작성 시 반드시 포함해야 하는 요소를 두 가지 이상 서술하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          },
+          {
+            "question": "비정규직 근로자 보호를 위한 법적 장치로 옳지 않은 것은?",
+            "options": [
+              "① 정규직 전환 의무",
+              "② 차별 대우 금지",
+              "③ 고용 안정성 보장",
+              "④ 퇴직금 지급 의무"
+            ],
+            "answer": "④",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "노동조합의 주요 기능 중 하나가 아닌 것은 무엇인가?",
+            "options": [
+              "① 근로자의 권리 보호",
+              "② 단체교섭 수행",
+              "③ 사용자에 대한 법적 소송",
+              "④ 근로조건 개선"
+            ],
+            "answer": "③",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "부당 해고를 당한 근로자가 구제받기 위해 할 수 있는 조치는 무엇인지 서술하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 20.6,
+        "error": null,
+        "item_quality_avg_overall": 3.71,
+        "item_quality_scores": [
+          {
+            "정답유일성": 4,
+            "오답매력도": 2,
+            "근거성": 5,
+            "overall": 3.67
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 2,
+            "근거성": 5,
+            "overall": 3.67
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 1,
+            "근거성": 5,
+            "overall": 3.33
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 1,
+            "근거성": 4,
+            "overall": 3.33
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.7,
+          "difficulty_match": true,
+          "overall_score": 3
+        }
+      },
+      {
+        "id": "str_006",
+        "passage_text": "1. 국제 사회에서 비정부기구(NGO)의 역할로 가장 적절한 것은?\n① 조약 체결의 당사자가 된다 ② 인도적 지원과 감시 활동을 한다 ③ 군사력을 행사한다 ④ 관세를 부과한다",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "국제 사회에서 비정부기구(NGO)가 주로 수행하는 역할은 무엇인가?",
+            "options": [
+              "① 국가 간의 군사적 협력을 촉진한다",
+              "② 인도적 지원 및 사회적 문제 해결에 기여한다",
+              "③ 국제법을 직접 제정한다",
+              "④ 외교 정책을 직접 수립한다"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "국제 사회에서 다국적 기업의 영향력에 대한 설명으로 적절한 것은?",
+            "options": [
+              "① 국경을 넘어 경제적 활동을 통해 국가의 주권을 강화한다",
+              "② 특정 국가의 정치적 결정에 직접적으로 개입한다",
+              "③ 국제적 경제 관계를 형성하는 데 기여한다",
+              "④ 모든 국가에 동일한 영향을 미친다"
+            ],
+            "answer": "③",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "국제 사회의 주요 행위 주체 중 하나인 국제기구의 기능으로 가장 적절한 것은?",
+            "options": [
+              "① 회원국 간의 분쟁을 해결하기 위한 법원 역할을 한다",
+              "② 군사적 작전을 수행한다",
+              "③ 각국의 경제 정책을 통제한다",
+              "④ 특정 국가의 대통령을 선출한다"
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "국제 사회에서 개인이 행위 주체로서 가지는 역할에 대한 설명으로 올바른 것은?",
+            "options": [
+              "① 개인은 국가의 정책 결정에 직접 참여할 수 없다",
+              "② 개인은 국제 문제에 대한 의견을 표현할 수 있다",
+              "③ 개인은 외교 관계를 직접 형성할 수 있다",
+              "④ 개인의 행동은 국제 사회에 영향을 미치지 않는다"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "국제 사회의 구성원으로서 시민들이 가져야 할 태도에 대한 설명으로 맞는 것은?",
+            "options": [
+              "① 자국의 이익만을 우선시해야 한다",
+              "② 국제 문제에 대한 무관심을 가져야 한다",
+              "③ 세계 시민으로서의 책임과 의무를 인식해야 한다",
+              "④ 외교 문제에 대해서는 개입하지 않아야 한다"
+            ],
+            "answer": "③",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 26.2,
+        "error": null,
+        "item_quality_avg_overall": 4.0,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.5,
+          "difficulty_match": true,
+          "overall_score": 3
+        }
+      },
+      {
+        "id": "str_009",
+        "passage_text": "1. 다음 사례에서 나타난 문화 접변의 유형을 쓰고, 그렇게 판단한 근거를 서술하시오.",
+        "num_items": 3,
+        "generated_items": [
+          {
+            "question": "다음 사례는 문화 접변의 한 유형을 설명하고 있다. 이 사례에서 나타난 유형을 적고, 그 이유를 설명하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          },
+          {
+            "question": "문화 접변의 유형 중 하나인 문화 동화의 특징을 설명하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          },
+          {
+            "question": "다음 중 문화 융합을 설명하는 사례로 적절한 것은 무엇인가?",
+            "options": [
+              "① 두 문화가 서로 영향을 주며 새로운 문화를 형성하는 경우",
+              "② 한 문화가 다른 문화를 완전히 대체하는 경우",
+              "③ 특정 문화가 다른 문화에 침투하여 사라지는 경우",
+              "④ 두 문화가 지리적으로 분리되어 존재하는 경우"
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 12.4,
+        "error": null,
+        "item_quality_avg_overall": 3.56,
+        "item_quality_scores": [
+          {
+            "정답유일성": 3,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.67
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.6,
+          "difficulty_match": false,
+          "overall_score": 3
+        }
+      },
+      {
+        "id": "str_013",
+        "passage_text": "1. 다음 중 정치 참여 유형이 다른 것은?\n① 선거 투표 ② 정당 가입 ③ 이익집단 활동 ④ 헌법재판소 위헌 결정\n\n2. 이익집단과 정당의 차이점을 서술하시오.\n\n3. 시민의 정치 참여가 저조할 때 나타나는 문제점을 서술하시오.",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "다음 중 시민 참여의 한 방식으로 볼 수 없는 것은?",
+            "options": [
+              "① 지역사회 공약 비교 분석",
+              "② 정당 가입",
+              "③ 선거 캠페인 참여",
+              "④ 직장 내 조직 이탈"
+            ],
+            "answer": "④",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "정당과 이익집단의 정치 참여 방식의 차이점을 서술하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          },
+          {
+            "question": "정치 참여가 활발할 때 나타나는 긍정적 효과를 서술하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          },
+          {
+            "question": "다음 중 미디어를 통한 정치 참여 활동이 아닌 것은?",
+            "options": [
+              "① 온라인 청원",
+              "② 소셜 미디어를 통한 투표 독려",
+              "③ 대면 토론회 참여",
+              "④ 뉴스 댓글 작성"
+            ],
+            "answer": "③",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "정치 참여가 저조할 경우 사회에 미치는 영향에 대해 서술하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 14.6,
+        "error": null,
+        "item_quality_avg_overall": 3.47,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 2,
+            "근거성": 3,
+            "overall": 3.0
+          },
+          {
+            "정답유일성": 3,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 1,
+            "근거성": 5,
+            "overall": 3.33
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.8,
+          "difficulty_match": true,
+          "overall_score": 3
+        }
+      },
+      {
+        "id": "str_016",
+        "passage_text": "1. 소비자 잉여에 대한 설명으로 옳은 것은?\n① 생산자가 얻는 이윤 ② 소비자가 지불할 용의보다 실제로 적게 지불해 얻는 이득 ③ 정부가 거두는 세금 ④ 시장에서 발생하는 손실",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "시장이 효율적으로 작동하기 위해서는 어떤 요소가 가장 중요한가?",
+            "options": [
+              "① 정부의 규제 강화",
+              "② 소비자의 정보 비대칭",
+              "③ 수요와 공급의 조화",
+              "④ 생산자의 가격 결정 권한"
+            ],
+            "answer": "③",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "소비자 잉여가 발생하는 이유는 무엇인가?",
+            "options": [
+              "① 소비자가 원하는 가격보다 높은 가격에 구매",
+              "② 소비자가 지불할 의사가 있는 가격보다 낮게 구매",
+              "③ 정부의 가격 통제로 인한 시장 왜곡",
+              "④ 생산자의 이윤 극대화 노력"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "생산자 잉여와 관련하여, 생산자가 가격을 결정할 때 고려해야 하는 요소는 무엇인가?",
+            "options": [
+              "① 소비자의 구매 빈도",
+              "② 생산 비용과 시장 가격의 차이",
+              "③ 정부의 가격 통제 정책",
+              "④ 소비자의 선호도 변화"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "시장 효율성이란 무엇을 의미하는가?",
+            "options": [
+              "① 자원의 최적 배분",
+              "② 정부의 개입 최소화",
+              "③ 소비자와 생산자의 이익 극대화",
+              "④ 가격의 안정성 유지"
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 20.3,
+        "error": null,
+        "item_quality_avg_overall": 3.92,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.67
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.6,
+          "difficulty_match": false,
+          "overall_score": 2
+        }
+      },
+      {
+        "id": "str_020",
+        "passage_text": "1. 국민참여재판제도에서 배심원의 역할로 옳은 것은?\n① 판결의 최종 확정 ② 유·무죄에 대한 의견 제시 ③ 형량의 강제 결정 ④ 검사 역할 대행",
+        "num_items": 3,
+        "generated_items": [
+          {
+            "question": "국민참여재판제도에서 배심원이 제시할 수 있는 의견의 중요성은 무엇인가?",
+            "options": [
+              "① 공정한 재판을 보장하기 위해 필요하다.",
+              "② 배심원이 판결을 대신할 수 있어야 한다.",
+              "③ 법원의 결정에 대한 최종 권한을 가진다.",
+              "④ 특정 사건의 형량을 직접 결정한다."
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "국민참여재판제도에 참여하는 배심원이 가지는 의무로 옳은 것은?",
+            "options": [
+              "① 재판의 모든 과정에 참여할 의무가 있다.",
+              "② 배심원으로서의 의견을 무시할 수 있다.",
+              "③ 재판이 끝난 후에 의견을 제출할 수 있다.",
+              "④ 판사와의 의견 교환을 금지한다."
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "국민참여재판제도의 도입 목적에 해당하지 않는 것은?",
+            "options": [
+              "① 법적 쟁점에 대한 시민의 이해도를 높이기 위해.",
+              "② 법원의 판결에 대한 신뢰를 증진하기 위해.",
+              "③ 배심원의 의견이 판결에 반드시 반영되도록 하기 위해.",
+              "④ 시민의 재판 참여를 통해 민주적 절차를 강화하기 위해."
+            ],
+            "answer": "③",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 12.6,
+        "error": null,
+        "item_quality_avg_overall": 3.89,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.67
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.7,
+          "difficulty_match": true,
+          "overall_score": 4
+        }
+      },
+      {
+        "id": "str_023",
+        "passage_text": "1. 언론의 자유가 민주주의에서 중요한 이유를 서술하시오.",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "언론의 자유가 보장되는 사회에서 개인이 얻을 수 있는 주된 이점은 무엇인가?",
+            "options": [
+              "① 정보의 다양성을 확보할 수 있다.",
+              "② 정부의 모든 결정이 공개된다.",
+              "③ 모든 언론이 동일한 내용을 보도해야 한다.",
+              "④ 언론인의 권리가 제한된다."
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "언론의 자유가 민주주의에 미치는 영향을 서술하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          },
+          {
+            "question": "알 권리의 개념을 설명하고, 이를 통해 개인이 누리는 권리의 예시를 제시하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          },
+          {
+            "question": "다음 중 언론의 자유와 관련된 권리가 아닌 것은 무엇인가?",
+            "options": [
+              "① 표현의 자유",
+              "② 집회의 자유",
+              "③ 사생활의 비밀",
+              "④ 정보 접근의 권리"
+            ],
+            "answer": "③",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "언론의 자유가 억압될 경우 발생할 수 있는 사회적 문제를 서술하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 12.7,
+        "error": null,
+        "item_quality_avg_overall": 3.53,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 3,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 1,
+            "근거성": 4,
+            "overall": 3.33
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 1,
+            "근거성": 4,
+            "overall": 3.33
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.8,
+          "difficulty_match": true,
+          "overall_score": 4
+        }
+      },
+      {
+        "id": "str_027",
+        "passage_text": "1. 사회 갈등이 순기능을 하는 경우로 옳은 것은?\n① 갈등이 폭력으로 번질 때 ② 갈등을 통해 문제를 공론화하고 해결책을 모색할 때 ③ 갈등이 장기화될 때 ④ 갈등 당사자가 소통을 거부할 때",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "사회 갈등이 발생할 때 긍정적인 결과로 이어질 수 있는 경우는 무엇인가?",
+            "options": [
+              "① 갈등 당사자 간의 대화가 이루어질 때",
+              "② 갈등이 해결되지 않고 지속될 때",
+              "③ 갈등으로 인한 피해가 발생할 때",
+              "④ 갈등이 사회에 부정적인 영향을 미칠 때"
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "사회적 갈등이 사회 발전에 미치는 긍정적인 역할은 무엇인가?",
+            "options": [
+              "① 다양한 의견을 수렴하여 정책을 개선할 수 있다.",
+              "② 갈등이 발생하면 항상 부정적인 영향을 미친다.",
+              "③ 사회적 갈등은 해결이 불가능하다.",
+              "④ 갈등은 개인의 감정적 고통만을 초래한다."
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "사회 갈등이 해결되는 과정에서 중요한 요소는 무엇인가?",
+            "options": [
+              "① 갈등 당사자 간의 소통과 이해",
+              "② 갈등을 무시하는 태도",
+              "③ 갈등을 확대하는 행동",
+              "④ 갈등의 원인을 파악하지 않는 것"
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "사회 갈등의 해결을 위한 효과적인 방법으로 가장 적절한 것은 무엇인가?",
+            "options": [
+              "① 대화와 협상을 통한 문제 해결",
+              "② 갈등을 외면하고 무시하기",
+              "③ 갈등을 다른 사람들에게 알리기",
+              "④ 갈등 당사자를 분리하는 것"
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "사회 갈등을 예방하기 위한 방법으로 가장 적절한 것은 무엇인가?",
+            "options": [
+              "① 서로의 의견을 존중하는 태도",
+              "② 갈등을 피하기 위해 소통을 중단하는 것",
+              "③ 상대방의 의견을 무시하는 것",
+              "④ 갈등을 격화시키는 행동"
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 19.3,
+        "error": null,
+        "item_quality_avg_overall": 3.74,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.67
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.67
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.67
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.67
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.8,
+          "difficulty_match": true,
+          "overall_score": 4
+        }
+      },
+      {
+        "id": "str_030",
+        "passage_text": "1. 헌법 개정 절차 중 국민투표가 필요한 이유를 서술하시오.",
+        "num_items": 3,
+        "generated_items": [
+          {
+            "question": "헌법 개정 과정에서 국민의 의견을 수렴하는 절차의 중요성을 설명하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          },
+          {
+            "question": "헌법 개정 시 제안된 개정안이 통과되기 위해 필요한 절차를 순서대로 나열하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          },
+          {
+            "question": "헌법 개정의 절차에서 국민투표가 반드시 필요한 이유는 무엇인가?",
+            "options": [
+              "① 국민의 직접적인 의견 반영을 보장하기 위해서",
+              "② 국가의 모든 법률이 통과되기 위해서",
+              "③ 헌법 개정안을 작성하는 과정에서의 필수 조항이기 때문에",
+              "④ 헌법 개정은 항상 정부의 결정에 따라 이루어져야 하기 때문에"
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 14.1,
+        "error": null,
+        "item_quality_avg_overall": 3.55,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 1,
+            "근거성": 4,
+            "overall": 3.33
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 1,
+            "근거성": 4,
+            "overall": 3.33
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.8,
+          "difficulty_match": true,
+          "overall_score": 4
+        }
+      },
+      {
+        "id": "str_033",
+        "passage_text": "1. 국제기구 유엔환경계획(UNEP)의 주요 활동으로 옳은 것은?\n① 군사 개입 ② 국제 환경 문제에 대한 조사·연구·정책 조정 ③ 관세 부과 ④ 통화 발행",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "국제환경기구인 유엔환경계획(UNEP)의 주된 목표로 가장 적절한 것은?",
+            "options": [
+              "① 세계의 군사적 평화 유지",
+              "② 생태계 보호 및 지속 가능한 발전 촉진",
+              "③ 각국의 경제 성장 촉진",
+              "④ 국제 무역의 자유화"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "유엔환경계획(UNEP)의 주요 기능으로 맞지 않는 것은?",
+            "options": [
+              "① 환경 관련 국제 협약의 기획 및 조정",
+              "② 각국의 환경 정책에 대한 자문 제공",
+              "③ 지구촌 환경 문제에 대한 데이터 수집 및 분석",
+              "④ 군사 작전의 계획 및 실행"
+            ],
+            "answer": "④",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "유엔환경계획(UNEP)이 다루는 주요 환경 문제는 무엇인가?",
+            "options": [
+              "① 전쟁과 군사분쟁",
+              "② 기후변화 및 생물 다양성 감소",
+              "③ 국제 무역과 경제 발전",
+              "④ 인권과 민주주의"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "유엔환경계획(UNEP)의 설립 목적 중 하나는 무엇인가?",
+            "options": [
+              "① 국제적 무역 장벽 완화",
+              "② 환경 문제 해결을 위한 글로벌 협력 증진",
+              "③ 각국의 군사적 동맹 강화",
+              "④ 세계 경제의 통합"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 19.4,
+        "error": null,
+        "item_quality_avg_overall": 4.17,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.8,
+          "difficulty_match": true,
+          "overall_score": 4
+        }
+      },
+      {
+        "id": "str_038",
+        "passage_text": "1. 국제 사회에서 국가 주권 평등의 원칙이 지니는 의의로 옳은 것은?\n① 강대국의 우월한 지위를 인정 ② 모든 국가가 국제법상 동등한 지위를 가짐 ③ 약소국의 발언권을 제한 ④ 국제기구의 결정을 무시할 수 있음\n\n2. 국가 주권 평등 원칙이 현실에서 제약받는 사례를 서술하시오.",
+        "num_items": 7,
+        "generated_items": [
+          {
+            "question": "국제 사회에서 국가 주권의 개념이 중요하게 여겨지는 이유로 가장 적절한 것은?",
+            "options": [
+              "① 국가 간의 군사적 충돌 방지",
+              "② 모든 국가의 자원 독점 가능성",
+              "③ 국제 경제의 불공정성 해소",
+              "④ 자국의 법과 정책 자율성 확보"
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "국가 주권의 원칙에 따라 국제 사회에서 이루어지는 갈등 해결 방식에 대해 논하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          },
+          {
+            "question": "국가 주권과 국제법의 관계를 설명하고, 두 개념 간의 갈등 사례를 제시하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          },
+          {
+            "question": "국제 사회에서 국가 주권 존중의 필요성에 대해 올바른 주장을 고르시오.",
+            "options": [
+              "① 주권 국가 간의 평화 유지",
+              "② 강대국의 무역 장벽 형성",
+              "③ 약소국의 자원 착취",
+              "④ 제3국의 내정 간섭"
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "국가 주권이 침해받는 상황을 예로 들고, 그로 인한 국제 사회의 반응을 설명하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          },
+          {
+            "question": "주권 국가의 권리와 의무가 국제법에 의해 어떻게 규정되는지 설명하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          },
+          {
+            "question": "국가 주권의 개념이 국제 분쟁 해결에 미치는 영향을 논하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 21.1,
+        "error": null,
+        "item_quality_avg_overall": 3.24,
+        "item_quality_scores": [
+          {
+            "정답유일성": 3,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.0
+          },
+          {
+            "정답유일성": 3,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 1,
+            "근거성": 4,
+            "overall": 3.33
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.67
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 1,
+            "근거성": 4,
+            "overall": 3.33
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 1,
+            "근거성": 4,
+            "overall": 3.33
+          },
+          {
+            "정답유일성": 3,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.0
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.7,
+          "difficulty_match": true,
+          "overall_score": 4
+        }
+      },
+      {
+        "id": "str_040",
+        "passage_text": "1. 대의 민주주의에서 정당의 역할로 가장 적절한 것은?\n① 사법부 견제 ② 국민의 다양한 의사를 결집해 정책으로 제시 ③ 행정부 대체 ④ 언론 통제\n\n2. 대의 민주주의의 한계를 보완하는 직접 민주주의적 요소를 두 가지 이상 서술하시오.\n\n3. 정당 명부식 비례대표제가 지역구 국회의원 선거와 다른 점을 서술하시오.",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "대의 민주주의에서 정당이 수행하는 주요 기능으로 가장 적절한 것은?",
+            "options": [
+              "① 정부의 정책 결정에 직접 참여",
+              "② 선거를 통해 시민의 의견 수렴",
+              "③ 행정부의 권한을 대체",
+              "④ 법원의 판결을 내리는 역할"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "대의 민주주의의 특징 중 하나인 정당제의 장점을 두 가지 이상 서술하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          },
+          {
+            "question": "대의 민주주의와 직접 민주주의의 차이점을 두 가지 이상 비교하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          },
+          {
+            "question": "정당의 역할과 관련하여 정당이 유권자에게 미치는 영향 중 가장 적절한 것은?",
+            "options": [
+              "① 정당이 시민의 의사를 완전히 대변",
+              "② 정당이 공약을 통해 정치적 선택지 제공",
+              "③ 정당이 모든 정책을 독점적으로 결정",
+              "④ 정당이 언론을 관리하고 통제"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "정당 정치가 대의 민주주의에 미치는 긍정적 영향을 한 가지 서술하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 16.8,
+        "error": null,
+        "item_quality_avg_overall": 3.6,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 1,
+            "근거성": 5,
+            "overall": 3.33
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 1,
+            "근거성": 5,
+            "overall": 3.33
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 1,
+            "근거성": 4,
+            "overall": 3.33
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.8,
+          "difficulty_match": true,
+          "overall_score": 3
+        }
+      },
+      {
+        "id": "str_044",
+        "passage_text": "1. 국제 하천을 둘러싼 국가 간 갈등의 해결 방식으로 가장 적절한 것은?\n① 상류 국가의 일방적 개발 ② 국제 협약을 통한 공동 관리 ③ 군사적 봉쇄 ④ 하류 국가의 보상 포기\n\n2. 국제 환경 협약이 실효성을 갖기 어려운 이유를 서술하시오.",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "국제 환경 문제 해결을 위한 협력의 중요성에 대한 설명으로 가장 적절한 것은?",
+            "options": [
+              "① 각국이 자국의 이익을 우선시하는 것",
+              "② 국제기구와의 협력을 통해 공동의 목표 달성",
+              "③ 환경 문제는 각국의 독립적인 판단에 맡겨야 한다",
+              "④ 환경 문제 해결을 위한 군사적 접근이 필요하다"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "기후 변화에 따른 국제 사회의 협력 방안을 서술하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          },
+          {
+            "question": "기후 변화가 국제 갈등을 초래하는 이유로 가장 적절한 것은?",
+            "options": [
+              "① 기후 변화는 모든 국가에 동일하게 영향을 미친다",
+              "② 자원 분쟁이 발생할 수 있기 때문",
+              "③ 기후 변화에 대한 인식이 높아지기 때문이다",
+              "④ 모든 국가가 기후 변화 대응에 적극적이다"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "국제 환경 협약의 주요 목표로 가장 적절한 것은?",
+            "options": [
+              "① 각국의 환경 규제를 강화하는 것",
+              "② 환경 문제에 대한 인식을 높이는 것",
+              "③ 지속 가능한 발전을 위한 협력 체계 구축",
+              "④ 특정 국가만의 환경 보호를 지향하는 것"
+            ],
+            "answer": "③",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "환경 문제 해결을 위한 국제 협력이 필요한 이유를 서술하시오.",
+            "options": [],
+            "answer": "",
+            "item_type": "서술형",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 18.4,
+        "error": null,
+        "item_quality_avg_overall": 3.73,
+        "item_quality_scores": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 3,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 2,
+            "근거성": 5,
+            "overall": 3.67
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.6,
+          "difficulty_match": true,
+          "overall_score": 3
+        }
+      },
+      {
+        "id": "str_046",
+        "passage_text": "1. 실업의 유형 중 경기적 실업에 해당하는 것은?\n① 더 나은 직장을 찾는 과정에서 생기는 실업 ② 산업 구조 변화로 기존 기술이 쓸모없어져 생기는 실업 ③ 경기 침체로 노동 수요가 줄어 생기는 실업 ④ 계절 변화에 따라 생기는 실업",
+        "num_items": 5,
+        "generated_items": [
+          {
+            "question": "경기적 실업의 특징을 설명한 것 중 옳은 것은?",
+            "options": [
+              "① 경제가 성장할 때 발생하는 실업",
+              "② 경기가 침체되어 일자리가 줄어들 때 발생하는 실업",
+              "③ 특정 산업이 쇠퇴하면서 생기는 실업",
+              "④ 계절적 요인으로 발생하는 실업"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "구조적 실업을 가장 잘 설명하는 것은?",
+            "options": [
+              "① 기술 발전으로 인해 기존 일자리가 사라지는 경우",
+              "② 경기 변동에 따라 일시적으로 발생하는 실업",
+              "③ 특정 계절에만 발생하는 일자리 부족",
+              "④ 노동자의 직무 전환이 용이한 경우"
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "다음 중 실업의 유형에 해당하지 않는 것은?",
+            "options": [
+              "① 구조적 실업",
+              "② 경기적 실업",
+              "③ 자발적 실업",
+              "④ 비정규직 실업"
+            ],
+            "answer": "④",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "실업 대책으로 알맞은 것은?",
+            "options": [
+              "① 실업 급여를 지급하지 않는다",
+              "② 직업 훈련 프로그램을 제공한다",
+              "③ 기업의 인력 감축을 장려한다",
+              "④ 노동 시장의 유연성을 감소시킨다"
+            ],
+            "answer": "②",
+            "item_type": "객관식",
+            "difficulty": "중"
+          },
+          {
+            "question": "경기적 실업의 발생 원인으로 가장 적절한 것은?",
+            "options": [
+              "① 수요 감소로 인한 생산 축소",
+              "② 기술의 발전으로 인한 자동화",
+              "③ 특정 산업의 구조적 변화",
+              "④ 노동자의 이동성이 증가"
+            ],
+            "answer": "①",
+            "item_type": "객관식",
+            "difficulty": "중"
+          }
+        ],
+        "elapsed_sec": 16.9,
+        "error": null,
+        "item_quality_avg_overall": 3.53,
+        "item_quality_scores": [
+          {
+            "정답유일성": 2,
+            "오답매력도": 3,
+            "근거성": 3,
+            "overall": 2.67
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0
+          },
+          {
+            "정답유일성": 3,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.0
+          }
+        ],
+        "structure_score": {
+          "type_ratio_score": 0.8,
+          "difficulty_match": true,
+          "overall_score": 4
+        }
+      }
+    ]
+  }
+}
