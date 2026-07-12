@@ -950,7 +950,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      }
     },
     {
       "id": "str_053",
@@ -982,7 +986,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      }
     },
     {
       "id": "str_054",
@@ -1002,7 +1010,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      }
     },
     {
       "id": "str_055",
@@ -1029,7 +1041,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      }
     },
     {
       "id": "str_056",
@@ -1049,7 +1065,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      }
     },
     {
       "id": "str_057",
@@ -1076,7 +1096,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      }
     },
     {
       "id": "str_058",
@@ -1096,7 +1120,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      }
     },
     {
       "id": "str_059",
@@ -1142,7 +1170,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      }
     },
     {
       "id": "str_060",
@@ -1157,7 +1189,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      }
     },
     {
       "id": "str_061",
@@ -1189,7 +1225,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      }
     },
     {
       "id": "str_062",
@@ -1209,7 +1249,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      }
     },
     {
       "id": "str_063",
@@ -1224,7 +1268,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      }
     },
     {
       "id": "str_064",
@@ -1239,7 +1287,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      }
     },
     {
       "id": "str_065",
@@ -1266,7 +1318,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 2
+      }
     },
     {
       "id": "str_066",
@@ -1286,7 +1342,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 3
+      }
     },
     {
       "id": "str_067",
@@ -1344,7 +1404,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      }
     },
     {
       "id": "str_068",
@@ -1400,7 +1464,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      }
     },
     {
       "id": "str_069",
@@ -1475,7 +1543,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      }
     },
     {
       "id": "str_070",
@@ -1495,7 +1567,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": {
+        "type_ratio_score": 0.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      }
     },
     {
       "id": "str_071",
@@ -1527,7 +1603,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 2
+      }
     },
     {
       "id": "str_072",
@@ -1542,7 +1622,11 @@
           "difficulty": "中"
         }
       ],
-      "human_label": null
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      }
     },
     {
       "id": "str_073",
@@ -1574,7 +1658,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 1
+      }
     },
     {
       "id": "str_074",
@@ -1606,7 +1694,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      }
     },
     {
       "id": "str_075",
@@ -1626,7 +1718,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 2
+      }
     },
     {
       "id": "str_076",
@@ -1684,7 +1780,11 @@
           "difficulty": "중"
         }
       ],
-      "human_label": null
+      "human_label": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 2
+      }
     }
   ]
 }
