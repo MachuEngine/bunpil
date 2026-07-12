@@ -3,6 +3,9 @@ uvicorn[standard]==0.32.1
 python-dotenv==1.0.1
 pydantic==2.10.2
 pydantic-settings==2.6.1
+# /exam, /exam/stream이 Form(...)을 쓰는데 FastAPI가 라우트 등록 시점(임포트 시점)에
+# 이 패키지 설치 여부를 강제로 검사함 — 없으면 앱이 아예 기동 안 됨(로컬/Docker 공통)
+python-multipart==0.0.20
 
 # Phase 1 — RAG 인프라
 pymupdf==1.24.14

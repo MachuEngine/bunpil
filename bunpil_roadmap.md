@@ -53,6 +53,10 @@
 - 로컬 Docker로 검증: 이미지 빌드 성공, standalone 서버 기동 후 `/` 200 응답, 백엔드 미기동 상태에서 `/api/record` 호출 시 503 JSON 정상 반환(프록시 배선 확인) — `docker compose config`로 compose 파일 문법 검증 완료
 - **한계**: 실제 EC2/AWS 접근 권한(SSH 키·AWS CLI 자격증명)이 이 작업 환경에 없어 라이브 프로덕션 배포·접속 URL 확인은 수행하지 못함. 사용자가 EC2에서 `git pull && docker compose up -d --build` 실행 필요 (frontend 이미지를 Docker Hub에 별도로 올리는 방식을 쓴다면 README '배포 (프로덕션)' 절 참고)
 - README '배포 (프로덕션)' 다이어그램·EC2 배포 절(`docker run` 수동 배포 시 `docker network create` 필요) 갱신
+- **추가 검증(2026-07-12, 사용자 요청)**: 최초 검증은 컨테이너 포트(3000)에 직접 접근한 것이라 Caddy를 경유하는 전체 경로(브라우저 → Caddy → 3000 → 컨테이너 → 8765)는 검증되지 않았다는 지적을 받아, 로컬에 Caddy를 설치(`brew install caddy`)해 **커밋된 Caddyfile을 도메인/로그 경로 두 줄만 로컬용으로 바꿔 그대로 실행**하고 `docker compose up -d --build`로 실제 app+frontend 컨테이너를 띄워 전체 경로를 재현. 이 과정에서 **이번 작업과 무관한 기존 버그 2건**을 발견해 함께 수정:
+  - `requirements.txt`에 `python-multipart`가 빠져 있어 `/exam`,`/exam/stream`의 `Form(...)` 라우트 등록 시점에 FastAPI가 즉시 `RuntimeError`를 던지고 앱이 기동조차 안 됨(로컬 `.venv`에서도 동일하게 재현 — Docker만의 문제가 아니라 기존부터 있던 의존성 누락). `requirements.txt`에 `python-multipart==0.0.20` 추가로 해결
+  - `frontend/Dockerfile`의 `HEALTHCHECK`가 `http://localhost:3000`을 썼는데, Alpine 리졸버가 `localhost`를 IPv6(`::1`)로 먼저 시도하면서 IPv4에만 바인딩된 Next.js에 연결 실패 → 서비스는 정상인데 컨테이너가 계속 unhealthy로 보임. `127.0.0.1`로 명시해 해결
+  - 수정 후 Caddy(HTTPS, 로컬 CA) → frontend(3000) → app(`http://app:8765`, 컨테이너명 DNS) 경로로 실제 `POST /api/record` 요청을 보내 app 컨테이너에서 RAG 임베더가 그 요청 때문에 로드되기 시작하는 것(직전엔 없던 onnxruntime/telemetry 로그가 요청 직후에만 등장)을 확인해 **전체 경로가 실제로 연결됨을 검증**. 로컬 Ollama가 컨테이너 내부에서 `localhost:11434`로 접근 불가해 실제 생성 완료까지는 확인 못 했지만(이 세션의 배포 검증 범위 밖 — 프로덕션은 RunPod 백엔드라 무관), 라우팅 자체는 확인 완료
 
 ---
 
