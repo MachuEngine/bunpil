@@ -87,7 +87,7 @@
 4. **생기부 모듈 eval 개선 (2026-07-12 야간 자율 세션 — EVAL.md 5·6절 참고)**
    - 규정 위반 Recall: 규칙 기반 키워드 3종(가정환경/종교·정치/외모) + 비교 표현 근접 정규식 + VALIDATE_TPL 위반유형 한정으로 0.840 → 0.920~1.000(3회 평균 0.927) 개선. 잔여 FP 1건·부정적 낙인 카테고리 LLM 판단 변동은 과적합 위험으로 보류. **⚠️ 알려진 리스크**: RAG 검색 자체의 약점(가정환경/종교 규정이 검색 상위에 안 잡힘)을 고친 게 아니라 규칙+프롬프트로 우회한 것 — 골든셋에 없는 새 표현 유형은 놓칠 수 있음(EVAL.md 5절 참고)
    - NLI 사실추가율: 원인 분석(문체 다듬기 vs 사실 추가 경계 모호) 후 사용자가 경계 사례를 직접 검토해 기준 확정("정도부사·평가어 중첩=NO / 구체 행위·결과 신규 서술=YES") → NLI_TPL few-shot 보강, 0.050~0.200(변동) → 0.000~0.050(3회 재측정, 안정화)로 개선
-5. **Ragas 연동 + LangSmith Experiments 연동** (2026-07-12 진행 중)
+5. **Ragas 연동 + LangSmith Experiments 연동** (2026-07-12 완료, 5단계 전부)
    - ✅ 1단계: LangSmith dev/prod 프로젝트 자동 분리 완료(`app/common/llm/tracing.py`)
    - ✅ 2단계: `eval_ragas.py` 작성 완료 — **Ragas 패키지는 의존성 충돌(langchain-community
      제거된 경로를 무조건 import하는 상류 버그, GitHub vibrantlabsai/ragas #2741·#2745)로
@@ -98,7 +98,7 @@
      0.631(n=5) — EVAL.md 8절 참고
    - ✅ 3단계: eval 실행 시 결과가 LangSmith Experiments에 자동 기록되도록 연동 완료. Judge 기반 3개(문항 품질/구조 유사도/RAG Faithfulness·Answer Relevancy)만 정식 연동(사용자 확인, 결정론적 함수 지표 3개는 제외). `scripts/langsmith_experiments.py` 공용 유틸 신설, golden JSON을 매 실행마다 LangSmith Dataset으로 동기화(삭제 후 재생성). 3개 데이터셋 전부 실제 실행으로 검증(EVAL.md 9절 참고) — 검증 중 로컬 Ollama가 한 요청에서 정상 대비 약 1000배 느려지는 시스템 레벨 이상을 관찰(장시간 다중 모델 전환에 따른 것으로 추정, 코드 버그 아님, 참고 기록만)
    - ✅ 4단계: EVAL.md 상단에 "Judge 3개 지표는 LangSmith Experiments가 최신 소스, EVAL.md는 마일스톤/의사결정 기록용" 안내 추가 완료. 과거 회차별 기록은 그대로 보존
-   - ⬜ 5단계: `eval_ragas.py` 코드 리뷰 — 완전 신규 스크립트라 "핵심 구조를 설명할 수 있는 수준" 원칙상 필요. STRUCTURE_GOLDEN용 스크립트나 모델 비교 실험 코드는 기존 `graph.py`/`eval_exam.py` 호출 재사용 수준이라 작성하면서 바로 이해되므로 별도 리뷰 라운드 불필요 — `eval_ragas.py` 하나만 핵심으로 본다.
+   - ✅ 5단계: `eval_ragas.py` 코드 리뷰 완료 — 버그 없음, 사소한 죽은 코드 1건·의도된 중복 방어 1건만 확인(둘 다 동작에 영향 없어 수정 안 함). 리뷰 포인트는 아래 "참고 — 코드 리뷰 대상 파일" 표 참고
 6. **GitHub Actions CI** — eval 자동화
 7. **문서화 및 포트폴리오 정리**
 
@@ -116,7 +116,7 @@
 | `app/common/rag/store.py` + `retriever.py` | ChromaDB 컬렉션 구조, 2단계 검색 흐름, 죽은 임시 컬렉션 코드 제거 | ✅ |
 | `app/modules/record/chain.py` | LCEL 파이프 구조, 하이브리드 위반 탐지 순서, RAG 싱글턴 통합 | ✅ |
 | `app/main.py` | `/exam`·`/exam/stream` 중복 제거, 실제 SSE 노드 단위 스트리밍 | ✅ |
-| `scripts/eval_ragas.py` | Faithfulness/Answer Relevancy 산출 방식, LangSmith Experiments 연동 구조 (Ragas 연동 작업 완료 직후 리뷰 예정, 신규 스크립트라 우선 리뷰 대상) | ⬜ |
+| `scripts/eval_ragas.py` | (2026-07-12 리뷰 완료) `build_sample()`이 실제 그래프 호출+RAG 검색으로 (question, context, answer) 구성 → `faithfulness_one()`(주장 분해 후 컨텍스트 대조) / `answer_relevancy_one()`(역질문 생성 후 임베딩 코사인 유사도) → `run_langsmith_experiments()`가 Dataset 동기화 후 `evaluate()`로 두 함수를 evaluator로 래핑. 버그는 없었고, 사소한 죽은 코드(도달 불가능한 `else 0.0` 폴백) 1건과 의도된 중복 방어 로직 1건만 확인(둘 다 동작에 영향 없어 수정 안 함) | ✅ |
 
 ### 흐름만 파악하면 되는 파일
 - `app/common/llm/factory.py` — 환경변수 분기, 10줄
