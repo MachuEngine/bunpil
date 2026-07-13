@@ -302,6 +302,59 @@ def eval_ragas(sample_ids: list[str]) -> dict:
     }
 
 
+# ── LangSmith Experiments 연동 ────────────────────────────────────────
+
+def run_langsmith_experiments() -> None:
+    """RAG Faithfulness/Answer Relevancy를 LangSmith Experiments에 기록한다.
+    문항 품질·구조 유사도 Judge(langsmith_experiments.py 공유)와 달리, 여기서는 fixed
+    golden 항목을 채점하는 게 아니라 매 실행마다 실제로 문항을 새로 생성하므로
+    target 함수가 identity가 아니라 build_sample()을 직접 호출한다."""
+    from langsmith_experiments import experiments_enabled, sync_dataset
+    if not experiments_enabled():
+        return
+
+    from langsmith import Client, evaluate
+
+    client = Client()
+    print("\n[LangSmith Experiments 연동]")
+
+    samples = [s for s in PASSAGE_SAMPLES if s["id"] in _SAMPLE_IDS]
+    examples = [
+        {"inputs": {"id": s["id"], "passage_text": s["passage_text"],
+                    "standards": s.get("standards", []), "num_items": s["num_items"]}}
+        for s in samples
+    ]
+    sync_dataset(
+        client, "bunpil-rag-quality", examples,
+        description="RAG Faithfulness/Answer Relevancy(Ragas 알고리즘 자체 구현) — gen_structure_golden.PASSAGE_SAMPLES 기준 실제 생성",
+    )
+
+    llm = get_llm_backend()
+    embedder = get_embedder()
+
+    def rag_target(inputs: dict) -> dict:
+        return build_sample(inputs)
+
+    def faithfulness_evaluator(outputs: dict) -> dict:
+        if outputs.get("n_items", 0) == 0:
+            return {"key": "faithfulness", "score": None, "comment": "문항 0개 생성"}
+        result = faithfulness_one(outputs, llm)
+        return {"key": "faithfulness", "score": result["score"]}
+
+    def answer_relevancy_evaluator(outputs: dict) -> dict:
+        if outputs.get("n_items", 0) == 0:
+            return {"key": "answer_relevancy", "score": None, "comment": "문항 0개 생성"}
+        result = answer_relevancy_one(outputs, llm, embedder)
+        return {"key": "answer_relevancy", "score": result["score"]}
+
+    evaluate(
+        rag_target, data="bunpil-rag-quality",
+        evaluators=[faithfulness_evaluator, answer_relevancy_evaluator],
+        experiment_prefix="rag-quality", metadata=_TRACE_META,
+    )
+    print("  - rag-quality 실험 기록 완료")
+
+
 def print_report(result: dict):
     print("\n" + "=" * 55)
     print("  분필 RAG 품질 평가 (Ragas 알고리즘 자체 구현)")
@@ -326,3 +379,5 @@ if __name__ == "__main__":
     with open(_out_path, "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
     print(f"\n결과 저장: {_out_path}")
+
+    run_langsmith_experiments()

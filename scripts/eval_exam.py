@@ -386,6 +386,85 @@ def print_report(retrieval: dict, quality: dict, structure: dict, reliability: d
     print("=" * 55)
 
 
+# ── LangSmith Experiments 연동 ────────────────────────────────────────
+
+def run_langsmith_experiments(judge_llm) -> None:
+    """문항 품질·구조 유사도 Judge 신뢰도를 LangSmith Experiments에 기록한다.
+    LANGCHAIN_TRACING_V2가 꺼져 있으면 조용히 건너뜀(선택 기능)."""
+    from langsmith_experiments import experiments_enabled, identity_target, sync_dataset
+    if not experiments_enabled():
+        return
+
+    from langsmith import Client, evaluate
+
+    client = Client()
+    print("\n[LangSmith Experiments 연동]")
+
+    item_examples = [
+        {
+            "inputs": {
+                "question": it["question"], "options": it["options"],
+                "answer": it["answer"], "item_type": it.get("item_type", ""),
+            },
+            "outputs": {"human_score": it["human_score"]},
+        }
+        for it in ITEM_GOLDEN
+    ]
+    sync_dataset(
+        client, "bunpil-item-quality-judge", item_examples,
+        description="문항 품질(정답유일성·오답매력도·근거성) LLM Judge 신뢰도 — item_golden.json과 동기화됨",
+    )
+
+    def item_quality_evaluator(inputs: dict, reference_outputs: dict) -> list[dict]:
+        scores = judge_one(inputs, judge_llm)
+        human = reference_outputs.get("human_score", 0)
+        llm_score = round(scores["overall"])
+        return [
+            {"key": "judge_overall", "score": scores["overall"]},
+            {"key": "abs_diff_from_human", "score": abs(llm_score - human)},
+            {"key": "exact_match", "score": 1.0 if llm_score == human else 0.0},
+        ]
+
+    evaluate(
+        identity_target, data="bunpil-item-quality-judge",
+        evaluators=[item_quality_evaluator],
+        experiment_prefix="item-quality-judge", metadata=_TRACE_META,
+    )
+    print("  - item-quality-judge 실험 기록 완료")
+
+    structure_golden = _load_structure_golden()
+    if structure_golden:
+        structure_examples = [
+            {
+                "inputs": {"passage_text": e["passage_text"], "generated_items": e["generated_items"]},
+                "outputs": {"human_label": e["human_label"]},
+            }
+            for e in structure_golden
+        ]
+        sync_dataset(
+            client, "bunpil-structure-judge", structure_examples,
+            description="구조 유사도 LLM Judge 신뢰도 — structure_golden.json(human_label 채워진 항목만)과 동기화됨",
+        )
+
+        def structure_judge_evaluator(inputs: dict, reference_outputs: dict) -> list[dict]:
+            judge = judge_structure_one(inputs, judge_llm)
+            human = reference_outputs.get("human_label", {})
+            return [
+                {"key": "overall_score_diff", "score": abs(judge["overall_score"] - human.get("overall_score", 0))},
+                {"key": "difficulty_match_agree", "score": 1.0 if judge["difficulty_match"] == human.get("difficulty_match") else 0.0},
+                {"key": "type_ratio_score", "score": judge["type_ratio_score"]},
+            ]
+
+        evaluate(
+            identity_target, data="bunpil-structure-judge",
+            evaluators=[structure_judge_evaluator],
+            experiment_prefix="structure-judge", metadata=_TRACE_META,
+        )
+        print("  - structure-judge 실험 기록 완료")
+    else:
+        print("  - structure-judge: 라벨링된 항목이 없어 건너뜀")
+
+
 # ── 메인 ────────────────────────────────────────────────────────────
 
 @traceable(name="eval_exam_run", run_type="chain", metadata=_TRACE_META)
@@ -434,6 +513,9 @@ def main():
 
     # 리포트
     print_report(retrieval_result, quality_result, structure_result, reliability_result)
+
+    # 5. LangSmith Experiments 기록 (선택 — LANGCHAIN_TRACING_V2=true일 때만)
+    run_langsmith_experiments(judge_llm)
 
 
 if __name__ == "__main__":

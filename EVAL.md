@@ -664,3 +664,42 @@ n이 회차마다 들쭉날쭉한 건 두 가지 독립적인 실패 모드가 �
 
 `data/golden/_ragas_eval_results.json` — 샘플별 claim·역질문·유사도 전량 보존
 (골든셋 아님, 재실행 시 덮어씀).
+
+## 9. LangSmith Experiments 연동 (2026-07-12)
+
+로드맵 항목 6의 3단계. 6개 지표 전부가 아니라 **Judge 기반 3개만 정식 연동**하기로
+사용자와 합의(권장안 채택) — Recall@5·PII 마스킹·키워드 사실추가율 같은 결정론적
+함수 지표는 프롬프트/모델 변화에 따라 값이 흔들리는 지표가 아니라 Experiments의
+"실험간 비교" 가치가 낮고, 이미 잘 동작하는 스크립트 3개를 전면 재구성하는 리스크
+대비 이득이 적다고 판단.
+
+**연동 대상**: 문항 품질 Judge(`item_golden.json`), 구조 유사도 Judge
+(`structure_golden.json`), RAG Faithfulness/Answer Relevancy(`eval_ragas.py`).
+
+**설계**: `scripts/langsmith_experiments.py`에 공용 유틸(`sync_dataset()`,
+`identity_target()`) 신설. 골든셋 JSON이 이미 사람 라벨의 단일 진실 공급원이므로,
+LangSmith Dataset은 **실행할 때마다 삭제 후 재생성**해 골든셋 내용과 항상 일치시킴
+(사람 라벨이 바뀌었는데 — 예: 이번 세션의 str_010/047 재라벨링 — Dataset이 오래된
+값을 들고 있는 불일치를 방지). 문항 품질·구조 유사도는 이미 고정된 골든셋 콘텐츠를
+채점하는 것이라 `target`이 identity(그대로 통과)이고, RAG 품질은 매 실행마다 실제로
+새 문항을 생성하므로 `target`이 `build_sample()`(실제 그래프 호출)을 직접 수행.
+Evaluator는 전부 기존 함수(`judge_one`, `judge_structure_one`, `faithfulness_one`,
+`answer_relevancy_one`)를 그대로 재사용 — 새로 만든 채점 로직 없음.
+
+**검증**: `LANGCHAIN_TRACING_V2=true`일 때만 동작(꺼져 있으면 조용히 건너뜀 — 선택
+기능). 3개 데이터셋 전부 실제로 LangSmith에 동기화되고 `evaluate()`가 정상 완료돼
+Experiments URL이 발급되는 것을 직접 실행해 확인:
+- `item-quality-judge`: ITEM_GOLDEN 30개 전량
+- `structure-judge`: STRUCTURE_GOLDEN 45개 전량(도중 LangSmith API로의 네트워크
+  연결이 일시적으로 끊겼다 재시도로 복구되는 구간이 있었음 — SDK 자체 재시도로
+  최종 정상 완료, 코드 문제 아님)
+- `rag-quality`: 검증 중 **로컬 Ollama가 한 요청에서 15.2초/토큰(정상 대비 약
+  1000배 느림, `ollama.log`의 `eval time` 필드로 확인)까지 느려지는 시스템 레벨
+  이상 현상을 관찰** — 이 세션 내내 여러 모델(qwen2.5:7b/14b, llama3.1:8b)을
+  반복 전환하며 장시간 사용한 데 따른 열/메모리 압박으로 추정. 해당 요청 이후
+  즉시 정상 속도로 복구됐고 `ollama /api/tags`도 정상 응답 — 코드 버그가 아니라
+  환경적 요인으로 판단, 참고용으로만 기록.
+
+**main() 연동**: `eval_exam.py`/`eval_ragas.py`를 그냥 `python scripts/eval_*.py`로
+실행하면 기존 로컬 골든셋 채점 흐름이 끝난 뒤 자동으로 이 Experiments 기록이 이어서
+실행됨(별도 커맨드 불필요).

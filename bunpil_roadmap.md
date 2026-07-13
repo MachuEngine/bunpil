@@ -96,7 +96,7 @@
      생성물에서도 `_check_korean()` 임계값(한자 비율 5%)이 못 잡는 낮은 비율 오염 사례를
      새로 발견(후속 과제로 기록). 첫 측정: Faithfulness 0.600(n=5), Answer Relevancy
      0.631(n=5) — EVAL.md 8절 참고
-   - ⬜ 3단계: eval 실행 시 결과가 LangSmith Experiments에 자동 기록되도록 연동
+   - ✅ 3단계: eval 실행 시 결과가 LangSmith Experiments에 자동 기록되도록 연동 완료. Judge 기반 3개(문항 품질/구조 유사도/RAG Faithfulness·Answer Relevancy)만 정식 연동(사용자 확인, 결정론적 함수 지표 3개는 제외). `scripts/langsmith_experiments.py` 공용 유틸 신설, golden JSON을 매 실행마다 LangSmith Dataset으로 동기화(삭제 후 재생성). 3개 데이터셋 전부 실제 실행으로 검증(EVAL.md 9절 참고) — 검증 중 로컬 Ollama가 한 요청에서 정상 대비 약 1000배 느려지는 시스템 레벨 이상을 관찰(장시간 다중 모델 전환에 따른 것으로 추정, 코드 버그 아님, 참고 기록만)
    - ⬜ 4단계: EVAL.md를 "최신 결과는 Experiments 탭, EVAL.md는 마일스톤/의사결정 기록용"으로 안내 전환
    - ⬜ 5단계: `eval_ragas.py` 코드 리뷰 — 완전 신규 스크립트라 "핵심 구조를 설명할 수 있는 수준" 원칙상 필요. STRUCTURE_GOLDEN용 스크립트나 모델 비교 실험 코드는 기존 `graph.py`/`eval_exam.py` 호출 재사용 수준이라 작성하면서 바로 이해되므로 별도 리뷰 라운드 불필요 — `eval_ragas.py` 하나만 핵심으로 본다.
 6. **GitHub Actions CI** — eval 자동화
