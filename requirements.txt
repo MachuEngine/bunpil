@@ -23,6 +23,8 @@ langgraph>=0.2.60
 langchain-core>=0.3.0
 langchain-ollama>=0.2.0
 langsmith>=0.1.0
+# RAG 청킹 — 문장/문단 경계 존중 분할(2026-07-14 청킹 재설계, parser.py)
+langchain-text-splitters>=1.1.0
 
 # 모델 비교 실험 — GPT-4o-mini (langchain_openai가 이미 공식 BaseChatModel 통합을
 # 제공해 RunPod처럼 직접 구현할 필요 없음)

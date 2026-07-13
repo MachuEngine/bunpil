@@ -27,6 +27,9 @@ class RAGStore:
                 "source": c["source"],
                 "year": c["year"] if c["year"] is not None else -1,
                 "page": c["page"],
+                # 청크가 여러 페이지에 걸칠 수 있어(2026-07-14 청킹 재설계) 끝 페이지도
+                # 기록. 단일 페이지면 page와 동일. 구버전 청크엔 없으므로 .get 폴백.
+                "page_end": c.get("page_end", c["page"]),
             }
             for c in chunks
         ]
