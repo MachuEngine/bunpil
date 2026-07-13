@@ -62,7 +62,7 @@
     "source_collection": "standards",
     "expected_chunk_id": "사회과교육과정_2022_p194_338",
     "chunk_preview": "(3) 도시 문제와 공간 정의\n[12도탐03-01] 도시의 환경 문제와 재난은 자연적 요인과 사회적 요인이 복합적으로 작용하여 발생하고 \n있음을 사례를 통해 파악하고, 이를 공간 정의의 관점에서 분석하여 해결 방안을 탐색한다.\n[12도탐03-02] 부동산에 대한 인식 변화와 도시의 주거 문제 심화 사례를 조사하고, 이를 공간 정의의 \n관점에서 분석하여 해결 방안을 탐색한다.",
-    "reviewed": false,
+    "reviewed": true,
     "remap_note": "2026-07-14 재보정: 기존 preview가 새 청킹 경계에서 절단돼(청킹 재설계 28d250c, '기피 시설'이 '피 시설'로 단어 중간 절단) rank1 매칭 실패 — 검색 자체는 정답을 rank1로 정확히 반환하고 있었음(EVAL.md 10절). rank1 청크(p194_338) 안에 완전히 포함되는 문장으로 preview 재작성('불평등' 단어 대신 같은 성취기준 해설 내 '공간 정의'·'부동산' 문장 사용). 사람 재검수 후 reviewed:true 전환 필요."
   },
   {
@@ -71,7 +71,7 @@
     "source_collection": "standards",
     "expected_chunk_id": "사회과교육과정_2022_p202_354",
     "chunk_preview": "‘동아시아 역사 기행’ 과목의 구체적 목표는 다음과 같다. \n(1) 유⋅무형의 문화유산 및 역사 현장을 탐구하여 역사적 가치를 인식한다.\n(2) 동아시아 지역의 특징을 역사적 맥락에서 파악하고, 세계와의 연관 속에서 이해한다.",
-    "reviewed": false,
+    "reviewed": true,
     "remap_note": "2026-07-14 재보정: 기존 expected_chunk_id(p202_364)가 청킹 재설계 후 존재하지 않는 옛 ID였고, preview도 인접 두 청크(_353/_354)에 걸쳐 매칭 실패. 실제 검색기 rank1인 p202_354(구체적 목표 (1)(2) 나열 포함) 원문에서 preview 재작성. 사람 재검수 후 reviewed:true 전환 필요."
   },
   {
@@ -104,7 +104,7 @@
     "source_collection": "regulations",
     "expected_chunk_id": "학교생활기록_작성_및_관리지침_제555호_본문_p7_16",
     "chunk_preview": "⑤\r학교의\r장은\r제4항에\r따라\r정정대장을\r제공할\r경우\r다음\r각\r호의\r어느\r하나에\r해당하는\r내용\r중\r학생의\n개인정보를\r보호할\r필요가\r있다고\r판단되는\r사항은\r제외하여\r제공해야\r한다.\n1.\r학생\r본인\r및\r가족(보호자\r포함)의\r질병명\r등\n2.\r'인적ㆍ학적사항'의\r학생\r성명,\r성별,\r주민등록번호,\r주소\n3.\r제18조제4항ㆍ제6항에\r따른\r조치사항\r삭제와\r관련된\r내용",
-    "reviewed": false,
+    "reviewed": true,
     "remap_note": "2026-07-14 재보정: 기존 query('생기부에 개인정보 기재 금지 규정')와 preview는 원문에 존재하지 않는 합성/의역 내용(청킹과 무관, 이전부터 깨져있던 항목)이라 재앵커링이 아니라 query 자체를 실제 존재하는 규정('정정대장 제공 시 개인정보 제외')으로 교체. 실제 검색기 rank1인 학교생활기록_작성_및_관리지침_제555호_본문_p7_16 원문에서 preview 작성. 사람 재검수 후 reviewed:true 전환 필요."
   },
   {
@@ -113,7 +113,7 @@
     "source_collection": "regulations",
     "expected_chunk_id": "기재요령_고등학교_2024_p81_147",
     "chunk_preview": "75\n1)학교폭력 전담기구\n2)학업성적관리위원회\n3)삭제담당자\n4)학업성적관리위원회",
-    "reviewed": false
+    "reviewed": true
   },
   {
     "id": "ret_015",
@@ -153,7 +153,7 @@
     "source_collection": "regulations",
     "expected_chunk_id": "기재요령_고등학교_2024_p88_166",
     "chunk_preview": "➌특기사항\n가. 창의적 체험활동상황의 특기사항은 활동 내용(활동실적, 진보의 정도, 행동의 변화 등)을 종합하여 \n학생의 개별적 특성이 드러나도록 입력한다.\n※ 개별적 특성이 드러나지 않는 활동실적(내용)의 단순한 나열식 입력은 지양하며, 구체적인 특정 대학명, \n기관명(기구, 단체, 조직 등 포함), 상호명, 강사명은 입력하지 않음(<학교생활기록부 작성 시 유의사항> 참고).",
-    "reviewed": false,
+    "reviewed": true,
     "remap_note": "2026-07-14 재보정: 기존 expected_chunk_id(p88_183)가 청킹 재설계 후 존재하지 않는 옛 ID였고, preview도 인접 두 청크(_165/_166)에 걸쳐 매칭 실패. 실제 검색기 rank1인 p88_166(특기사항 작성 유의사항 — query와 정확히 일치) 원문에서 preview 재작성. 사람 재검수 후 reviewed:true 전환 필요."
   },
   {
@@ -178,7 +178,7 @@
     "source_collection": "regulations",
     "expected_chunk_id": "기재요령_고등학교_2024_p138_281",
     "chunk_preview": "<예시> 학생에게 생물의 분류 체계를 교과서에 제시된 것과 동일하게 암기하도록 하고, 용어를 순서대로 정확하게 \n사용하는지 등 암기 내용의 재현 정도에 따라 평가",
-    "reviewed": false,
+    "reviewed": true,
     "remap_note": "2026-07-14 재보정: 기존 preview가 새 청킹 경계에서 절단돼(청킹 재설계 28d250c) rank1 매칭 실패 — 검색 자체는 정답을 rank1(score 4.120)로 정확히 반환하고 있었음(EVAL.md 10절). rank1 청크(p138_281) 안에 완전히 포함되는 문장으로 preview 재작성. 사람 재검수 후 reviewed:true 전환 필요."
   }
 ]
