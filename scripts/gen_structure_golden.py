@@ -65,7 +65,12 @@ _SCHEMA = {
         "passage_text·num_items와 generated_items를 비교해 사람이 human_label을 채운다 "
         "(개수 일치 여부는 라벨링 대상이 아님 — len(generated_items)==num_items로 코드가 이미 검증). "
         "eval_structure_judge()는 이 고정된 쌍을 LLM에게 다시 보여주고 판단시킨 뒤, "
-        "그 결과를 human_label과 비교한다."
+        "그 결과를 human_label과 비교한다.\n"
+        "difficulty_match 판단 기준: (1) passage_text에 상/중/하가 명시된 경우(예: '1. (하) ...') "
+        "그 라벨을 기준으로 generated_items의 difficulty와 비교. (2) 명시적 난이도 라벨이 없는 경우"
+        "(예: str_001), 라벨러가 문항 내용(다루는 개념의 난이도, 보기 구성의 복잡도 등)을 보고 실제 "
+        "교사라면 이 예시 문제를 어떤 난이도로 인식할지 암묵적으로 추론한 뒤, 그 추론된 기준선을 "
+        "generated_items의 explicit difficulty 라벨과 비교해 difficulty_match를 채운다."
     ),
 }
 
