@@ -14,6 +14,14 @@
 
 ### 모니터링 — LangSmith
 - LangSmith 연동 + `@traceable` 데코레이터 적용 (`eval_exam.py`, `eval_record.py`)
+- **dev/prod 프로젝트 자동 분리**(2026-07-12, 2026-07-13 기준 정정): `app/common/llm/tracing.py`의
+  `init_langsmith_project()`가 `LANGCHAIN_PROJECT` 기본값('bunpil') 유지 시 `LLM_BACKEND`
+  기준으로 자동 분기 — `local`(Ollama, 순수 로컬 개발)만 `-dev`, 나머지(`runpod`·`openai` 등
+  실제 서빙 가능한 백엔드)는 전부 `-prod`. 최초 구현은 "runpod만 prod"였는데, `openai`가
+  이미 `factory.py`에 정식 백엔드로 등록돼 있고(GPT-4o-mini가 모델 비교 실험에서 유력
+  후보로 나옴, EVAL.md 7절) 향후 실제로 이 백엔드로 서빙할 가능성이 있어 `_PROD_BACKENDS`
+  상수로 판단 기준을 넓힘. `LANGCHAIN_PROJECT`에 'bunpil'이 아닌 값을 직접 설정하면
+  접미사 없이 그대로 사용(override)
 
 ### Eval 체계 — 골든셋 구축
 | 골든셋 | 규모 | 비고 |
