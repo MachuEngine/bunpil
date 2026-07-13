@@ -48,6 +48,7 @@ MODEL_ENVS = {
     "qwen2.5-14b": {"LLM_BACKEND": "local", "OLLAMA_MODEL": "qwen2.5:14b"},
     "llama3.1-8b": {"LLM_BACKEND": "local", "OLLAMA_MODEL": "llama3.1:8b"},
     "gpt-4o-mini": {"LLM_BACKEND": "openai", "OPENAI_MODEL": "gpt-4o-mini"},
+    "qwen3.5-9b":  {"LLM_BACKEND": "local", "OLLAMA_MODEL": "qwen3.5:9b"},
 }
 
 # Judge는 항상 이 값으로 고정 — 생성 모델 전환과 무관
