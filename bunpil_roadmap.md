@@ -88,6 +88,44 @@
 
 ## ⬜ 남은 작업 (우선순위 순)
 
+### 🔧 코드 리뷰용 잔여 이슈 요약 (2026-07-14 재확인)
+
+아래 3건은 목표 미달로 **실제로 열려있는 이슈**. 나머지(출제 에이전트 안정성, Ragas/LangSmith
+연동)는 결정·구현이 이미 확정/완료돼 재검토 대상이 아님(하단 상세 항목 2·5번은 참고용 기록).
+
+1. **오답매력도 미달 (2.846 / 목표 4.0)**
+   - 코드: `app/modules/exam/graph.py` `agent_node`(123~125행, 오답 매력도 지시문) /
+     `scripts/eval_exam.py` `JUDGE_TPL`(117행~, 채점 few-shot)
+   - 현상: 1단계(Judge 앵커)+2단계(agent_node 지시) 둘 다 적용해도 실제 생성 기준
+     2.500→2.846(+0.346)에 그침. 목표까지 갭이 큼
+   - 리뷰 시 볼 것: agent_node few-shot이 진짜 멀티턴 tool-call 예시가 아니라 텍스트 지시문뿐이라
+     실효성이 약할 수 있음(EVAL.md 6절). `validate_item_format`에 오답매력도 최소 기준 게이트를
+     추가하는 방향도 검토 후보
+
+2. **STRUCTURE_GOLDEN 구조 Judge 신뢰도 미달 (overall 이진 κ 0.167 / 목표 0.4)**
+   - 코드: `scripts/eval_exam.py` `STRUCTURE_JUDGE_TPL`(190행~, 3점 앵커 few-shot 포함) /
+     `data/golden/structure_golden.json`(entries 45개, human_label 전량 완료)
+   - 현상: diff κ(난이도 일치)는 0.424(3회 평균, 목표 0.4 달성이나 변동성 큼 — 3회 중 1회 0.387로
+     미달)로 그나마 개선됐지만, overall 이진 κ는 여전히 미달. Judge 점수 분포가 3점에 회피 수렴하는
+     경향은 3점 앵커 추가로 완화했으나 근본 해결은 아님
+   - 리뷰 시 볼 것: EVAL.md 5절 "다음 방향은 사용자와 논의 예정"이라고 열어둔 지점 — 예를 들어
+     이진 판정 자체를 다른 방식(임계값 조정, 다중 샘플 투표 등)으로 바꾸는 안 검토
+
+3. **생기부 규정 위반 Recall 미달 + 알려진 RAG 우회 리스크 (0.927 / 목표 0.95)**
+   - 코드: `app/modules/record/chain.py` `_rule_violations`(39행~, 키워드 3종: `_RULE_BACKGROUND`
+     33행/`_RULE_RELIGION_POLITICS` 34행/`_RULE_APPEARANCE` 36행) / `_step_validate`(105행~,
+     112행에서 `self._retriever.retrieve(..., REGULATION_COLLECTION, top_k=3)`로 RAG 검증) /
+     `app/modules/record/prompts.py` `VALIDATE_TPL`(40행~)
+   - 현상: 규칙 기반 키워드 + VALIDATE_TPL few-shot으로 0.840→0.927까지 끌어올렸지만, **이건
+     `search_regulations`류 RAG 검색 자체(가정환경·종교 규정 청크가 검색 상위에 안 잡히는 문제)를
+     고친 게 아니라 키워드 목록으로 우회한 것**(EVAL.md 398~406행). `VIOLATION_GOLDEN` 50개 안에서만
+     잘 작동하고, 골든셋에 없는 새로운 표현(다른 단어로 가정환경/종교/정치성향을 언급하는 문장 등)은
+     규칙도 못 잡고 RAG도 관련 규정을 못 찾아 놓칠 위험이 있음
+   - 리뷰 시 볼 것: `chain.py:112`의 retrieve 호출이 왜 관련 규정 청크를 상위로 못 올리는지
+     (임베딩 매칭 방식? 청킹? — 이 문서 위쪽 RAG 청킹 재설계 작업과 연결지어 재조사 가치 있음)
+
+---
+
 1. **오답매력도 개선** — 2026-07-09 완료: 1단계 `JUDGE_TPL`에 오답매력도=5점 few-shot 앵커 추가(ITEM_GOLDEN 기준 2.50→2.83). 2단계 `graph.py` agent_node 시스템 프롬프트에 오답 매력도 지시+예시 추가. **주의**: `eval_exam.py` 전/후 재실행으로 2단계를 검증하려 했으나 `eval_item_quality()`가 채점하는 `ITEM_GOLDEN`은 하드코딩된 고정 문항이라 agent_node 변경이 반영될 수 없음(방법론 오류, EVAL.md 4절 정정 사항 참고) — `scripts/compare_distractor_quality.py`로 실제 생성 기반 재검증: 오답매력도 2.500→2.846(+0.346, n=8→13, 객관식만). 방향은 맞으나 목표(4.0)엔 크게 못 미침, 추가 개입 필요(EVAL.md 6절 개선계획 참고)
 2. **STRUCTURE_GOLDEN 실제 모델 라벨 보강** — 2026-07-10 전면 재구성 완료. count_match(생성 개수가 예시 문제 개수와 일치해야 한다는 전제) 자체가 설계 오류였음이 확인되어, 기존 str_001~003(Claude 합성 부트스트랩)과 count_match 기반 시도 전부 폐기. `ExamSpec.num_items` 도입(개수는 예시와 무관하게 별도 지정) 후 `scripts/gen_structure_golden.py`로 재생성하는 과정에서 **로컬 Ollama의 `num_ctx` 기본값(4096)이 멀티턴 ReAct 루프에서 쉽게 초과되어 컨텍스트가 잘리고 모델 응답이 깨지는 문제를 발견**(성공률 6%까지 급락) → `app/modules/exam/llm.py`에 `num_ctx=16384` 명시로 수정, 동일 passage 재현 테스트로 확인(4096: 0/5 → 16384: 5/5). 수정 후 정상 성공률(~35~40%) 회복, 총 34개 passage 시도로 **문항 0개가 아닌 14개 확보**(정확히 일치 5·부족 8·초과 1 — count_match 판정용으로 다양성 확보) `data/golden/structure_golden.json`에 저장(human_label 비워둠). 사람 라벨링 필요 — 라벨링은 대신하지 않음
    - **2026-07-12 확대**: 이후 20개까지 사람 라벨링이 끝나 Judge 신뢰도 측정에 실사용(EVAL.md 5절). n=20 과적합 위험을 줄이기 위해 새 주제 25개(str_052~076)를 추가 생성해 **45개로 확대**(생성만, human_label은 null로 비워둠 — 사람 라벨링 대기 중). budget=1 기준 0문항 실패율 28%(7/25) 확인 → budget=3 재시도 + 지속 실패 2건은 다른 주제로 교체해 최종 0문항 없이 45개 확보
