@@ -199,8 +199,24 @@ budget:                  남은 재시도 횟수 (세트 전체 단위, 무한�
 - 호스팅: **AWS EC2(앱) + RunPod 서버리스(GPU)**
 - 모델: Qwen2.5 7B (서버리스 GPU에 적합, 시작값)
 - 운영비: 월 ~$17–21 (1인 기준)
+- **GitHub Actions CI** (2026-07-14 결정·구현 완료): 코드 회귀 확인용 **경량 CI만 도입**, LLM
+  eval 자동화는 도입하지 않기로 결정
+  - **경량 CI** (`.github/workflows/ci.yml`): 매 push/PR 블로킹. 백엔드 import 스모크테스트 +
+    순수 로직 유닛테스트(`tests/`, `mask_pii`·`_rule_violations`) + 프론트 lint/build. 모델 호출
+    없음(무료·수 분 내 완료)
+  - **eval 자동화를 뺀 이유**: 설계 검토 중 `app/common/llm/factory.py`의 `get_judge_backend()`가
+    `LLM_BACKEND`와 무관하게 항상 로컬 Ollama를 반환하도록 하드코딩돼 있음을 발견 — 이는
+    `compare_models.py`(여러 생성 모델 비교 시 채점 기준을 고정하기 위한 의도된 설계)를 위한 것.
+    GitHub Actions 러너엔 GPU/Ollama가 없어 `eval_exam.py`의 Judge 채점 부분(문항 품질·구조유사도·
+    신뢰도)이 CI에서 원천적으로 실행 불가하고, 이를 우회하려면 Judge 백엔드 분기 코드를 추가해야
+    하는데 그러면 CI가 매기는 점수(OpenAI Judge)가 지금까지 EVAL.md·로드맵에 쌓아온 Ollama 고정
+    Judge 기록과 다른 잣대가 돼 추세 비교가 끊김. 더불어 배포 자체가 아직 수동
+    (`git pull && docker compose up`)이라 그 앞단 eval만 자동화하는 것도 순서가 안 맞고, eval
+    점수는 실행마다 변동성이 있어(STRUCTURE_GOLDEN κ 등) 자동 게이트로 쓰기에도 부적합 — 종합적으로
+    이 규모(1인+지인 실사용)엔 지금까지처럼 로컬 수동 실행 + EVAL.md 기록이 더 적합하다고 판단.
+    `eval_exam.py`/`eval_record.py`/`eval_ragas.py`는 변경 없이 로컬 실행 스크립트로 유지
+  - self-hosted runner(로컬 Ollama 호출)도 인프라 유지 부담 대비 이득이 적어 검토 후 제외
 
 **나중에 정해도 되는 것**
 - 비용 절감 시 앱을 Lightsail/저가 VPS로 이전 (AWS 학습가치 ↓)
 - 모델 14B 확장 여부 (품질 부족 시)
-- GitHub Actions CI 도입 여부

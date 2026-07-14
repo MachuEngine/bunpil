@@ -2,7 +2,7 @@
 
 ## 진행 상태 요약
 
-- ✅ 완료: 배포, LangSmith 트레이싱, 골든셋 구축, eval 스크립트 실데이터 전환, Judge/생성 모델 분리, 7B 전환 및 첫 eval 실행, 코드 리뷰(`chat_runpod.py`, `graph.py`·`tools.py`·`store.py`+`retriever.py`·`chain.py`·`main.py`), 출제 모듈 passage_text 리디자인(2026.07, FEEDBACK_DRIVEN_REDESIGN_v2.md), 리디자인 후속 코드 리뷰 지적사항 5건 정리(2026.07, 69ebdee)
+- ✅ 완료: 배포, LangSmith 트레이싱, 골든셋 구축, eval 스크립트 실데이터 전환, Judge/생성 모델 분리, 7B 전환 및 첫 eval 실행, 코드 리뷰(`chat_runpod.py`, `graph.py`·`tools.py`·`store.py`+`retriever.py`·`chain.py`·`main.py`), 출제 모듈 passage_text 리디자인(2026.07, FEEDBACK_DRIVEN_REDESIGN_v2.md), 리디자인 후속 코드 리뷰 지적사항 5건 정리(2026.07, 69ebdee), GitHub Actions 경량 CI 도입(2026.07)
 - ⬜ 남은 작업: 아래 "남은 작업" 목록 참고 (우선순위 순)
 
 ---
@@ -151,7 +151,18 @@
    - ✅ 3단계: eval 실행 시 결과가 LangSmith Experiments에 자동 기록되도록 연동 완료. Judge 기반 3개(문항 품질/구조 유사도/RAG Faithfulness·Answer Relevancy)만 정식 연동(사용자 확인, 결정론적 함수 지표 3개는 제외). `scripts/langsmith_experiments.py` 공용 유틸 신설, golden JSON을 매 실행마다 LangSmith Dataset으로 동기화(삭제 후 재생성). 3개 데이터셋 전부 실제 실행으로 검증(EVAL.md 9절 참고) — 검증 중 로컬 Ollama가 한 요청에서 정상 대비 약 1000배 느려지는 시스템 레벨 이상을 관찰(장시간 다중 모델 전환에 따른 것으로 추정, 코드 버그 아님, 참고 기록만)
    - ✅ 4단계: EVAL.md 상단에 "Judge 3개 지표는 LangSmith Experiments가 최신 소스, EVAL.md는 마일스톤/의사결정 기록용" 안내 추가 완료. 과거 회차별 기록은 그대로 보존
    - ✅ 5단계: `eval_ragas.py` 코드 리뷰 완료 — 버그 없음, 사소한 죽은 코드 1건·의도된 중복 방어 1건만 확인(둘 다 동작에 영향 없어 수정 안 함). 리뷰 포인트는 아래 "참고 — 코드 리뷰 대상 파일" 표 참고
-6. **GitHub Actions CI** — eval 자동화
+6. **GitHub Actions CI** (2026-07-14 완료 — 경량 CI만 도입, eval 자동화는 도입 안 하기로 결정. 상세는 DESIGN.md 9절 참고)
+   - **경량 CI** (`.github/workflows/ci.yml`, 매 push/PR 블로킹, 모델 호출 없음): 백엔드 import
+     스모크테스트 + `tests/`에 `mask_pii`/`_rule_violations` 순수 로직 pytest 유닛테스트 신규 작성 +
+     프론트 `lint`/`build`
+   - **eval 자동화는 도입 안 함**: 설계 검토 중 `get_judge_backend()`(factory.py)가 `LLM_BACKEND`
+     무관하게 항상 Ollama 하드코딩임을 발견(`compare_models.py` 고정 Judge 설계 때문) — GitHub
+     러너엔 GPU/Ollama가 없어 `eval_exam.py`의 Judge 채점이 CI에서 실행 불가하고, 우회하려면 Judge
+     백엔드 분기 코드 추가 + 기존 Ollama 고정 Judge 이력과 단절되는 문제. 배포 자체도 아직 수동인데
+     그 앞단만 자동화하는 것도 순서가 안 맞고, eval 점수 자체의 실행별 변동성(STRUCTURE_GOLDEN κ 등)도
+     자동 게이트에 부적합 — 이 규모(1인+지인 실사용)엔 로컬 수동 실행 + EVAL.md 기록 유지가 더 적합.
+     `eval_exam.py`/`eval_record.py`/`eval_ragas.py`는 변경 없음. self-hosted runner도 인프라 부담
+     대비 이득 적어 제외
 7. **문서화 및 포트폴리오 정리**
 
 ---
