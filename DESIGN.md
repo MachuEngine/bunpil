@@ -179,7 +179,7 @@ budget:                  남은 재시도 횟수 (세트 전체 단위, 무한�
 - 데모·개발 단계는 EC2를 필요할 때만 켜서 더 절감 가능.
 - 비용을 더 낮추려면 앱을 Lightsail($5~12 정액)이나 저가 VPS로 이전 가능(단 AWS 학습가치 ↓). 컨테이너화돼 있어 이전은 소규모.
 
-**배포 실습 사다리**: Docker 이미지화 → docker-compose(로컬 검증) → EC2 배포(SSH·보안그룹) → Caddy 리버스 프록시·HTTPS → (선택) GitHub Actions CI
+**배포 실습 사다리**: Docker 이미지화 → docker-compose(로컬 검증) → EC2 배포(SSH·보안그룹) → Caddy 리버스 프록시·HTTPS → GitHub Actions 경량 CI(완료, 9절 참고)
 
 ---
 

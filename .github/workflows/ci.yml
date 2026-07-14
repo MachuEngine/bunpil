@@ -1,10 +1,16 @@
 name: CI
 
 # 경량 CI — 코드 회귀 확인 전용 (LLM/RAG 모델 호출 없음). 매 push/PR 블로킹.
-# LLM eval 자동화는 별도 워크플로우(eval.yml, 수동/스케줄 트리거)로 분리 — DESIGN.md 9절 참고.
+# LLM eval 자동화는 도입하지 않기로 결정 — 이유는 DESIGN.md 9절 참고.
 on:
   push:
+    branches: [main]
   pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   backend:
@@ -37,7 +43,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "lts/*"
+          node-version: "20"
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
