@@ -39,6 +39,7 @@
 | 사실 추가율 (키워드) | 함수 | = 0 |
 | 사실 추가율 (NLI Judge) | LLM Judge | = 0 |
 | 규정 위반 Recall | 함수 | ≥ 0.95 |
+| regulations RAG 검색 Recall@5 / MRR | 함수 (2026-07-17 신규) | 참고값 (n=10, 통과 기준 없음) |
 
 ### 출제 모듈 RAG 품질 (`eval_ragas.py`)
 
@@ -98,6 +99,7 @@ Windows 콘솔에서 실행 시 `cp949` 인코딩 오류(`UnicodeEncodeError`)�
 | 2026.07.12 | qwen2.5:7b (STRUCTURE_GOLDEN 20개 → 45개로 확대, 생성만·라벨링 없음) | - | - | - | - | - | `gen_structure_golden.py`로 신규 주제 25개(str_052~076) 생성. budget=1 최초 시도에서 0문항 7건 발생(28%) → budget=3 재시도로 5건 회복 → 남은 2건은 다른 주제로 교체(1건은 재교체까지 2회 필요) 해 **최종 45개 전부 1개 이상 문항 확보**(0문항 없음). 사람 라벨링은 다음 단계(제가 아님) — 5절 참고 |
 | 2026.07.12 | qwen2.5:14b (n=45 전량 사람 라벨링 완료, 동일 C안 프롬프트로 첫 재측정) | - | - | - | - | - | 구조Judge overall MAE 1.356·±1 일치 0.556·편향 **+1.178**(n=20 때보다 더 과대평가)·이진(≥3) κ 0.126·Pearson r 0.143·Spearman ρ 0.181·**diff κ 0.509**(목표 0.4 최초 달성) — n=20 대비 diff κ·상관관계는 개선(표본 확대로 노이즈 감소 시사)됐으나 overall 이진 κ·MAE·편향은 여전히 미달/악화, 5절 참고 |
 | 2026.07.12 | qwen2.5:14b (STRUCTURE_JUDGE_TPL에 3점 앵커 few-shot 추가 후, n=45, 3회 반복) | - | - | - | - | - | 편향 원인 분석 결과 few-shot 점수 분포가 {1,1,2,4,5}로 3점 미앵커링 → Judge가 애매한 사례에서 3점으로 회피 수렴하는 패턴 확인(judge 분포 58%가 3점, human=1 항목 14개 중 judge=1은 단 1개). 3점 앵커(유의어 치환+정상 문항 혼합) 추가 후 3회 평균: MAE 1.356→**1.185**, ±1 0.556→**0.659**, 편향 +1.178→**+0.978**, 이진 κ 0.126→**0.167**, Pearson r 0.143→**0.248**, Spearman ρ 0.181→**0.269** — 전 지표 개선, 저점 few-shot 시행착오 때와 같은 붕괴 없음. diff κ만 0.509→평균 0.424로 변동폭 커짐(3회 중 1회 0.4 미달, 평균은 유지) — 5절 참고 |
+| 2026.07.17 | qwen2.5:7b (생기부, regulations RAG 검색 Recall@5 신규 계측 + 전체 재측정) | - | - | - | - | - | `eval_record.py`에 `regulations` 컬렉션만 분리한 Recall@5/MRR 추가(기존 `eval_exam.py`는 standards+regulations 22건을 합산해서만 보고 — 22건 중 regulations 10건만 따로 떼어 측정한 건 이번이 처음). **regulations Recall@5=0.900, MRR=0.667(n=10, 참고용)** — 정답을 찾긴 하지만(9/10) 1순위로 못 올리는 경우가 잦음(MRR 0.667≈평균 1.5위). 같은 실행에서 PII 마스킹 Recall=1.000·FN=0, NLI 사실추가율=0.050(1/20, 기존 관측 범위 0~0.05 내), **위반 Recall=1.000/F1=1.000**(n=50, 기존 3회 평균 0.927보다 높음 — 단일 실행이라 상한 노이즈 가능성 있고 3회 반복 재확인은 안 함). **참고**: `CHROMA_PERSIST_DIR` 기본값을 `./chroma_db_record_eval`(격리용, 실제로는 비어있어 regulations 검색이 항상 스킵됐을 가능성)에서 다른 eval 스크립트와 동일한 `./chroma_db`(실 인덱싱 데이터, regulations 472건)로 변경 — 로컬에서는 `.env`의 `CHROMA_PERSIST_DIR=/data/chroma_db`가 `load_dotenv()`에 의해 먼저 세팅돼 `setdefault`가 무시되므로, 실행 시 `CHROMA_PERSIST_DIR=./chroma_db` 쉘 오버라이드 필요(다른 eval 스크립트도 동일 이슈) |
 
 > 모델 교체 또는 프롬프트 튜닝 시마다 행 추가. 2026.07 Recall@5/MRR은 passage_text 리디자인으로 past_exams golden 항목이 제거되며 n이 28→21로 줄어 재측정한 값(검색은 LLM과 무관하므로 모델 열은 해당 없음).
 >

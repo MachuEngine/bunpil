@@ -1,13 +1,15 @@
 #!/usr/bin/env python
 """Phase 6: 생기부 모듈 평가 스크립트.
-안전 지표 우선 — 마스킹 누락률(FN) / 사실 추가율 / 규정 위반 검출 Recall/F1.
-데이터: 합성 골든셋만 사용.
+안전 지표 우선 — 마스킹 누락률(FN) / 사실 추가율 / 규정 위반 검출 Recall/F1 /
+regulations RAG 검색 품질(Recall@5, MRR, 참고용).
+데이터: 마스킹·사실추가·위반 판정은 합성 골든셋만 사용. regulations 검색 품질만
+예외적으로 실제 인덱싱된 로컬 chroma_db(읽기 전용 검색)를 사용 — 빈 컬렉션으로는
+검색 품질을 잴 수 없어 다른 eval 스크립트(eval_exam.py 등)와 동일하게 맞춤.
 """
 import asyncio
 import concurrent.futures
 import json
 import os
-import shutil
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -17,7 +19,7 @@ load_dotenv()
 
 os.environ.setdefault("LLM_BACKEND", "local")
 os.environ.setdefault("OLLAMA_MODEL", "qwen2.5:1.5b")
-os.environ.setdefault("CHROMA_PERSIST_DIR", "./chroma_db_record_eval")
+os.environ.setdefault("CHROMA_PERSIST_DIR", "./chroma_db")
 
 from app.common.llm.tracing import init_langsmith_project
 init_langsmith_project()
@@ -30,8 +32,11 @@ except ImportError:
         return decorator
 
 from app.common.llm import PromptTemplate, get_llm_backend
+from app.common.rag import get_retriever
 from app.modules.record.chain import RecordChain
 from app.modules.record.masker import mask_pii
+
+from eval_exam import _load_retrieval_golden, eval_retrieval
 
 _TRACE_META = {
     "model": os.getenv("OLLAMA_MODEL", "unknown"),
@@ -170,6 +175,22 @@ def eval_hallucination(golden: list, chain: RecordChain, llm) -> dict:
     }
 
 
+@traceable(name="eval_regulation_retrieval", run_type="chain", metadata=_TRACE_META)
+def eval_regulation_retrieval(retriever) -> dict:
+    """regulations 컬렉션 RAG 검색 품질(Recall@5, MRR) — 참고용.
+
+    eval_exam.py의 retrieval_golden_final.json(standards 12 + regulations 10,
+    사람 검수 완료)은 지금까지 두 컬렉션을 합쳐 하나의 Recall@5로만 보고해왔다.
+    record 모듈의 _step_validate가 실제로 의존하는 건 regulations 검색이므로
+    그 10건만 분리해 별도로 측정한다. eval_exam.py의 기존 합산 수치는 그대로 둠
+    (bunpil_roadmap.md에 그 수치 기준의 과거 실험 기록이 남아있어 비교 연속성 유지).
+    n=10으로 표본이 작아 참고용 — 통과/실패 기준(all_ok)에는 포함하지 않는다.
+    """
+    golden = _load_retrieval_golden()
+    regulations_golden = [item for item in golden if item["source_collection"] == "regulations"]
+    return eval_retrieval(retriever, regulations_golden)
+
+
 @traceable(name="eval_violation_detection", run_type="chain", metadata=_TRACE_META)
 def eval_violation_detection(golden: list, chain: RecordChain) -> dict:
     """규정 위반 검출 Recall / F1 측정."""
@@ -217,7 +238,7 @@ def check(ok: bool) -> str:
     return "✓" if ok else "✗"
 
 
-def print_report(mask: dict, halluc: dict, viol: dict):
+def print_report(mask: dict, halluc: dict, viol: dict, reg_retrieval: dict):
     print("\n" + "=" * 55)
     print("  분필 생기부 모듈 평가 리포트")
     print("=" * 55)
@@ -242,6 +263,10 @@ def print_report(mask: dict, halluc: dict, viol: dict):
     print(f"  Recall    : {viol['recall']:.3f}  {check(viol['recall'] >= 0.95)} (기준 ≥ 0.95)")
     print(f"  Precision : {viol['precision']:.3f}")
     print(f"  F1        : {viol['f1']:.3f}")
+
+    print(f"\n[4] regulations RAG 검색 품질 (n={reg_retrieval['n']}, 참고용 — 표본 작아 통과 기준 없음)")
+    print(f"  Recall@5  : {reg_retrieval['recall_at_5']:.3f}")
+    print(f"  MRR       : {reg_retrieval['mrr']:.3f}")
 
     all_ok = fn_rate == 0.0 and k_rate == 0.0 and viol["recall"] >= 0.95
     print(f"\n  전체 통과 : {check(all_ok)}")
@@ -273,9 +298,11 @@ def main():
     viol_result = eval_violation_detection(VIOLATION_GOLDEN, chain)
     print(f"   Recall={viol_result['recall']:.3f}, F1={viol_result['f1']:.3f}")
 
-    print_report(mask_result, halluc_result, viol_result)
+    print("\n4. regulations RAG 검색 품질 평가 (참고용, n=10)...")
+    reg_retrieval_result = eval_regulation_retrieval(get_retriever())
+    print(f"   Recall@5={reg_retrieval_result['recall_at_5']:.3f}, MRR={reg_retrieval_result['mrr']:.3f}")
 
-    shutil.rmtree("./chroma_db_record_eval", ignore_errors=True)
+    print_report(mask_result, halluc_result, viol_result, reg_retrieval_result)
 
 
 if __name__ == "__main__":
