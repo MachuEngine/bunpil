@@ -25,7 +25,7 @@ function ItemCard({ item }: { item: ExamItem }) {
 
   return (
     <div
-      className="border border-[#E5E3DE] rounded-xl p-4 bg-white cursor-pointer hover:border-[#D97706] transition-colors"
+      className="border border-[#DBDCD2] rounded-xl p-4 bg-white cursor-pointer hover:border-[#2F4A3D] transition-colors"
       onClick={() => setExpanded((v) => !v)}
     >
       <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -40,25 +40,25 @@ function ItemCard({ item }: { item: ExamItem }) {
         </Badge>
       </div>
 
-      <p className="text-[14px] text-[#1A1A1A] line-clamp-2 mb-3">
+      <p className="text-[14px] text-[#1C2620] line-clamp-2 mb-3">
         {item.question || "—"}
       </p>
 
       <div className="flex items-center gap-2">
-        <span className="text-[13px] text-[#6B6B6B] w-16 shrink-0">
+        <span className="text-[13px] text-[#6E7469] w-16 shrink-0">
           품질 {item.judge_score.toFixed(1)}/5
         </span>
         <Progress value={scorePercent} className="flex-1" />
       </div>
 
       {expanded && (
-        <div className="mt-3 pt-3 border-t border-[#E5E3DE]">
+        <div className="mt-3 pt-3 border-t border-[#DBDCD2]">
           {item.options.length > 0 && (
             <ol className="space-y-1 mb-2">
               {item.options.map((opt, i) => (
                 <li
                   key={i}
-                  className={`text-[13px] pl-2 ${opt.startsWith(item.answer) ? "text-[#D97706] font-medium" : "text-[#6B6B6B]"}`}
+                  className={`text-[13px] pl-2 ${opt.startsWith(item.answer) ? "text-[#2F4A3D] font-medium" : "text-[#6E7469]"}`}
                 >
                   {opt}
                 </li>
@@ -66,13 +66,13 @@ function ItemCard({ item }: { item: ExamItem }) {
             </ol>
           )}
           {item.options.length === 0 && item.answer && (
-            <p className="text-[13px] text-[#6B6B6B]">
-              <span className="font-medium text-[#1A1A1A]">예시 답안: </span>
+            <p className="text-[13px] text-[#6E7469]">
+              <span className="font-medium text-[#1C2620]">예시 답안: </span>
               {item.answer}
             </p>
           )}
           {item.standard && (
-            <p className="text-[13px] text-[#6B6B6B] mt-1">
+            <p className="text-[13px] text-[#6E7469] mt-1">
               성취기준: {item.standard}
             </p>
           )}
@@ -157,10 +157,10 @@ export default function ExamTab() {
         {/* 예시 문제 붙여넣기 */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label className="block text-[13px] font-medium text-[#6B6B6B]">
+            <label className="block text-[13px] font-medium text-[#6E7469]">
               예시 문제
             </label>
-            <span className={`text-[12px] ${overLimit ? "text-red-600" : "text-[#6B6B6B]"}`}>
+            <span className={`text-[12px] ${overLimit ? "text-[#A63B2E]" : "text-[#6E7469]"}`}>
               {passageText.length.toLocaleString()} / {MAX_PASSAGE_LENGTH.toLocaleString()}자
             </span>
           </div>
@@ -169,10 +169,10 @@ export default function ExamTab() {
             placeholder="참고할 예시 문제를 그대로 붙여넣어 주세요. 문항 수, 유형(객관식/서술형), 난이도 구성을 그대로 파악해 새 문항 세트를 만듭니다."
             value={passageText}
             onChange={(e) => setPassageText(e.target.value)}
-            className="w-full rounded-lg border border-[#E5E3DE] bg-white px-3 py-2 text-[13px] text-[#1A1A1A] placeholder:text-[#6B6B6B] focus:outline-none focus:border-[#D97706] transition-colors resize-none"
+            className="w-full rounded-lg border border-[#DBDCD2] bg-white px-3 py-2 text-[13px] text-[#1C2620] placeholder:text-[#6E7469] focus:outline-none focus:border-[#2F4A3D] transition-colors resize-none"
           />
           {overLimit && (
-            <p className="text-[12px] text-red-600 mt-1">
+            <p className="text-[12px] text-[#A63B2E] mt-1">
               8,000자를 초과하면 앞부분만 반영됩니다.
             </p>
           )}
@@ -180,7 +180,7 @@ export default function ExamTab() {
 
         {/* 성취기준 */}
         <div>
-          <label className="block text-[13px] font-medium text-[#6B6B6B] mb-1.5">
+          <label className="block text-[13px] font-medium text-[#6E7469] mb-1.5">
             성취기준 (선택, 줄바꿈으로 구분)
           </label>
           <textarea
@@ -188,12 +188,12 @@ export default function ExamTab() {
             placeholder={"[사문9101-1] 민주주의의 의미와 원리\n[사문9101-2] 헌법의 기본 원리"}
             value={standards}
             onChange={(e) => setStandards(e.target.value)}
-            className="w-full rounded-lg border border-[#E5E3DE] bg-white px-3 py-2 text-[13px] text-[#1A1A1A] placeholder:text-[#6B6B6B] focus:outline-none focus:border-[#D97706] transition-colors resize-none"
+            className="w-full rounded-lg border border-[#DBDCD2] bg-white px-3 py-2 text-[13px] text-[#1C2620] placeholder:text-[#6E7469] focus:outline-none focus:border-[#2F4A3D] transition-colors resize-none"
           />
         </div>
 
         {error && (
-          <p className="text-[13px] text-red-600 bg-red-50 rounded-lg px-3 py-2">
+          <p className="text-[13px] text-[#A63B2E] bg-[#F7E9E4] rounded-lg px-3 py-2">
             {error}
           </p>
         )}
@@ -211,14 +211,14 @@ export default function ExamTab() {
       <div className="flex-1 min-w-0">
         {isLoading && (
           <div className="flex flex-col items-center justify-center h-48 gap-3">
-            <div className="w-8 h-8 border-2 border-[#D97706] border-t-transparent rounded-full animate-spin" />
-            <p className="text-[14px] text-[#6B6B6B]">{stepMsg}</p>
+            <div className="w-8 h-8 border-2 border-[#2F4A3D] border-t-transparent rounded-full animate-spin" />
+            <p className="text-[14px] text-[#6E7469]">{stepMsg}</p>
           </div>
         )}
 
         {!isLoading && items.length === 0 && (
           <div className="flex items-center justify-center h-48">
-            <p className="text-[14px] text-[#6B6B6B]">
+            <p className="text-[14px] text-[#6E7469]">
               좌측에 예시 문제를 붙여넣고 문항 생성 버튼을 눌러주세요.
             </p>
           </div>
@@ -227,15 +227,15 @@ export default function ExamTab() {
         {!isLoading && items.length > 0 && (
           <div>
             {truncated && (
-              <p className="text-[13px] text-[#D97706] bg-[#FEF3C7] rounded-lg px-3 py-2 mb-3">
+              <p className="text-[13px] text-[#93601F] bg-[#F5EBD8] rounded-lg px-3 py-2 mb-3">
                 입력이 길어 앞부분만 반영되었습니다.
               </p>
             )}
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[14px] font-semibold text-[#1A1A1A]">
+              <h2 className="text-[14px] font-semibold text-[#1C2620]">
                 생성된 문항 ({items.length}개)
               </h2>
-              <span className="text-[13px] text-[#6B6B6B]">
+              <span className="text-[13px] text-[#6E7469]">
                 승인 {approved} / 반려 {items.length - approved}
               </span>
             </div>

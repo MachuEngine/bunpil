@@ -5,14 +5,14 @@ interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 const variantStyles: Record<NonNullable<BadgeProps["variant"]>, string> = {
-  default: "bg-[#F0EEE9] text-[#6B6B6B]",
-  mc: "bg-blue-100 text-blue-700",
-  sa: "bg-purple-100 text-purple-700",
-  hard: "bg-red-100 text-red-700",
-  med: "bg-orange-100 text-orange-700",
-  easy: "bg-green-100 text-green-700",
-  approved: "bg-green-100 text-green-700",
-  rejected: "bg-red-100 text-red-700",
+  default: "bg-[#E7EDE8] text-[#6E7469]",
+  mc: "bg-[#E7EDE8] text-[#22392E]",
+  sa: "bg-[#EFEAD9] text-[#6B5A2E]",
+  hard: "bg-[#F7E9E4] text-[#A63B2E]",
+  med: "bg-[#F5EBD8] text-[#93601F]",
+  easy: "bg-[#E5EEE4] text-[#3D6B4A]",
+  approved: "bg-[#E5EEE4] text-[#3D6B4A]",
+  rejected: "bg-[#F7E9E4] text-[#A63B2E]",
 };
 
 export function Badge({ className, variant = "default", children, ...props }: BadgeProps) {
