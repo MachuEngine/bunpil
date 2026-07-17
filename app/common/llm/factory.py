@@ -18,6 +18,10 @@ def get_llm_backend() -> LLMBackend:
 
 
 def get_judge_backend() -> LLMBackend:
+    # LLM_BACKEND(생성용)와 독립 — Judge만 별도로 OpenAI 등으로 바꿔보고 싶을 때 사용.
+    # 미설정 시 기존과 동일하게 항상 Ollama(OLLAMA_JUDGE_MODEL, 폴백 OLLAMA_MODEL).
+    if os.getenv("JUDGE_BACKEND", "local") == "openai":
+        return OpenAIBackend(model=os.getenv("OPENAI_JUDGE_MODEL"))
     judge_model = os.getenv("OLLAMA_JUDGE_MODEL")
     if judge_model:
         return OllamaBackend(model=judge_model)

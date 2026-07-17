@@ -1,0 +1,34 @@
+{
+  "qwen2.5-7b": {
+    "item_quality_reliability": {
+      "n": 30,
+      "exact_agreement": 0.267,
+      "agreement_within_1": 0.8,
+      "cohen_kappa": 0.328,
+      "human_avg": 3.33,
+      "llm_avg": 3.83
+    },
+    "structure_judge_reliability": {
+      "n": 45,
+      "count_match_code_rate": 0.222,
+      "difficulty_match_agreement": 0.867,
+      "overall_score_mae": 1.689
+    }
+  },
+  "gpt-5.6-luna": {
+    "item_quality_reliability": {
+      "n": 30,
+      "exact_agreement": 0.3,
+      "agreement_within_1": 0.733,
+      "cohen_kappa": 0.595,
+      "human_avg": 3.33,
+      "llm_avg": 4.27
+    },
+    "structure_judge_reliability": {
+      "n": 45,
+      "count_match_code_rate": 0.222,
+      "difficulty_match_agreement": 0.933,
+      "overall_score_mae": 0.6
+    }
+  }
+}

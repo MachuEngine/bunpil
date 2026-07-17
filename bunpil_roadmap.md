@@ -84,6 +84,32 @@
   근거 약함, 현재로선 우선순위 아님
 - 최종 채택은 사용자 결정 대기(비용·외부 API 의존 트레이드오프 고려 필요)
 
+### Judge 모델 비교 실험 (2026-07-17)
+- 배경: `get_judge_backend()`(`app/common/llm/factory.py`)가 `LLM_BACKEND`와 무관하게 항상
+  Ollama(qwen2.5:7b)를 반환하도록 고정돼 있었음 — 로컬 오픈모델의 judge 신뢰도(구조Judge
+  이진 kappa 미달 등)가 몇 달째 한계로 지적돼 옴. "생성 모델"이 아니라 **"judge 모델"만**
+  바꿔서 같은 사람 라벨(ITEM_GOLDEN 30개 human_score, STRUCTURE_GOLDEN 45개 human_label)
+  대비 신뢰도를 비교하는 `scripts/compare_judge_models.py` 신규 작성(`compare_models.py`와
+  반대 축 — 생성 없이 재채점만). `JUDGE_BACKEND=openai` 분기 추가(기본값 `local`이라 미설정
+  시 기존과 동일하게 동작), `.env`/`.env.example`에 `JUDGE_BACKEND`/`OPENAI_JUDGE_MODEL` 추가.
+- **결과** (`qwen2.5-7b` vs `gpt-5.6-luna`, 생성은 동일·재채점만 다름, raw는
+  `data/golden/_judge_comparison_results.json`):
+  - 문항 품질(JUDGE_TPL, n=30, human_avg 3.33 동일): kappa **0.328→0.595**(거의 2배),
+    exact 0.267→0.300, llm_avg 3.83→**4.27**(편향 +0.50→**+0.94**, GPT가 오히려 더 후하게
+    채점), ±1일치율은 qwen이 더 높음(0.800→0.733) — kappa는 "합격선(≥3) 통과 여부"의
+    이진 판단 일치도라 GPT가 더 정확하지만, 절대 점수 자체는 더 관대함(똑똑한 모델=덜
+    후한 채점이 아니었음)
+  - 구조 유사도(STRUCTURE_JUDGE_TPL, n=45): difficulty_match 0.867→0.933,
+    **overall_score MAE 1.689→0.600** — GPT용으로 프롬프트를 전혀 손대지 않고 qwen 버릇
+    교정용 few-shot(3점 앵커 등)을 그대로 재사용했는데도, 몇 달간 튜닝한 qwen2.5-**14B**
+    최고 기록(MAE 1.185, 2026-07-12, 위 STRUCTURE_GOLDEN 재보정 절 참고)보다도 뚜렷이 낮음
+- **해석**: judge 신뢰도가 로컬 오픈모델(7B~14B)의 근본적 한계였다는 가설을 뒷받침하는
+  결과. 다만 n=30/45로 표본이 여전히 작고, GPT의 절대 점수 편향이 qwen보다 큰 상충 신호가
+  있어 "완전히 신뢰 가능한 judge"보다는 "qwen보다 확실히 나은 judge" 정도로 해석 권장.
+  실제 judge 교체 여부(비용은 gpt-5.6-luna 기준 한 사이클 105회 호출에 약 $0.10 수준으로
+  걸림돌 아님, 대신 과거 kappa/MAE 히스토리와의 단절·재보정 필요가 트레이드오프)는 사용자
+  결정 대기.
+
 ---
 
 ## ⬜ 남은 작업 (우선순위 순)
@@ -219,6 +245,22 @@ user_template: |
 ### 기타
 - 스트리밍 응답 (FastAPI `StreamingResponse` + SSE)
 - 모델 워밍업 (`lifespan`에서 서버 시작 시 모델 로드)
+
+### 문항 품질 Judge에 "예시 문제 표절/패러프레이즈" 전용 지표 추가 (2026-07-17 논의, 결정 보류)
+- **현재 상태**: 이 개념은 이미 부분적으로 존재함 — `STRUCTURE_JUDGE_TPL`(구조 유사도 Judge,
+  `scripts/eval_exam.py`)의 `overall_score` 채점 기준에 "예시 문제를 그대로 복사한 경우"·
+  "표현만 바꿔 사실상 같은 것을 묻는 패러프레이즈 반복"이 감점 요소로 이미 포함돼 있음
+  (`eval_exam.py:199-201`). 다만 이게 유형/난이도 구조, 환각, 언어오염, 주제이탈과
+  **하나의 0~5 overall_score에 뭉쳐 있어 표절 여부만 따로 뽑아볼 수 없음**.
+- **정답유일성/오답매력도/근거성(`JUDGE_TPL`, ITEM_GOLDEN 기반) 쪽엔 추가 불가**: `item_golden.json`
+  스키마에 원본 예시 문제(passage_text)가 애초에 연결돼 있지 않아, 비교 대상 자체가 없음.
+- **검토할 방향 두 가지**:
+  1. `STRUCTURE_JUDGE_TPL`의 `overall_score`에서 "원문 유사도/표절" 항목을 별도 필드로 분리
+     — 단, STRUCTURE_GOLDEN 45개를 이 새 차원으로 사람이 다시 라벨링해야 함(kappa/MAE
+     재보정과 동일한 수준의 재작업).
+  2. LLM Judge 대신 **임베딩 코사인 유사도** 같은 결정론적 함수로 원문-생성 문항 간 유사도를
+     따로 계산 — Judge 신뢰도 재보정 부담 없이 이 축만 분리 가능.
+- 사용자가 나중에 "현 상태 유지 vs 개선" 여부를 다시 판단할 예정. 착수 전 재확인 필요.
 
 ### 포트폴리오 정리 시 포함할 것
 - README에 아키텍처 다이어그램
