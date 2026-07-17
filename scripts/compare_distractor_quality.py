@@ -30,7 +30,7 @@ from app.common.llm import get_judge_backend
 from app.modules.exam.llm import get_langchain_model
 from app.modules.exam.tools import TOOLS, get_draft_items, init_session
 
-from eval_exam import JUDGE_TPL, _run_async
+from eval_lib import JUDGE_TPL, _run_async
 
 _OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "golden", "_distractor_quality_compare.json")
 

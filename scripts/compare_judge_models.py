@@ -35,11 +35,12 @@ os.environ.setdefault("CHROMA_PERSIST_DIR", "./chroma_db")
 from app.common.llm.tracing import init_langsmith_project
 init_langsmith_project()
 
-from eval_exam import (  # noqa: E402
+from eval_lib import (  # noqa: E402
     ITEM_GOLDEN,
     _load_structure_golden,
     eval_judge_reliability,
     eval_structure_judge,
+    score_items,
 )
 
 # 후보 judge마다 필요한 환경변수 조합 — get_judge_backend()(factory.py)가 이 값으로 분기한다.
@@ -75,7 +76,8 @@ def run_judge(judge_key: str, structure_golden: list) -> dict:
     prev = _set_env(JUDGE_ENVS[judge_key])
     try:
         judge_llm = get_judge_backend()
-        item_result = eval_judge_reliability(ITEM_GOLDEN, judge_llm, limit=len(ITEM_GOLDEN))
+        scored = score_items(ITEM_GOLDEN, judge_llm)
+        item_result = eval_judge_reliability(scored)
         structure_result = eval_structure_judge(
             structure_golden, judge_llm, limit=len(structure_golden) or 1
         )

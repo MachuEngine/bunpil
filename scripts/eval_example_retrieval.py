@@ -24,7 +24,7 @@ load_dotenv()
 
 os.environ.setdefault("CHROMA_PERSIST_DIR", "./chroma_db")
 
-from eval_exam import _load_retrieval_golden, eval_retrieval
+from eval_lib import _load_retrieval_golden, eval_retrieval
 from app.common.rag import BGEEmbedder, BGEReranker, RAGRetriever, RAGStore
 
 _NEW_GOLDEN_PATH = os.path.join(

@@ -36,7 +36,7 @@ from app.common.rag import get_retriever
 from app.modules.record.chain import RecordChain
 from app.modules.record.masker import mask_pii
 
-from eval_exam import _load_retrieval_golden, eval_retrieval
+from eval_lib import _load_retrieval_golden, eval_retrieval
 
 _TRACE_META = {
     "model": os.getenv("OLLAMA_MODEL", "unknown"),

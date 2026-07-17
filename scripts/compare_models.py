@@ -126,7 +126,7 @@ def generate_one(sample: dict, budget: int = 1) -> dict:
 
 def judge_all(generations: list) -> list:
     """고정 Judge(qwen2.5:7b)로 문항 품질 + 구조 유사도를 채점."""
-    from eval_exam import STRUCTURE_JUDGE_TPL, JUDGE_TPL, judge_one, judge_structure_one  # noqa: F401
+    from eval_lib import STRUCTURE_JUDGE_TPL, JUDGE_TPL, judge_one, judge_structure_one  # noqa: F401
     from app.common.llm import get_judge_backend
 
     prev = _set_env(JUDGE_ENV)
