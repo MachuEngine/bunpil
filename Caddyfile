@@ -8,28 +8,32 @@
 # docker-compose.yml의 frontend 서비스가 3000:3000으로 호스트에 포트를 열어둠.
 
 your-domain.com {
-    # 타임아웃: LLM 생성이 길므로 넉넉히 설정 (frontend → FastAPI 프록시 구간 포함)
-    reverse_proxy localhost:3000 {
-        transport http {
-            read_timeout  300s
-            write_timeout 300s
-        }
-        # SSE 스트리밍을 위한 flush 설정
-        flush_interval -1
-    }
+	request_body {
+		max_size 64KB
+	}
 
-    # 요청/응답 로그 — PII 포함 가능성이 있으므로 body 로깅 비활성화
-    log {
-        output file /var/log/caddy/access.log
-        format json
-        level INFO
-    }
+	# 타임아웃: LLM 생성이 길므로 넉넉히 설정 (frontend → FastAPI 프록시 구간 포함)
+	reverse_proxy localhost:3000 {
+		transport http {
+			read_timeout 300s
+			write_timeout 300s
+		}
+		# SSE 스트리밍을 위한 flush 설정
+		flush_interval -1
+	}
 
-    # 보안 헤더
-    header {
-        X-Content-Type-Options nosniff
-        X-Frame-Options SAMEORIGIN
-        Referrer-Policy strict-origin-when-cross-origin
-        -Server
-    }
+	# 요청/응답 로그 — PII 포함 가능성이 있으므로 body 로깅 비활성화
+	log {
+		output file /var/log/caddy/access.log
+		format json
+		level INFO
+	}
+
+	# 보안 헤더
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options SAMEORIGIN
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
 }
