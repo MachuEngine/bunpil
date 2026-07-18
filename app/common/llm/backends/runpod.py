@@ -2,7 +2,7 @@
 
 handler.py 응답 형식:
   {"output": {"response": str | None, "tool_calls": list | None}}
-runsync가 타임아웃(30s)되면 비동기 run → status 폴링으로 전환.
+비동기 run을 한 번만 제출한 뒤 동일 job id를 status polling한다.
 """
 import asyncio
 import os
@@ -13,7 +13,7 @@ from ..base import LLMBackend
 
 _BASE = "https://api.runpod.ai/v2"
 _POLL_INTERVAL = 5    # seconds
-_MAX_POLL      = 120  # 최대 10분 대기
+_MAX_POLL      = 60   # 최대 5분 대기(Caddy read_timeout과 동일)
 
 
 class RunPodBackend(LLMBackend):
@@ -44,42 +44,39 @@ class RunPodBackend(LLMBackend):
             raise RuntimeError(
                 "RUNPOD_API_KEY / RUNPOD_ENDPOINT_ID 환경변수가 설정되지 않았습니다."
             )
-        async with httpx.AsyncClient(timeout=httpx.Timeout(35, read=35)) as client:
+        timeout = httpx.Timeout(35, connect=10, read=35)
+        async with httpx.AsyncClient(timeout=timeout) as client:
             try:
-                resp = await client.post(
-                    f"{_BASE}/{self.endpoint_id}/runsync",
-                    headers=self._headers(),
-                    json=self._payload(messages, **kwargs),
-                )
-                resp.raise_for_status()
-                data = resp.json()
-                if data.get("status") == "COMPLETED":
-                    return data["output"]
-                job_id = data.get("id")
-                if not job_id:
-                    raise RuntimeError(f"RunPod runsync 응답에 job id 없음: {data}")
-            except (httpx.ReadTimeout, httpx.TimeoutException):
-                resp2 = await client.post(
+                response = await client.post(
                     f"{_BASE}/{self.endpoint_id}/run",
                     headers=self._headers(),
                     json=self._payload(messages, **kwargs),
                 )
-                resp2.raise_for_status()
-                job_id = resp2.json()["id"]
+            except (httpx.ReadTimeout, httpx.TimeoutException) as exc:
+                # 제출 응답을 못 받은 상태에서 재제출하면 첫 작업과 중복 실행될 수 있다.
+                raise TimeoutError("RunPod 작업 제출 응답을 받지 못했습니다. 재제출하지 않습니다.") from exc
+            response.raise_for_status()
+            submission = response.json()
+            job_id = submission.get("id")
+            if not job_id:
+                raise RuntimeError("RunPod 작업 제출 응답에 job id가 없습니다.")
 
-        for _ in range(_MAX_POLL):
-            await asyncio.sleep(_POLL_INTERVAL)
-            async with httpx.AsyncClient(timeout=10) as poll:
-                r = await poll.get(
+            for _ in range(_MAX_POLL):
+                await asyncio.sleep(_POLL_INTERVAL)
+                status_response = await client.get(
                     f"{_BASE}/{self.endpoint_id}/status/{job_id}",
                     headers=self._headers(),
                 )
-                r.raise_for_status()
-                d = r.json()
-                if d.get("status") == "COMPLETED":
-                    return d["output"]
-                if d.get("status") in ("FAILED", "CANCELLED"):
-                    raise RuntimeError(f"RunPod job {job_id} 실패: {d}")
+                status_response.raise_for_status()
+                status_data = status_response.json()
+                status = status_data.get("status")
+                if status == "COMPLETED":
+                    output = status_data.get("output")
+                    if not isinstance(output, dict):
+                        raise RuntimeError("RunPod 완료 응답의 output 형식이 올바르지 않습니다.")
+                    return output
+                if status in ("FAILED", "CANCELLED"):
+                    raise RuntimeError(f"RunPod job {job_id} 상태: {status}")
 
         raise TimeoutError(f"RunPod job {job_id} 응답 초과 ({_MAX_POLL * _POLL_INTERVAL}s)")
 
