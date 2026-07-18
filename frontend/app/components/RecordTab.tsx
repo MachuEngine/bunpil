@@ -83,6 +83,9 @@ export default function RecordTab() {
             onChange={(e) => setMemo(e.target.value)}
             className="w-full rounded-xl border border-[#DBDCD2] bg-white px-3 py-2.5 text-[14px] text-[#1C2620] placeholder:text-[#6E7469] focus:outline-none focus:border-[#2F4A3D] transition-colors resize-none"
           />
+          <p className="text-[12px] text-[#6E7469] mt-1">
+            실제 학생 정보는 입력하지 마세요. 감지된 개인정보는 모델 호출 전에 마스킹됩니다.
+          </p>
         </div>
 
         {error && (

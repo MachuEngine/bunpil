@@ -8,11 +8,11 @@ logger = logging.getLogger(__name__)
 from dotenv import load_dotenv
 load_dotenv()
 
-from app.common.llm.tracing import init_langsmith_project
-init_langsmith_project()
-
-if os.getenv("LANGCHAIN_TRACING_V2") == "true":
-    logger.info("LangSmith tracing enabled (project: %s)", os.getenv("LANGCHAIN_PROJECT", "default"))
+# 사용자 입력 비저장 하드룰: 실제 요청을 처리하는 서버에서는 LangSmith가
+# 프롬프트·응답을 외부에 기록하지 못하도록 환경 설정과 무관하게 차단한다.
+# 합성 데이터 평가 스크립트는 각 진입점에서 tracing을 별도로 초기화한다.
+os.environ["LANGCHAIN_TRACING_V2"] = "false"
+os.environ["LANGSMITH_TRACING"] = "false"
 
 from fastapi import FastAPI, Form
 from fastapi.middleware.cors import CORSMiddleware
@@ -71,15 +71,20 @@ async def _extract_num_items(passage_text: str) -> int:
 
 
 async def _build_spec(passage_text: str, standards: str):
-    """예시 문제 입력을 길이 제한에 맞게 잘라 ExamSpec으로 구성한다. (spec, truncated) 반환."""
+    """예시 문제를 길이 제한·PII 마스킹 후 ExamSpec으로 구성한다."""
+    from app.common.privacy import mask_pii
+
     truncated = len(passage_text) > MAX_PASSAGE_LENGTH
     text = passage_text[:MAX_PASSAGE_LENGTH] if truncated else passage_text
+    masked_text, passage_pii = mask_pii(text)
+    masked_standards, standards_pii = mask_pii(standards)
+    pii_found = list(dict.fromkeys([*passage_pii, *standards_pii]))
     spec = {
-        "passage_text": text,
-        "standards": _parse_standards(standards),
-        "num_items": await _extract_num_items(text),
+        "passage_text": masked_text,
+        "standards": _parse_standards(masked_standards),
+        "num_items": await _extract_num_items(masked_text),
     }
-    return spec, truncated
+    return spec, truncated, pii_found
 
 
 async def _run_exam(spec) -> dict:
@@ -183,19 +188,29 @@ async def exam_stream(
 ):
     """예시 문제 텍스트를 받아 SSE로 진행 상황과 결과를 스트리밍한다."""
 
-    spec, truncated = await _build_spec(passage_text, standards)
+    spec, truncated, pii_found = await _build_spec(passage_text, standards)
 
     async def generate():
         def evt(data: dict) -> str:
             return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
 
         try:
+            if pii_found:
+                yield evt({
+                    "status": "pii_masked",
+                    "msg": "개인정보가 감지되어 모델 호출 전에 마스킹되었습니다.",
+                    "pii_found": pii_found,
+                })
             if truncated:
                 yield evt({"status": "truncated", "msg": "입력이 길어 앞부분만 반영되었습니다."})
 
             async for event in _run_exam_events(spec):
                 if event.get("status") == "done":
-                    event = {**event, "truncated": truncated}
+                    event = {
+                        **event,
+                        "truncated": truncated,
+                        "pii_found": pii_found,
+                    }
                 yield evt(event)
 
         except Exception as e:
@@ -220,9 +235,9 @@ async def exam(
     passage_text: str = Form(...),
     standards: str = Form(""),
 ):
-    spec, truncated = await _build_spec(passage_text, standards)
+    spec, truncated, pii_found = await _build_spec(passage_text, standards)
     result = await _run_exam(spec)
-    return {"truncated": truncated, **result}
+    return {"truncated": truncated, "pii_found": pii_found, **result}
 
 
 # ── 생기부 윤문 ──────────────────────────────────────────────────────────
@@ -237,4 +252,3 @@ async def record(req: RecordRequest):
     chain = get_record_chain()
     result = await chain.run(req.memo)
     return result
-
