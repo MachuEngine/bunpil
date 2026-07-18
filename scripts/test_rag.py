@@ -88,6 +88,10 @@ def main():
         retriever = RAGRetriever(store, embedder, reranker)
         query = "What is the role of government in a market economy?"
         results = retriever.retrieve(query, COLLECTION, top_k=3)
+        assert results, "검색 결과가 비어 있습니다."
+        assert any(
+            "Government intervention" in r["text"] for r in results
+        ), "시장 실패에 대한 정부 개입 청크를 찾지 못했습니다."
 
         print(f"\n[쿼리] {query}")
         print(f"[결과] {len(results)}개 청크 반환\n")

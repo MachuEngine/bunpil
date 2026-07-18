@@ -83,13 +83,16 @@ def test_chain():
     results = []
     for case in POLISH_CASES:
         print(f"\n  --- {case['desc']} ---")
-        print(f"  메모  : {case['memo']}")
         out = asyncio.run(chain.run(case["memo"]))
         print(f"  마스킹: {out['masked_memo']}")
         print(f"  PII   : {out['pii_found']}")
         print(f"  윤문  : {out['polished'][:120]}")
         print(f"  위반  : {out['violations'] if out['violations'] else '없음'}")
-        polished_ok = len(out["polished"]) > 10
+        polished_ok = (
+            len(out["polished"]) > 10
+            and out["validation_status"] == "passed"
+            and not out["violations"]
+        )
         results.append(polished_ok)
         print(f"  결과  : {check(polished_ok)}")
     print(out["warning"])
@@ -110,6 +113,9 @@ def main():
 
     import shutil
     shutil.rmtree("./chroma_db_record_test", ignore_errors=True)
+
+    if not (mask_ok and chain_ok):
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

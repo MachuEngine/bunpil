@@ -9,7 +9,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 os.environ.setdefault("LLM_BACKEND", "local")
-os.environ.setdefault("OLLAMA_MODEL", "qwen2.5:1.5b")
+os.environ.setdefault("OLLAMA_MODEL", "qwen2.5:7b")
 
 from app.modules.exam import ExamSpec, get_exam_graph
 from app.modules.exam.tools import init_session
@@ -67,9 +67,15 @@ def main() -> None:
         )
         print(f"       Q: {str(it.get('question',''))[:80]}")
 
-    print("\n[완료] 출제 모듈 통합 테스트 종료")
-    if not items:
-        print("  경고: 문항이 생성되지 않았습니다. Ollama 연결 또는 모델 응답을 확인하세요.")
+    passed = (
+        len(items) == num_items
+        and state.get("validation_passed", False)
+        and len(approved) == num_items
+    )
+    if not passed:
+        print("\n[실패] 목표 문항 수·승인 상태·구조 검증을 충족하지 못했습니다.")
+        raise SystemExit(1)
+    print("\n[완료] 출제 모듈 통합 테스트 통과")
 
 
 if __name__ == "__main__":
