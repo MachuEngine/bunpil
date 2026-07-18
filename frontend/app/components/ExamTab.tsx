@@ -90,12 +90,14 @@ export default function ExamTab() {
   const [items, setItems] = useState<ExamItem[]>([]);
   const [error, setError] = useState("");
   const [truncated, setTruncated] = useState(false);
+  const [piiFound, setPiiFound] = useState<string[]>([]);
 
   const handleGenerate = async () => {
     if (!passageText.trim()) { setError("예시 문제를 붙여넣어 주세요."); return; }
     setError("");
     setItems([]);
     setTruncated(false);
+    setPiiFound([]);
     setIsLoading(true);
     setStepMsg("준비 중...");
 
@@ -132,9 +134,12 @@ export default function ExamTab() {
             setStepMsg(data.msg ?? "");
           } else if (data.status === "truncated") {
             setTruncated(true);
+          } else if (data.status === "pii_masked") {
+            setPiiFound(data.pii_found ?? []);
           } else if (data.status === "done") {
             setItems(data.items ?? []);
             setTruncated(Boolean(data.truncated));
+            setPiiFound(data.pii_found ?? []);
           } else if (data.status === "error") {
             setError(data.msg ?? "문항 생성에 실패했습니다.");
           }
@@ -176,6 +181,9 @@ export default function ExamTab() {
               8,000자를 초과하면 앞부분만 반영됩니다.
             </p>
           )}
+          <p className="text-[12px] text-[#6E7469] mt-1">
+            실제 학생 정보는 입력하지 마세요. 감지된 개인정보는 모델 호출 전에 마스킹됩니다.
+          </p>
         </div>
 
         {/* 성취기준 */}
@@ -209,6 +217,11 @@ export default function ExamTab() {
 
       {/* 우측: 결과 */}
       <div className="flex-1 min-w-0">
+        {piiFound.length > 0 && (
+          <p className="text-[13px] text-[#93601F] bg-[#F5EBD8] rounded-lg px-3 py-2 mb-3">
+            모델 호출 전에 마스킹된 개인정보: {piiFound.join(", ")}
+          </p>
+        )}
         {isLoading && (
           <div className="flex flex-col items-center justify-center h-48 gap-3">
             <div className="w-8 h-8 border-2 border-[#2F4A3D] border-t-transparent rounded-full animate-spin" />

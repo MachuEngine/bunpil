@@ -3,7 +3,7 @@ services:
     build: .
     restart: unless-stopped
     ports:
-      - "8765:8765"
+      - "127.0.0.1:8765:8765"
     env_file:
       - .env
     volumes:
@@ -20,9 +20,10 @@ services:
     build: ./frontend
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
       - BACKEND_URL=http://app:8765
+      - BUNPIL_API_KEY=${BUNPIL_API_KEY}
     depends_on:
       - app
 

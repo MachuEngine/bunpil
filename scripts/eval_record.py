@@ -31,10 +31,11 @@ except ImportError:
         def decorator(fn): return fn
         return decorator
 
-from app.common.llm import PromptTemplate, get_llm_backend
+from app.common.llm import get_llm_backend
 from app.common.rag import get_retriever
 from app.modules.record.chain import RecordChain
 from app.modules.record.masker import mask_pii
+from app.modules.record.prompts import FACT_CHECK_TPL
 
 from eval_lib import _load_retrieval_golden, eval_retrieval
 
@@ -108,42 +109,6 @@ def eval_masking(golden: list) -> dict:
     }
 
 
-NLI_TPL = PromptTemplate(
-    system=(
-        "아래 [메모]에 없는 새로운 사실이 [윤문]에 추가되었으면 YES, 없으면 NO로만 응답하세요.\n"
-        "단순 표현 변경·문체 다듬기는 추가로 보지 않습니다.\n"
-        "**정도부사·평가어(예: 효과적으로, 성공적으로, 적극적으로)만 붙고 메모에 있던 행위 자체는 "
-        "그대로면 NO입니다.** 반면 메모에 없던 구체적인 행위나 결과(예: 무엇을 관리했다, 무엇을 "
-        "완수/달성/수상했다)가 새로 서술되면 YES입니다."
-    ),
-    few_shots=[
-        {
-            "user": "[메모] 수학 발표를 잘 함.\n[윤문] 수학 교과 발표에 적극 참여하였음.",
-            "assistant": "NO",
-        },
-        {
-            "user": "[메모] 조별 과제에서 열심히 함.\n[윤문] 조별 과제에서 1등을 수상하였음.",
-            "assistant": "YES",
-        },
-        {
-            "user": (
-                "[메모] 친구들 의견 듣고 조율함.\n"
-                "[윤문] 친구들의 의견을 청취하고 효과적으로 조율하여 협업 활동에 성공적으로 참여함."
-            ),
-            "assistant": "NO",
-        },
-        {
-            "user": (
-                "[메모] 조별 과제에서 리더 역할.\n"
-                "[윤문] 조별 과제에서 리더로서 역할을 맡아 조업을 관리하고 팀원들과 협력하여 성공적으로 완수함."
-            ),
-            "assistant": "YES",
-        },
-    ],
-    cot_prefix="",
-)
-
-
 @traceable(name="eval_hallucination", run_type="llm", metadata=_TRACE_META)
 def eval_hallucination(golden: list, chain: RecordChain, llm) -> dict:
     """사실 추가율: 메모에 없는 내용 포함 여부 측정."""
@@ -161,7 +126,7 @@ def eval_hallucination(golden: list, chain: RecordChain, llm) -> dict:
 
         # (2) NLI-style LLM Judge
         prompt = f"[메모] {item['memo']}\n[윤문] {polished}"
-        messages = NLI_TPL.build(prompt)
+        messages = FACT_CHECK_TPL.build(prompt)
         raw = _run_async(llm.generate(messages)).strip().upper()
         if raw.startswith("YES"):
             nli_fn += 1
@@ -204,6 +169,8 @@ def eval_violation_detection(golden: list, chain: RecordChain) -> dict:
             "pii_found": [],
             "polished": item["text"],
             "violations": [],
+            "generated_pii": [],
+            "validation_status": "pending",
             "attempt": 0,
         }
         result = _run_async(chain._step_validate(state))
@@ -268,10 +235,15 @@ def print_report(mask: dict, halluc: dict, viol: dict, reg_retrieval: dict):
     print(f"  Recall@5  : {reg_retrieval['recall_at_5']:.3f}")
     print(f"  MRR       : {reg_retrieval['mrr']:.3f}")
 
-    all_ok = fn_rate == 0.0 and k_rate == 0.0 and viol["recall"] >= 0.95
+    all_ok = (
+        fn_rate == 0.0
+        and k_rate == 0.0
+        and n_rate == 0.0
+        and viol["recall"] >= 0.95
+    )
     print(f"\n  전체 통과 : {check(all_ok)}")
     print("\n" + "=" * 55)
-    print("※ 개발 모델(1.5b) 기준. 7B(RunPod)에서 재평가 권장.")
+    print(f"※ 실행 모델: {_TRACE_META['model']} ({_TRACE_META['backend']})")
     print("=" * 55)
 
 

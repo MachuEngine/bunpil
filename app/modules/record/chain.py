@@ -5,13 +5,13 @@
 """
 import logging
 import re
-from typing import List, TypedDict
+from typing import List, Literal, TypedDict
 
 from app.common.llm import get_llm_backend
 from app.common.rag import get_retriever, get_store
 
 from .masker import mask_pii
-from .prompts import POLISH_TPL, VALIDATE_TPL
+from .prompts import FACT_CHECK_TPL, POLISH_TPL, VALIDATE_TPL
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +64,8 @@ class RecordState(TypedDict):
     pii_found: List[str]
     polished: str
     violations: List[str]
+    generated_pii: List[str]
+    validation_status: Literal["pending", "passed", "violations_found", "unavailable"]
     attempt: int
 
 
@@ -72,6 +74,7 @@ class RecordOutput(TypedDict):
     pii_found: List[str]
     polished: str
     violations: List[str]
+    validation_status: Literal["passed", "violations_found", "unavailable"]
     warning: str
 
 
@@ -97,34 +100,107 @@ class RecordChain:
 
     async def _step_polish(self, state: RecordState) -> RecordState:
         """② 마스킹된 메모로 윤문 생성."""
-        messages = POLISH_TPL.build(state["masked"])
+        user_input = state["masked"]
+        if state["violations"]:
+            feedback = "\n".join(f"- {v}" for v in state["violations"])
+            user_input = (
+                f"[메모]\n{state['masked']}\n\n"
+                f"[이전 검증 결과 — 아래 문제를 고쳐 다시 윤문]\n{feedback}"
+            )
+        messages = POLISH_TPL.build(user_input)
         raw = await self._llm.generate(messages)
-        polished = raw.strip()
-        return {**state, "polished": polished}
+        polished, generated_pii = mask_pii(raw.strip())
+        pii_found = list(dict.fromkeys([*state["pii_found"], *generated_pii]))
+        return {
+            **state,
+            "polished": polished,
+            "pii_found": pii_found,
+            "generated_pii": generated_pii,
+            "validation_status": "pending",
+        }
 
     async def _step_validate(self, state: RecordState) -> RecordState:
-        """③ 규정 RAG 검증 — 하이브리드(규칙+LLM) 위반 플래그 추출."""
+        """③ 사실보존·규정 검증. 검증 실패는 통과시키지 않는다."""
         # 1단계: 결정론적 규칙 기반 (빠르고 확실한 패턴)
         violations: List[str] = _rule_violations(state["polished"])
+        if state["generated_pii"]:
+            violations.append(
+                f"VIOLATION: 윤문 결과에 개인정보({', '.join(state['generated_pii'])}) 생성"
+            )
+        if violations:
+            return {
+                **state,
+                "violations": violations,
+                "validation_status": "violations_found",
+            }
 
-        # 2단계: LLM 기반 (뉘앙스·복합 위반)
+        # 2단계: 원 메모 대비 새로운 사실 추가 여부 확인
+        try:
+            fact_prompt = f"[메모] {state['masked']}\n[윤문] {state['polished']}"
+            fact_raw = (await self._llm.generate(FACT_CHECK_TPL.build(fact_prompt))).strip().upper()
+        except Exception:
+            logger.warning("사실보존 검증 실패 — 결과를 통과시키지 않습니다.")
+            return {
+                **state,
+                "violations": ["VALIDATION_UNAVAILABLE: 사실보존 검증 실패"],
+                "validation_status": "unavailable",
+            }
+
+        if fact_raw.startswith("YES"):
+            return {
+                **state,
+                "violations": ["VIOLATION: 메모에 없는 새로운 사실이 추가됨"],
+                "validation_status": "violations_found",
+            }
+        if not fact_raw.startswith("NO"):
+            logger.warning("사실보존 검증 응답 형식 오류 — 결과를 통과시키지 않습니다.")
+            return {
+                **state,
+                "violations": ["VALIDATION_UNAVAILABLE: 사실보존 검증 응답 형식 오류"],
+                "validation_status": "unavailable",
+            }
+
+        # 3단계: 규정 RAG + LLM 검증
+        if self._store.count(REGULATION_COLLECTION) == 0:
+            logger.warning("regulations 컬렉션이 비어있어 결과를 통과시키지 않습니다.")
+            return {
+                **state,
+                "violations": ["VALIDATION_UNAVAILABLE: 규정 자료 없음"],
+                "validation_status": "unavailable",
+            }
+
         try:
             results = self._retriever.retrieve(
                 state["polished"], REGULATION_COLLECTION, top_k=3, n_candidates=10
             )
-            if results:
-                reg_text = "\n".join(r["text"] for r in results[:3])
-                prompt = f"[규정]\n{reg_text}\n\n[문장]\n{state['polished']}"
-                messages = VALIDATE_TPL.build(prompt)
-                raw = (await self._llm.generate(messages)).strip()
-                if not raw.upper().startswith("OK"):
-                    violations.append(raw)
-            else:
-                logger.warning("regulations 컬렉션이 비어있어 LLM 검증을 건너뜁니다.")
+            if not results:
+                raise RuntimeError("규정 검색 결과 없음")
+            reg_text = "\n".join(r["text"] for r in results[:3])
+            prompt = f"[규정]\n{reg_text}\n\n[문장]\n{state['polished']}"
+            raw = (await self._llm.generate(VALIDATE_TPL.build(prompt))).strip()
         except Exception:
-            logger.warning("regulations 검색 실패 — LLM 검증을 건너뜁니다.")
+            logger.warning("규정 검증 실패 — 결과를 통과시키지 않습니다.")
+            return {
+                **state,
+                "violations": ["VALIDATION_UNAVAILABLE: 규정 검증 실패"],
+                "validation_status": "unavailable",
+            }
 
-        return {**state, "violations": violations}
+        normalized = raw.upper()
+        if normalized.startswith("OK"):
+            return {**state, "violations": [], "validation_status": "passed"}
+        if normalized.startswith("VIOLATION"):
+            return {
+                **state,
+                "violations": [raw],
+                "validation_status": "violations_found",
+            }
+        logger.warning("규정 검증 응답 형식 오류 — 결과를 통과시키지 않습니다.")
+        return {
+            **state,
+            "violations": ["VALIDATION_UNAVAILABLE: 규정 검증 응답 형식 오류"],
+            "validation_status": "unavailable",
+        }
 
     # ── 공개 API ────────────────────────────────────────────────────
 
@@ -136,24 +212,28 @@ class RecordChain:
             "pii_found": [],
             "polished": "",
             "violations": [],
+            "generated_pii": [],
+            "validation_status": "pending",
             "attempt": 0,
         }
 
         # mask 는 한 번만
         state = self._step_mask(state)
 
-        for attempt in range(max_retry):
+        for attempt in range(max(1, max_retry)):
             state["attempt"] = attempt
             state = await self._step_polish(state)
             state = await self._step_validate(state)
-            if not state["violations"]:
+            if state["validation_status"] in ("passed", "unavailable"):
                 break
 
+        safe_to_return = state["validation_status"] == "passed"
         return RecordOutput(
             masked_memo=state["masked"],
             pii_found=state["pii_found"],
-            polished=state["polished"],
+            polished=state["polished"] if safe_to_return else "",
             violations=state["violations"],
+            validation_status=state["validation_status"],
             warning=WARNING,
         )
 

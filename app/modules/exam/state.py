@@ -25,5 +25,6 @@ class ExamState(TypedDict):
     budget: int              # 남은 재시도 횟수
     agent_messages: list     # 에이전트 메시지 (agent 노드가 교체)
     validation_passed: bool
+    validation_feedback: str  # 재시도 시 agent가 실제 문항을 교정하도록 전달하는 실패 사유
     similarity_judge_result: dict  # {"type_ratio_score": float, "difficulty_match": bool, "overall_score": int} — count_match는 코드가 spec["num_items"]로 별도 검증(validate_node)
     error: str

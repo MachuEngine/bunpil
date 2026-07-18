@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-"""Phase 2 LLM 추상화 레이어 검증: Ollama 로컬 → 응답 수신, 백엔드 전환 확인."""
+"""Phase 2 LLM 추상화 레이어 연결 검증: 응답 수신과 백엔드 선택만 확인한다.
+
+응답 내용의 사실 정확도는 이 스크립트 범위가 아니며 eval 스크립트가 담당한다.
+"""
 import asyncio
 import os
 import sys
@@ -37,7 +40,9 @@ async def main():
     print("[생성 중...]")
     response = await llm.generate(messages)
     print(f"[응답]\n{response}\n")
-    print("\n[완료] Phase 2 LLM 추상화 레이어 검증 통과")
+    if not response.strip():
+        raise RuntimeError("LLM 응답이 비어 있습니다.")
+    print("\n[완료] Phase 2 LLM 추상화 레이어 연결 검증 통과")
 
 
 asyncio.run(main())

@@ -46,15 +46,24 @@ def plan_node(state: ExamState) -> dict:
     문항을 유지한 채 reset_judge()만 호출한다(부분 진행을 재시도마다 버리지 않기 위함,
     2026-07-10 개선. 이전에는 agent_node가 매 재시도마다 init_session()으로 전체
     초기화를 했었음). passage_text는 save_item의 원문 복사 게이트가 참조."""
-    init_session(state["spec"].get("passage_text", ""))
+    init_session(
+        state["spec"].get("passage_text", ""),
+        state["spec"].get("num_items", 5),
+    )
     return {
         "validation_passed": False,
         "similarity_judge_result": {},
+        "validation_feedback": "",
         "error": "",
     }
 
 
-def _build_system_prompt(passage_text: str, num_items: int, existing_items: list) -> str:
+def _build_system_prompt(
+    passage_text: str,
+    num_items: int,
+    existing_items: list,
+    validation_feedback: str = "",
+) -> str:
     no_text_rule = (
         "**매우 중요한 규칙**: 이 대화 내내 도구 호출(tool call) 외에는 어떤 텍스트도 "
         "출력하지 마세요. 인사, 생각 과정 설명, 진행 상황 서술, 문항 초안을 텍스트로 "
@@ -64,7 +73,8 @@ def _build_system_prompt(passage_text: str, num_items: int, existing_items: list
 
     def _summary(items):
         return "\n".join(
-            f"  {i+1}. [{it.get('item_type','?')}/{it.get('difficulty','?')}] {str(it.get('question',''))[:40]}"
+            f"  {i+1}. [id={it.get('item_id','?')}, {it.get('item_type','?')}/{it.get('difficulty','?')}, "
+            f"score={it.get('judge_score', 0)}] {str(it.get('question',''))[:40]}"
             for i, it in enumerate(items)
         )
 
@@ -90,16 +100,25 @@ def _build_system_prompt(passage_text: str, num_items: int, existing_items: list
             "예시 문제 스타일·난이도를 참고해 구성하세요."
         )
         action_instruction = f"나머지 {remaining}개 문항마다 다음 순서로 도구를 호출하세요:"
-    else:
-        # 개수는 이미 채워졌지만(remaining<=0) 구조 유사도 등 다른 기준으로 재시도된 경우.
-        # 이미 만든 문항을 유지한 채 similarity_judge만 다시 호출하도록 안내한다
-        # (개별 문항 수정/교체 기능은 아직 없음 — 알려진 한계, TROUBLESHOOTING.md 참고).
-        progress_note = f"\n\n목표 개수({num_items}개)는 이미 채워져 있습니다:\n{_summary(existing_items)}\n"
+    elif remaining < 0:
+        progress_note = f"\n\n목표보다 많은 {len(existing_items)}개 문항이 저장돼 있습니다:\n{_summary(existing_items)}\n"
         count_instruction = (
-            "새 문항을 추가로 작성하지 마세요. 위 문항 세트를 검토한 뒤 "
-            "similarity_judge 도구만 다시 호출해 구조적 유사도를 재평가하세요."
+            f"목표는 {num_items}개입니다. discard_item으로 초과 문항 {abs(remaining)}개를 폐기한 뒤 "
+            "남은 세트를 similarity_judge로 평가하세요. 새 문항을 추가하지 마세요."
         )
-        action_instruction = "바로 similarity_judge 도구를 호출하세요:"
+        action_instruction = "초과 문항을 폐기하고 similarity_judge를 호출하세요:"
+    else:
+        progress_note = f"\n\n목표 개수({num_items}개)는 이미 채워져 있습니다:\n{_summary(existing_items)}\n"
+        if validation_feedback:
+            count_instruction = (
+                f"이전 검증 실패 사유: {validation_feedback}\n"
+                "단순 재채점만 하지 마세요. 실패 사유에 해당하는 문항을 discard_item으로 폐기하고, "
+                "유형·난이도·품질을 교정한 새 문항을 저장·채점한 뒤 similarity_judge를 다시 호출하세요."
+            )
+            action_instruction = "문항을 실제로 교체한 뒤 similarity_judge를 호출하세요:"
+        else:
+            count_instruction = "새 문항을 추가하지 말고 similarity_judge로 세트를 평가하세요."
+            action_instruction = "바로 similarity_judge 도구를 호출하세요:"
 
     return (
         "당신은 한국 고등학교 사회 문항 출제 전문가 에이전트입니다. 한국어로만 응답하세요.\n\n"
@@ -114,7 +133,8 @@ def _build_system_prompt(passage_text: str, num_items: int, existing_items: list
         "3. validate_item_format — 직접 구성한 문항의 형식 검증\n"
         "   (오류가 있으면 수정 후 재검증, 통과할 때까지 반복)\n"
         "4. save_item — 검증 통과한 문항 저장\n"
-        "5. record_score — 품질 자체 평가 (0~5점)\n\n"
+        "5. save_item 응답을 받은 다음 턴에 record_score — 반환된 item_id와 품질 점수(0~5점) 기록\n"
+        "6. [교체 시] discard_item — 기존 문항을 폐기한 뒤 새 문항 저장\n\n"
         "문항 세트 작성이 모두 끝나면 similarity_judge 도구를 호출해 "
         "예시 문제와의 구조적 유사도(유형 비율·난이도 구성)를 스스로 평가하세요. "
         "(문항 개수 일치 여부는 이 도구가 아니라 시스템이 자동으로 검증합니다.)\n\n"
@@ -144,7 +164,12 @@ def agent_node(state: ExamState) -> dict:
     num_items = spec.get("num_items", 5)
     existing_items = get_draft_items()
 
-    system_prompt = _build_system_prompt(passage_text, num_items, existing_items)
+    system_prompt = _build_system_prompt(
+        passage_text,
+        num_items,
+        existing_items,
+        state.get("validation_feedback", ""),
+    )
     user_content = "위 지침에 따라 문항을 작성하세요."
     if standards:
         user_content += f"\n\n참고 성취기준: {', '.join(standards)}"
@@ -164,10 +189,19 @@ def agent_node(state: ExamState) -> dict:
         messages.append(response)
 
         if not getattr(response, "tool_calls", []):
-            if _looks_like_broken_tool_call(response.content) and malformed_streak < 2:
+            incomplete = (
+                len(get_draft_items()) != num_items
+                or not get_judge_result()
+            )
+            if incomplete and malformed_streak < 3:
                 malformed_streak += 1
+                reason = (
+                    "도구 호출 형식이 손상되었습니다."
+                    if _looks_like_broken_tool_call(response.content)
+                    else "아직 목표 문항 저장과 구조 평가가 끝나지 않았습니다."
+                )
                 messages.append(HumanMessage(
-                    content="방금 응답의 도구 호출 형식이 손상되었습니다. 설명 없이, "
+                    content=f"{reason} 설명 없이, "
                     "정확한 tool call 형식으로 다시 시도하세요."
                 ))
                 continue
@@ -207,15 +241,37 @@ def validate_node(state: ExamState) -> dict:
     judge = state.get("similarity_judge_result", {})
     draft_items = get_draft_items()
     count_match = len(draft_items) == state["spec"].get("num_items", 5)
+    rejected_ids = [
+        item.get("item_id", "") for item in draft_items if item.get("status") != "approved"
+    ]
+    all_approved = not rejected_ids
     passed = (
         count_match
+        and all_approved
         and judge.get("type_ratio_score", 0) >= 0.7
         and judge.get("difficulty_match", False)
         and judge.get("overall_score", 0) >= 4
     )
+    feedback = []
+    if not count_match:
+        feedback.append(
+            f"문항 개수 불일치(목표 {state['spec'].get('num_items', 5)}개, 현재 {len(draft_items)}개)"
+        )
+    if rejected_ids:
+        feedback.append(f"품질 점수 미달 또는 미채점 문항: {', '.join(rejected_ids)}")
+    if not judge:
+        feedback.append("similarity_judge 미호출")
+    else:
+        if judge.get("type_ratio_score", 0) < 0.7:
+            feedback.append("유형 비율 유사도 미달")
+        if not judge.get("difficulty_match", False):
+            feedback.append("난이도 구성 불일치")
+        if judge.get("overall_score", 0) < 4:
+            feedback.append("종합 구조 유사도 점수 미달")
     return {
         "draft_items": draft_items,
         "validation_passed": passed,
+        "validation_feedback": "; ".join(feedback),
     }
 
 
