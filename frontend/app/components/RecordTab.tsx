@@ -8,6 +8,7 @@ interface RecordOutput {
   pii_found: string[];
   polished: string;
   violations: string[];
+  validation_status: "passed" | "violations_found" | "unavailable";
   warning: string;
 }
 
@@ -149,20 +150,33 @@ export default function RecordTab() {
             <div className="rounded-xl border border-[#DBDCD2] bg-white p-4">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-[13px] font-medium text-[#6E7469]">윤문 결과</p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopy}
-                >
-                  {copied ? "복사됨 ✓" : "복사"}
-                </Button>
+                {result.polished && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopy}
+                  >
+                    {copied ? "복사됨 ✓" : "복사"}
+                  </Button>
+                )}
               </div>
               <p className="text-[14px] text-[#1C2620] whitespace-pre-wrap leading-relaxed">
-                {result.polished}
+                {result.polished || "안전 검증을 통과한 윤문 결과가 없습니다."}
               </p>
             </div>
 
-            {result.violations.length > 0 ? (
+            {result.validation_status === "unavailable" ? (
+              <div className="rounded-xl bg-[#F5EBD8] p-4 space-y-1">
+                <p className="text-[13px] font-medium text-[#93601F] mb-1">
+                  안전 검증을 완료할 수 없어 결과를 숨겼습니다
+                </p>
+                {result.violations.map((v, i) => (
+                  <p key={i} className="text-[13px] text-[#93601F]">
+                    · {v}
+                  </p>
+                ))}
+              </div>
+            ) : result.violations.length > 0 ? (
               <div className="rounded-xl bg-[#F7E9E4] p-4 space-y-1">
                 <p className="text-[13px] font-medium text-[#A63B2E] mb-1">
                   규정 검증 결과 — 위반 발견
