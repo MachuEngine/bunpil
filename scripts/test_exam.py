@@ -26,7 +26,9 @@ PASSAGE_TEXT = """\
 def main() -> None:
     # num_items를 예시 문제 자체의 문항 수(2개)와 다르게 줘서, 생성 개수가
     # 예시 개수가 아니라 num_items를 따르는지(count_match 디커플링) 검증한다.
-    num_items = 3
+    # 라이브 모델 smoke test는 tool-call 경로 자체를 안정적으로 확인하도록 1개만 생성한다.
+    # 다문항 개수·교체 게이트는 tests/test_exam_*.py의 결정론적 테스트가 담당한다.
+    num_items = 1
     spec: ExamSpec = {
         "passage_text": PASSAGE_TEXT,
         "standards": ["민주주의 핵심 원리 이해"],

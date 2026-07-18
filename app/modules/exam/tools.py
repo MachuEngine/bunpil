@@ -1,7 +1,6 @@
 import contextvars
 import logging
 import re
-import threading
 import uuid
 
 logger = logging.getLogger(__name__)
@@ -14,9 +13,7 @@ from app.common.rag import get_retriever, get_store
 # _request_ctx: 요청별 독립 dict. asyncio.to_thread + contextvars.copy_context()로
 # 요청 간 격리 보장. 같은 요청의 worker 스레드들은 동일 dict 객체를 공유하므로
 # intra-request 가시성 유지 (GIL로 단순 list/dict 연산은 안전).
-# last_id: 스레드별 분리 — 병렬 생성 시 레이스 컨디션 방지
 _request_ctx: contextvars.ContextVar[dict] = contextvars.ContextVar("_request_ctx")
-_thread_local = threading.local()
 
 _HANGUL_RE = re.compile(r"[가-힣]")
 _HAN_RE = re.compile(r"[一-鿿]")  # CJK 한자 (중국어 오염 검출용)
@@ -26,7 +23,7 @@ def _get_ctx() -> dict:
     return _request_ctx.get()
 
 
-def init_session(passage_text: str = "") -> None:
+def init_session(passage_text: str = "", target_num: int = 0) -> None:
     # LangGraph는 각 노드를 context.run()으로 격리 실행하므로
     # plan_node 내에서 set()한 새 dict가 agent_node에 전파되지 않는다.
     # 해결: asyncio.to_thread 호출 전 main.py에서 먼저 set()으로 dict를 생성하고,
@@ -38,12 +35,14 @@ def init_session(passage_text: str = "") -> None:
         ctx["scores"] = {}
         ctx["judge_result"] = {}
         ctx["passage_text"] = passage_text
+        ctx["target_num"] = target_num
     except LookupError:
         _request_ctx.set({
             "items": [],
             "scores": {},
             "judge_result": {},
             "passage_text": passage_text,
+            "target_num": target_num,
         })
 
 
@@ -113,10 +112,20 @@ def validate_item_format(question: str, options: list, answer: str, item_type: s
     answer: 정답 (객관식: "①"~"④", 서술형: "")
     item_type: 객관식|서술형
     """
+    errors = _format_errors(question, options, answer, item_type)
+    if errors:
+        return "형식 오류 — 수정 필요: " + " / ".join(errors)
+    return "형식 검증 통과"
+
+
+def _format_errors(question: str, options: list, answer: str, item_type: str) -> list[str]:
+    """validate/save가 함께 사용하는 결정론적 형식 검증."""
     errors = []
     if not question or len(question.strip()) < 10:
         errors.append("질문이 너무 짧습니다 (10자 이상 필요)")
-    if item_type == "객관식":
+    if item_type not in ("객관식", "서술형"):
+        errors.append(f"문항 유형은 객관식 또는 서술형이어야 합니다 (현재: '{item_type}')")
+    elif item_type == "객관식":
         if len(options) != 4:
             errors.append(f"선지는 4개여야 합니다 (현재 {len(options)}개)")
         marks = ["①", "②", "③", "④"]
@@ -126,9 +135,9 @@ def validate_item_format(question: str, options: list, answer: str, item_type: s
             if not str(opt).startswith(marks[i]):
                 errors.append(f"선지 {i+1}번이 '{marks[i]}'로 시작해야 합니다")
                 break
-    if errors:
-        return "형식 오류 — 수정 필요: " + " / ".join(errors)
-    return "형식 검증 통과"
+    elif options:
+        errors.append("서술형 문항의 options는 빈 목록이어야 합니다")
+    return errors
 
 
 def _check_korean(question: str, options: list, answer: str) -> str | None:
@@ -196,6 +205,20 @@ def save_item(question: str, options: list, answer: str, item_type: str, difficu
     difficulty: 상|중|하
     standard: 성취기준명 (선택)
     """
+    format_errors = _format_errors(question, options, answer, item_type)
+    if difficulty not in ("상", "중", "하"):
+        format_errors.append(f"난이도는 상·중·하 중 하나여야 합니다 (현재: '{difficulty}')")
+    if format_errors:
+        return "저장 거부 — 형식 오류: " + " / ".join(format_errors)
+
+    ctx = _get_ctx()
+    target_num = ctx.get("target_num", 0)
+    if target_num and len(ctx["items"]) >= target_num:
+        return (
+            f"저장 거부 — 목표 문항 수({target_num}개)를 이미 채웠습니다. "
+            "교체가 필요하면 discard_item으로 기존 문항을 먼저 폐기하세요."
+        )
+
     rejection = _check_korean(question, options, answer) or _check_similarity(question)
     if rejection:
         return rejection
@@ -209,20 +232,33 @@ def save_item(question: str, options: list, answer: str, item_type: str, difficu
         "difficulty": difficulty,
         "standard": standard,
     }
-    _thread_local.last_id = item_id
-    _get_ctx()["items"].append(item)
-    return f"저장 완료 (item_id={item_id})"
+    ctx["items"].append(item)
+    return f"저장 완료 (item_id={item_id}). 다음 턴에 이 item_id로 record_score를 호출하세요."
 
 
 @tool
-def record_score(score: int) -> str:
+def record_score(item_id: str, score: int) -> str:
     """문항 품질 점수를 기록합니다. 에이전트가 직접 평가한 점수를 입력합니다.
+    item_id: save_item이 반환한 문항 ID
     score: 0~5 (5=매우 우수, 4=우수, 3=보통, 2=미흡, 1=불량, 0=생성 실패)
     """
-    item_id = getattr(_thread_local, "last_id", "")
-    if item_id:
-        _get_ctx()["scores"][item_id] = float(max(0, min(5, int(score))))
+    ctx = _get_ctx()
+    if not any(item.get("item_id") == item_id for item in ctx["items"]):
+        return f"점수 기록 거부 — 존재하지 않는 item_id: {item_id}"
+    ctx["scores"][item_id] = float(max(0, min(5, int(score))))
     return f"품질 점수 {score}/5 기록됨"
+
+
+@tool
+def discard_item(item_id: str) -> str:
+    """검증에 실패한 기존 문항을 폐기합니다. 교체할 문항의 item_id를 입력하세요."""
+    ctx = _get_ctx()
+    for index, item in enumerate(ctx["items"]):
+        if item.get("item_id") == item_id:
+            ctx["items"].pop(index)
+            ctx["scores"].pop(item_id, None)
+            return f"문항 폐기 완료 (item_id={item_id})"
+    return f"문항 폐기 거부 — 존재하지 않는 item_id: {item_id}"
 
 
 @tool
@@ -254,5 +290,6 @@ TOOLS = [
     validate_item_format,
     save_item,
     record_score,
+    discard_item,
     similarity_judge,
 ]
