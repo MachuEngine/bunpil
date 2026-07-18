@@ -82,18 +82,19 @@ flowchart LR
 | 생기부 체인 | LangChain (수동 루프) |
 | RAG | ChromaDB + BGE-M3 임베딩 + BGE-reranker (모두 CPU) |
 | LLM 서빙 | Ollama (개발) / RunPod 서버리스 vLLM (프로덕션) |
-| 트레이싱 | LangSmith (선택, `LANGCHAIN_TRACING_V2=true` 시 자동 활성화) |
+| 트레이싱 | LangSmith (합성 데이터 평가 스크립트에서만 선택) |
 | 배포 | AWS EC2 t3.medium + EBS + RunPod 서버리스 + Caddy HTTPS |
 
 ### 출제 모듈 — ReAct 에이전트
 
-에이전트(LLM)가 추론과 문항 생성을 **직접** 담당하고, 도구 6개는 검색·저장·검증의 **순수 계산**만 수행합니다(도구 내부 LLM 호출 없음 — LLM을 도구 안에 중첩하는 안티패턴 제거).
+에이전트(LLM)가 추론과 문항 생성을 **직접** 담당하고, 도구 7개는 검색·저장·검증의 **순수 계산**만 수행합니다(도구 내부 LLM 호출 없음 — LLM을 도구 안에 중첩하는 안티패턴 제거).
 
 | 도구 | 역할 |
 |---|---|
 | `search_standards` / `search_regulations` | 성취기준·법령 RAG 검색 |
 | `validate_item_format` | 선지 4개·①②③④ 형식 등 결정론적 형식 검증 (오류 시 수정 지침 반환 → 자기교정) |
 | `save_item` | 문항 저장 — 한국어 검증 게이트 통과 시에만 저장 |
+| `discard_item` | 승인 불가 문항을 ID로 폐기 |
 | `record_score` | 문항 품질 자체 평가 기록 |
 | `similarity_judge` | 세트 완성 후 예시 문제와의 구조 유사도 자체 평가 |
 
@@ -157,8 +158,8 @@ flowchart LR
     Memo["📄 교사 관찰 메모"]
     Mask["1️⃣ mask_pii<br/>정규식 · 모델 호출 전"]
     Polish["2️⃣ polish<br/>Few-shot 문체 교정"]
-    Validate["3️⃣ validate<br/>규칙 + RAG 규정 검증"]
-    Out["✅ 교정 문장<br/>+ 위반 플래그 + 책임 고지"]
+    Validate["3️⃣ validate<br/>규정 + 사실보존 검증"]
+    Out["✅ 안전 출력 또는 출력 보류<br/>+ 사유 + 책임 고지"]
 
     Memo --> Mask --> Polish --> Validate --> Out
 
@@ -182,7 +183,7 @@ data: {"status": "progress",  "msg": "AI가 문항을 생성하고 있습니다.
 data: {"status": "progress",  "msg": "생성된 문항의 구조적 유사도를 검증하고 있습니다..."}
 data: {"status": "progress",  "msg": "문항 세트를 다시 생성하고 있습니다 (2번째 시도)..."}  # 재시도(최대 5회)마다
 data: {"status": "done",      "items": [...], "validation_passed": true, "truncated": false}
-data: {"status": "error",     "msg": "...", "detail": "..."}  # 예외 발생 시
+data: {"status": "error",     "msg": "요청을 처리하지 못했습니다."}  # 내부 상세는 노출하지 않음
 ```
 
 <details>
@@ -211,7 +212,7 @@ LLM의 자기 평가는 "기록"까지만 — 그것으로 무엇을 할지는 �
 ReAct 도구 내부에 LLM 호출이 없습니다. 추론·생성은 에이전트가 직접, 도구는 검색·저장·검증만.
 
 **3. 보안 하드룰 (예외 없음).**
-실제 학생 데이터 미사용(전부 합성/익명) · PII 마스킹은 모델 호출 **이전** · 사용자 입력(메모·예시 문제) 비저장(요청 처리 중에만 메모리에 존재) · 로그·캐시에 PII 금지 · 생기부는 메모에 없는 사실 추가 금지("생성"이 아닌 "다듬기") + 교사 책임 고지.
+실제 학생 데이터 미사용(전부 합성/익명) · PII 마스킹은 모델 호출 **이전** · 사용자 입력(메모·예시 문제) 비저장(요청 처리 중에만 메모리에 존재) · API 런타임 트레이싱 비활성화 · 로그·캐시에 PII 금지 · Next.js→FastAPI 서버 간 API 키 인증 · 생기부는 메모에 없는 사실 추가 금지("생성"이 아닌 "다듬기") + 안전 검증 실패 시 출력 보류 + 교사 책임 고지.
 
 **4. 평가 기반 개발.**
 골든셋은 코드에 하드코딩하지 않고 전부 `data/golden/*.json`으로 관리하며(파일별 용도는 [data/golden/README.md](./data/golden/README.md)), 모델·프롬프트 변경마다 [EVAL.md](./EVAL.md)에 결과 이력을 남깁니다.
@@ -386,16 +387,16 @@ ollama serve
 
 # 터미널 2 — FastAPI (API 전용, 포트 8765)
 # Windows
-$env:LLM_BACKEND="local"; $env:OLLAMA_MODEL="qwen2.5:7b"
-.venv\Scripts\python.exe -m uvicorn app.main:app --port 8765
+$env:BUNPIL_API_KEY="replace_with_a_long_random_value"; $env:LLM_BACKEND="local"; $env:OLLAMA_MODEL="qwen2.5:7b"
+.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8765
 
 # macOS / Linux
-LLM_BACKEND=local OLLAMA_MODEL=qwen2.5:7b .venv/bin/python -m uvicorn app.main:app --port 8765
+BUNPIL_API_KEY=replace_with_a_long_random_value LLM_BACKEND=local OLLAMA_MODEL=qwen2.5:7b .venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8765
 
 # 터미널 3 — 프론트엔드 (Next.js, 포트 3000)
 cd frontend
 npm install    # 최초 1회
-BACKEND_URL=http://localhost:8765 npm run dev
+BUNPIL_API_KEY=replace_with_a_long_random_value BACKEND_URL=http://localhost:8765 npm run dev
 ```
 
 브라우저에서 **http://localhost:3000** 접속(프론트엔드 포트 — `frontend/app/api/*/route.ts`가 `BACKEND_URL`로 FastAPI에 프록시). `BACKEND_URL` 미설정 시 기본값은 `http://localhost:8000`이라 위처럼 8765로 맞춰줘야 합니다.
@@ -475,6 +476,7 @@ docker run -d --name bunpil \
 docker run -d --name bunpil-frontend \
   --network bunpil-net \
   -p 3000:3000 \
+  -e BUNPIL_API_KEY='<FastAPI와 동일한 값>' \
   -e BACKEND_URL=http://bunpil:8765 \
   jongmin0826/bunpil-frontend:latest
 
@@ -522,7 +524,7 @@ bunpil/
 │   │   ├── llm/          # LLM 추상화 (OllamaBackend / RunPodBackend / ChatRunPod)
 │   │   └── rag/          # PDF 파싱, 임베딩, 리랭킹, ChromaDB
 │   ├── modules/
-│   │   ├── exam/         # 출제 모듈 (LangGraph ReAct Agent, 6개 도구)
+│   │   ├── exam/         # 출제 모듈 (LangGraph ReAct Agent, 7개 도구)
 │   │   └── record/       # 생기부 모듈 (수동 루프 Chain)
 │   └── main.py           # FastAPI (/exam/stream + /record)
 ├── frontend/             # Next.js UI
@@ -549,6 +551,7 @@ bunpil/
 
 | 변수 | 설명 | 기본값 |
 |---|---|---|
+| `BUNPIL_API_KEY` | Next.js → FastAPI 서버 간 인증 키(양쪽에 동일한 긴 무작위 값 설정) | 필수 |
 | `LLM_BACKEND` | `local` 또는 `runpod` | `local` |
 | `OLLAMA_MODEL` | 로컬 개발 생성 모델명 | `qwen2.5:7b` |
 | `OLLAMA_JUDGE_MODEL` | 로컬 개발 Judge 모델명 (미설정 시 `OLLAMA_MODEL`로 폴백) | — (선택) |
@@ -558,6 +561,6 @@ bunpil/
 | `CHROMA_PERSIST_DIR` | ChromaDB 저장 경로 | `/data/chroma_db` (EC2) / `./chroma_db` (로컬) |
 | `BGE_EMBED_MODEL` | 임베딩 모델명 | `BAAI/bge-m3` |
 | `BGE_RERANK_MODEL` | 리랭킹 모델명 | `BAAI/bge-reranker-base` |
-| `LANGCHAIN_TRACING_V2` | LangSmith 트레이싱 활성화 (`true` / `false`) | — (선택) |
+| `LANGCHAIN_TRACING_V2` | 합성 데이터 평가 스크립트의 LangSmith 트레이싱 (`true` / `false`). API 서버에서는 강제 비활성화 | `false` |
 | `LANGCHAIN_API_KEY` | LangSmith API 키 | — (선택) |
 | `LANGCHAIN_PROJECT` | LangSmith 프로젝트 베이스명 — 기본값('bunpil') 유지 시 `LLM_BACKEND`에 따라 `-dev`(local, 순수 로컬 개발) 또는 `-prod`(runpod/openai 등 실제 서빙 백엔드) 접미사가 자동으로 붙음(`app/common/llm/tracing.py`). 로컬 개발 노이즈가 프로덕션 통계를 오염시키지 않도록 분리. 'bunpil'이 아닌 값을 직접 설정하면 그대로 override | `bunpil` → `bunpil-dev` / `bunpil-prod` |

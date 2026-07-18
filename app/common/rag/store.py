@@ -1,12 +1,21 @@
 import os
 
 import chromadb
+from chromadb.config import Settings
 
 
 class RAGStore:
     def __init__(self):
         persist_dir = os.getenv("CHROMA_PERSIST_DIR", "./chroma_db")
-        self.client = chromadb.PersistentClient(path=persist_dir)
+        self.client = chromadb.PersistentClient(
+            path=persist_dir,
+            settings=Settings(
+                anonymized_telemetry=False,
+                chroma_product_telemetry_impl=(
+                    "app.common.rag.telemetry.NoOpProductTelemetry"
+                ),
+            ),
+        )
 
     def _collection(self, name: str):
         return self.client.get_or_create_collection(

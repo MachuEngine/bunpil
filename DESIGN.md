@@ -37,6 +37,7 @@
 | 법령 검색 | `search_regulations` — 교육과정 준수 사항 검색 | ChromaDB + Rerank |
 | 형식 검증 | `validate_item_format` — 문항 형식 자기교정 | 함수 |
 | 저장 | `save_item` — 검증 통과 문항 저장 | 함수 |
+| 폐기 | `discard_item` — 승인 불가 문항을 ID로 제거 | 함수 |
 | 자체 채점 | `record_score` — 품질 자체 평가 기록 | 함수 |
 | 구조 유사도 판단 | `similarity_judge` — 예시 문제와의 구조 유사도 자체 평가 | LLM as Judge |
 
@@ -58,14 +59,14 @@ budget:                  남은 재시도 횟수 (세트 전체 단위, 무한�
 ### 모듈 ③ 생기부 윤문 도우미 — 검증 Chain (LCEL)
 
 ```
-관찰 메모 입력 → 개인정보 마스킹 → 윤문 생성 → 규정 검증 → 출력 + 책임 고지
-                                                  └ 위반 시 윤문으로 재시도
+관찰 메모 입력 → 개인정보 마스킹 → 윤문 생성 → 규정·사실보존 검증 → 안전 출력 + 책임 고지
+                                                       └ 위반 시 재시도, 해소 실패 시 출력 보류
 ```
 
 - **입력**: 교사가 직접 작성한 관찰 메모만 (학생 작성·제출분 금지)
 - **윤문**: 생성이 아닌 "다듬기" — 메모에 없는 사실 추가 금지
-- **규정 검증**: 규정 RAG로 학교명 노출·과장·금지표현 대조
-- **출력**: 교사 최종 책임 고지(보조수단) 명시
+- **규정·사실 검증**: 규정 RAG로 학교명 노출·과장·금지표현을 대조하고 NLI식 검증으로 메모에 없는 사실 추가를 차단
+- **출력**: 모든 검증을 통과한 문장만 제공. 실패 시 윤문을 숨기고 사유를 표시하며, 교사 최종 책임 고지(보조수단)를 명시
 
 ---
 
@@ -78,7 +79,7 @@ budget:                  남은 재시도 횟수 (세트 전체 단위, 무한�
 | 벡터스토어 | ChromaDB + Rerank (BGE-reranker) |
 | 임베딩 | BGE-M3 |
 | LLM 서빙 | vLLM + Qwen2.5 (프로덕션) |
-| 평가용 모델 | Ollama 소형 / OpenAI GPT-3.5 (합성 데이터 비교 전용) |
+| 평가용 모델 | Ollama 소형 / OpenAI 비교 모델 (합성 데이터 평가 전용) |
 | 검증 | LLM as a Judge |
 | 프롬프트 | Few-shot / CoT |
 | 프론트엔드 | Next.js (frontend/) |
@@ -130,7 +131,7 @@ budget:                  남은 재시도 횟수 (세트 전체 단위, 무한�
 | 🟡 | 문체 적합성 | LLM Judge | 5점 척도 평균 ≥ 4.0 |
 | 🟢 | 교사 채택률·수정량 | 사람 | 북극성 |
 
-**모델 채택 근거**: 위 평가셋을 Qwen2.5 vs GPT-3.5 vs Ollama로 돌려 정량 비교 → Qwen 채택 근거 확보.
+**모델 채택 근거**: 위 평가셋을 Qwen2.5와 Ollama/OpenAI 비교 모델로 돌려 정량 비교 → Qwen 채택 근거 확보.
 
 **골든셋 현황**: 출제 검색 22개(21개 검수 완료) + STRUCTURE_GOLDEN 14개(2026-07-09 num_items 아키텍처로 전면 재생성, 실제 qwen2.5:7b 출력, 라벨링 대기) / 생기부(위반문장 50 + 마스킹 20 + 메모→윤문 20). 모든 골든셋은 `data/golden/*.json`으로 외부화(하드코딩 금지).
 
@@ -143,6 +144,8 @@ budget:                  남은 재시도 횟수 (세트 전체 단위, 무한�
 - 개인정보 **마스킹은 입력 단계**에서, 외부/모델 호출 전에 수행
 - 사용자 입력(생기부 메모·교사가 붙여넣은 예시 문제)은 **비저장 처리** — 영구 저장은 공개 코퍼스뿐
 - **로그·캐시에 PII 금지**
+- API 서버의 LangSmith 트레이싱은 강제로 비활성화하고, 합성 데이터 평가 스크립트에서만 선택적으로 사용
+- 브라우저 요청은 Next.js 서버가 프록시하며, FastAPI는 `BUNPIL_API_KEY` 서버 간 인증을 요구
 - 실데이터 미사용, 전부 합성
 - ChromaDB **영구 컬렉션은 공개 자료(규정·성취기준)만**. 교사가 붙여넣은 예시 문제(`passage_text`)는 ChromaDB에 전혀 적재되지 않고 요청 처리 중 프롬프트에만 사용된 후 폐기. 학생 개인정보는 어디에도 미적재
 - 생기부 출력에 "교사 최종 책임(보조수단)" 고지 표시
@@ -154,13 +157,13 @@ budget:                  남은 재시도 횟수 (세트 전체 단위, 무한�
 **구성: 앱은 AWS EC2 상시 가동, GPU 추론만 RunPod 서버리스**
 
 ```
-브라우저 ─→ [앱] AWS EC2 (t3.small, CPU)            ─→ [GPU] RunPod Serverless
+브라우저 ─→ [앱] AWS EC2 (t3.medium, CPU)           ─→ [GPU] RunPod Serverless
               FastAPI + Agent + ChromaDB                   Qwen2.5 7B / vLLM
               · PII 마스킹 후 추론 호출                     · 쓸 때만 과금, 유휴 시 0
               · ChromaDB는 EBS 볼륨에 저장                  · 콜드스타트 수초~수십초
 ```
 
-- **앱 = AWS EC2** (t3.small, ~2GB): FastAPI·agent·ChromaDB 구동 (UI는 Next.js, `frontend/`). ChromaDB는 EBS 볼륨에 영구 저장. IAM·보안그룹·SSH·Docker 표준 배포 절차를 따른다.
+- **앱 = AWS EC2** (t3.medium, ~4GB): FastAPI·agent·ChromaDB 구동 (UI는 Next.js, `frontend/`). ChromaDB는 EBS 볼륨에 영구 저장. IAM·보안그룹·SSH·Docker 표준 배포 절차를 따른다.
 - **GPU = RunPod Serverless**: 추론만 요청당 과금, 유휴 시 0. 비싼 GPU 비용만 pay-per-use.
 - **HTTPS**: Caddy 리버스 프록시로 자동 발급(+도메인) → 표준 배포 실습 포함.
 - 요청 흐름: 브라우저 → EC2(마스킹·오케스트레이션) → RunPod 서버리스 호출 → 응답. 앱 로직 stateless, Chroma만 EBS 영구.
@@ -171,10 +174,10 @@ budget:                  남은 재시도 횟수 (세트 전체 단위, 무한�
 
 | 항목 | 비용 |
 |---|---|
-| EC2 t3.small (상시) | ~$15 |
+| EC2 t3.medium (상시) | ~$30 |
 | RunPod 서버리스 GPU (추론) | ~$1–5 |
 | 스토리지(EBS·볼륨 수 GB) | ~$1 |
-| **합계** | **~$17–21** |
+| **합계** | **~$32–36** |
 
 - 데모·개발 단계는 EC2를 필요할 때만 켜서 더 절감 가능.
 - 비용을 더 낮추려면 앱을 Lightsail($5~12 정액)이나 저가 VPS로 이전 가능(단 AWS 학습가치 ↓). 컨테이너화돼 있어 이전은 소규모.
@@ -198,22 +201,16 @@ budget:                  남은 재시도 횟수 (세트 전체 단위, 무한�
 **확정**
 - 호스팅: **AWS EC2(앱) + RunPod 서버리스(GPU)**
 - 모델: Qwen2.5 7B (서버리스 GPU에 적합, 시작값)
-- 운영비: 월 ~$17–21 (1인 기준)
+- 운영비: 월 ~$32–36 (1인 기준, RunPod min workers=0 가정)
 - **GitHub Actions CI** (2026-07-14 결정·구현 완료): 코드 회귀 확인용 **경량 CI만 도입**, LLM
   eval 자동화는 도입하지 않기로 결정
   - **경량 CI** (`.github/workflows/ci.yml`): 매 push/PR 블로킹. 백엔드 import 스모크테스트 +
     순수 로직 유닛테스트(`tests/`, `mask_pii`·`_rule_violations`) + 프론트 lint/build. 모델 호출
     없음(무료·수 분 내 완료)
-  - **eval 자동화를 뺀 이유**: 설계 검토 중 `app/common/llm/factory.py`의 `get_judge_backend()`가
-    `LLM_BACKEND`와 무관하게 항상 로컬 Ollama를 반환하도록 하드코딩돼 있음을 발견 — 이는
-    `compare_models.py`(여러 생성 모델 비교 시 채점 기준을 고정하기 위한 의도된 설계)를 위한 것.
-    GitHub Actions 러너엔 GPU/Ollama가 없어 `eval_exam.py`의 Judge 채점 부분(문항 품질·구조유사도·
-    신뢰도)이 CI에서 원천적으로 실행 불가하고, 이를 우회하려면 Judge 백엔드 분기 코드를 추가해야
-    하는데 그러면 CI가 매기는 점수(OpenAI Judge)가 지금까지 EVAL.md·로드맵에 쌓아온 Ollama 고정
-    Judge 기록과 다른 잣대가 돼 추세 비교가 끊김. 더불어 배포 자체가 아직 수동
-    (`git pull && docker compose up`)이라 그 앞단 eval만 자동화하는 것도 순서가 안 맞고, eval
-    점수는 실행마다 변동성이 있어(STRUCTURE_GOLDEN κ 등) 자동 게이트로 쓰기에도 부적합 — 종합적으로
-    이 규모(1인+지인 실사용)엔 지금까지처럼 로컬 수동 실행 + EVAL.md 기록이 더 적합하다고 판단.
+  - **eval 자동화를 뺀 이유**: `JUDGE_BACKEND`로 Ollama/OpenAI Judge를 선택할 수 있지만,
+    기존 EVAL.md 추세는 로컬 Ollama 기준이고 GitHub Actions 러너에는 해당 모델 인프라가 없다.
+    다른 Judge로 CI 점수를 만들면 비교 기준이 달라지며, 생성·채점 결과의 변동성도 자동 블로킹
+    게이트에 적합하지 않다. 이 규모에서는 로컬 수동 실행 + EVAL.md 기록을 유지한다.
     `eval_exam.py`/`eval_record.py`/`eval_ragas.py`는 변경 없이 로컬 실행 스크립트로 유지
   - self-hosted runner(로컬 Ollama 호출)도 인프라 유지 부담 대비 이득이 적어 검토 후 제외
 
