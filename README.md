@@ -194,6 +194,60 @@ data: {"status": "error",     "msg": "요청을 처리하지 못했습니다."} 
 
 </details>
 
+### LLM 백엔드 — ChatRunPod ↔ RunPodBackend
+
+LangGraph 에이전트는 BaseChatModel 인터페이스만 알면 되고, RunPod과의 실제 HTTP 통신은 별도 레이어가 전담합니다.
+
+```mermaid
+flowchart LR
+    Agent["🤖 LangGraph ReAct 에이전트<br/>BaseChatModel 인터페이스만 필요"]
+    Chat["🔌 ChatRunPod<br/>chat_runpod.py · 메시지 형식 변환"]
+    Backend["📡 RunPodBackend<br/>runpod.py · HTTP 통신 전담"]
+    GPU[("⚡ RunPod 서버리스 GPU<br/>vLLM + handler.py")]
+
+    Agent --> Chat --> Backend --> GPU
+
+    class Agent,GPU neutral
+    class Chat,Backend llm
+
+    classDef neutral fill:#F5F4F1,stroke:#8A8880,stroke-width:1px,color:#1A1A1A
+    classDef llm fill:#EDE9FE,stroke:#7C3AED,stroke-width:1.5px,color:#1A1A1A
+```
+
+RunPodBackend는 비동기 `/run`으로 작업을 한 번만 제출한 뒤 동일한 `job_id`를 폴링해, 긴 생성(멀티턴 ReAct)도 중복 실행 없이 안전하게 기다립니다.
+
+```mermaid
+flowchart LR
+    Submit["POST /run<br/>read timeout 35s"]
+    ID["job_id 수신"]
+    Submit --> ID
+
+    subgraph Loop["🔁 최대 60회 · 5초 간격(최대 5분)"]
+        direction LR
+        Wait["5초 대기"]
+        Status{"GET /status/job_id"}
+        Wait --> Status
+        Status -- "IN_QUEUE / IN_PROGRESS" --> Wait
+    end
+
+    ID --> Loop
+    Status -- "COMPLETED" --> Done["output 반환"]
+    Status -- "FAILED/CANCELLED" --> Fail["예외 발생"]
+    Loop -. "60회 초과" .-> Timeout["TimeoutError"]
+    Submit -. "제출 응답 타임아웃" .-> SubmitTimeout["TimeoutError<br/>재제출 안 함"]
+
+    class Submit,ID,Status neutral
+    class Done llm
+    class Fail,Timeout,SubmitTimeout warn
+    style Loop fill:#FAFAF8,stroke:#C3C2B7,stroke-width:1px
+
+    classDef neutral fill:#F5F4F1,stroke:#8A8880,stroke-width:1px,color:#1A1A1A
+    classDef llm fill:#EDE9FE,stroke:#7C3AED,stroke-width:1.5px,color:#1A1A1A
+    classDef warn fill:#FEE2E2,stroke:#DC2626,stroke-width:1.5px,color:#1A1A1A
+```
+
+> `/run` 제출 응답을 받지 못하면 job 자체는 이미 실행 중일 수 있으므로, 무작정 재제출하지 않고 명확한 예외로 상위 로직에 알립니다.
+
 ---
 
 ## 설계 원칙
