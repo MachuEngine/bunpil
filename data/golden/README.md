@@ -14,7 +14,7 @@
 > retrieval_golden_final.json은 일회성 실험 스크립트(test_topk_recall.py,
 > eval_example_retrieval.py)에서도 기준값 측정용으로 재사용된다.
 
-## 2. 일회성 실험/조사 기록·아카이브 (10개) — 정기 평가에 안 쓰임, 각자 별도 스크립트 전용
+## 2. 일회성 실험/조사 기록·아카이브 (13개) — 정기 평가에 안 쓰임, 각자 별도 스크립트 전용
 
 | 파일 | 관련 스크립트 | 성격 |
 |---|---|---|
@@ -27,7 +27,10 @@
 | _topk_recall_compare.json | test_topk_recall.py | top_k 3→2 실험 결과 |
 | _structure_judge_eval_results.json | eval_exam.py (구조 Judge 신뢰도 측정 시 수동 실행) | 사람 라벨 vs Judge 점수 대조 raw 결과, 재실행 시 덮어씀 |
 | _model_comparison_results.json | compare_models.py | 모델 비교 실험(Qwen2.5-7B/14B, Llama3.1-8B, GPT-4o-mini) 생성·채점 raw 결과 |
+| _model_comparison_results_budget1_backup.json | compare_models.py (수동 백업) | 위 모델 비교 실험의 budget=1 원본 결과 백업(EVAL.md 참고) |
+| _model_comparison_results_budget5_partial_backup.json | compare_models.py (수동 백업) | 모델 비교 실험 budget=5 재검증 중 부분 실행분 백업(EVAL.md 참고) |
 | _ragas_eval_results.json | eval_ragas.py | Faithfulness/Answer Relevancy(Ragas 알고리즘 자체 구현) 측정 raw 결과, 재실행 시 덮어씀 |
+| _judge_comparison_results.json | compare_judge_models.py | Judge 모델 비교 실험(qwen2.5:7b/14b vs gpt-5.6-luna/sol) raw 결과, 재실행 시 누적 저장(EVAL.md 참고) |
 
 ## 명명 규칙
 
