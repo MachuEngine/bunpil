@@ -6,7 +6,7 @@ SCRIPTS_DIR="$(cd "$SCRIPTS_DIR" 2>/dev/null && pwd)"
 
 if [ -z "$SCRIPTS_DIR" ]; then
     # fallback: 절대 경로 사용
-    SCRIPTS_DIR="/Users/anjongmin/bunpil/scripts"
+    SCRIPTS_DIR="/Users/jongmin/Project/bunpil/scripts"
 fi
 
 TEST_FILES=$(ls "$SCRIPTS_DIR"/test_*.py 2>/dev/null)
