@@ -645,7 +645,6 @@ def generate_one(sample: dict, budget: int) -> dict:
             "agent_messages": [],
             "validation_passed": False,
             "similarity_judge_result": {},
-            "error": "",
         }
     )
     items = state.get("draft_items", [])

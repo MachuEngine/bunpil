@@ -96,7 +96,6 @@ def generate_one(sample: dict, budget: int = 1) -> dict:
                 "agent_messages": [],
                 "validation_passed": False,
                 "similarity_judge_result": {},
-                "error": "",
             }
         )
         items = get_draft_items()

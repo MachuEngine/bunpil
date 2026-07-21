@@ -48,7 +48,6 @@ def main() -> None:
             "agent_messages": [],
             "validation_passed": False,
             "similarity_judge_result": {},
-            "error": "",
         }
     )
 

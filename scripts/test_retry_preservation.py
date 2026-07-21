@@ -113,7 +113,7 @@ def run_new(sample: dict, budget: int) -> dict:
     state = graph.invoke(
         {
             "spec": spec, "budget": budget, "draft_items": [], "agent_messages": [],
-            "validation_passed": False, "similarity_judge_result": {}, "error": "",
+            "validation_passed": False, "similarity_judge_result": {},
         }
     )
     items = state.get("draft_items", [])
