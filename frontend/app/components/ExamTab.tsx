@@ -84,7 +84,6 @@ function ItemCard({ item }: { item: ExamItem }) {
 
 export default function ExamTab() {
   const [passageText, setPassageText] = useState("");
-  const [standards, setStandards] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [stepMsg, setStepMsg] = useState("");
   const [items, setItems] = useState<ExamItem[]>([]);
@@ -104,7 +103,6 @@ export default function ExamTab() {
     try {
       const fd = new FormData();
       fd.append("passage_text", passageText.trim());
-      fd.append("standards", standards);
 
       const res = await fetch("/api/exam/stream", { method: "POST", body: fd });
       if (!res.ok || !res.body) {
@@ -186,19 +184,6 @@ export default function ExamTab() {
           </p>
         </div>
 
-        {/* 성취기준 */}
-        <div>
-          <label className="block text-[13px] font-medium text-[#6E7469] mb-1.5">
-            성취기준 (선택, 줄바꿈으로 구분)
-          </label>
-          <textarea
-            rows={3}
-            placeholder={"[사문9101-1] 민주주의의 의미와 원리\n[사문9101-2] 헌법의 기본 원리"}
-            value={standards}
-            onChange={(e) => setStandards(e.target.value)}
-            className="w-full rounded-lg border border-[#DBDCD2] bg-white px-3 py-2 text-[13px] text-[#1C2620] placeholder:text-[#6E7469] focus:outline-none focus:border-[#2F4A3D] transition-colors resize-none"
-          />
-        </div>
 
         {error && (
           <p className="text-[13px] text-[#A63B2E] bg-[#F7E9E4] rounded-lg px-3 py-2">

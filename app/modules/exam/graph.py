@@ -54,7 +54,6 @@ def plan_node(state: ExamState) -> dict:
         "validation_passed": False,
         "similarity_judge_result": {},
         "validation_feedback": "",
-        "error": "",
     }
 
 
@@ -128,7 +127,8 @@ def _build_system_prompt(
         f"{progress_note}\n"
         f"{count_instruction}\n\n"
         f"{action_instruction}\n"
-        "1. [선택] search_standards — 참고 성취기준 원문 확인\n"
+        "1. [가능하면] search_standards — 문항 주제에 맞는 성취기준을 검색해 확인하세요. "
+        "관련 자료가 없다고 나오면 성취기준 없이 진행하세요\n"
         "2. [선택] search_regulations — 교육과정 준수 사항 확인\n"
         "3. validate_item_format — 직접 구성한 문항의 형식 검증\n"
         "   (오류가 있으면 수정 후 재검증, 통과할 때까지 반복)\n"
@@ -160,7 +160,6 @@ def agent_node(state: ExamState) -> dict:
 
     spec = state["spec"]
     passage_text = spec.get("passage_text", "")
-    standards = spec.get("standards") or []
     num_items = spec.get("num_items", 5)
     existing_items = get_draft_items()
 
@@ -171,8 +170,6 @@ def agent_node(state: ExamState) -> dict:
         state.get("validation_feedback", ""),
     )
     user_content = "위 지침에 따라 문항을 작성하세요."
-    if standards:
-        user_content += f"\n\n참고 성취기준: {', '.join(standards)}"
 
     tool_map = {t.name: t for t in TOOLS}
     llm = get_langchain_model().bind_tools(TOOLS)

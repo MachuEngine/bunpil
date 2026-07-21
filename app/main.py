@@ -67,13 +67,6 @@ async def request_slot():
 MAX_PASSAGE_LENGTH = 8000
 
 
-def _parse_standards(standards: str) -> list:
-    std_list = [s.strip() for s in standards.splitlines() if s.strip()]
-    if not std_list and standards:
-        std_list = [s.strip() for s in standards.split(",") if s.strip()]
-    return std_list
-
-
 DEFAULT_NUM_ITEMS = 5
 
 
@@ -105,18 +98,15 @@ async def _extract_num_items(passage_text: str) -> int:
     return max(1, min(n, 20))  # 폭주 생성 방지
 
 
-async def _build_spec(passage_text: str, standards: str):
+async def _build_spec(passage_text: str):
     """예시 문제를 길이 제한·PII 마스킹 후 ExamSpec으로 구성한다."""
     from app.common.privacy import mask_pii
 
     truncated = len(passage_text) > MAX_PASSAGE_LENGTH
     text = passage_text[:MAX_PASSAGE_LENGTH] if truncated else passage_text
-    masked_text, passage_pii = mask_pii(text)
-    masked_standards, standards_pii = mask_pii(standards)
-    pii_found = list(dict.fromkeys([*passage_pii, *standards_pii]))
+    masked_text, pii_found = mask_pii(text)
     spec = {
         "passage_text": masked_text,
-        "standards": _parse_standards(masked_standards),
         "num_items": await _extract_num_items(masked_text),
     }
     return spec, truncated, pii_found
@@ -222,12 +212,11 @@ async def health():
 @app.post("/exam/stream")
 async def exam_stream(
     passage_text: str = Form(...),
-    standards: str = Form(""),
     _: None = Depends(verify_api_key),
 ):
     """예시 문제 텍스트를 받아 SSE로 진행 상황과 결과를 스트리밍한다."""
 
-    spec, truncated, pii_found = await _build_spec(passage_text, standards)
+    spec, truncated, pii_found = await _build_spec(passage_text)
 
     await _acquire_request_slot()
 
@@ -275,10 +264,9 @@ async def exam_stream(
 @app.post("/exam")
 async def exam(
     passage_text: str = Form(...),
-    standards: str = Form(""),
     _: None = Depends(verify_api_key),
 ):
-    spec, truncated, pii_found = await _build_spec(passage_text, standards)
+    spec, truncated, pii_found = await _build_spec(passage_text)
     async with request_slot():
         result = await _run_exam(spec)
     return {"truncated": truncated, "pii_found": pii_found, **result}

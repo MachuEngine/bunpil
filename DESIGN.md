@@ -44,7 +44,7 @@
 **State**
 
 ```
-spec:                    { passage_text(예시 문제 원문), standards(성취기준, 선택), num_items(생성 개수, 기본 5) }
+spec:                    { passage_text(예시 문제 원문), num_items(생성 개수, 기본 5) }
 draft_items:             [ { 문항, 유형, 난이도, judge_score, 상태 } ]
 similarity_judge_result: { type_ratio_score, difficulty_match, overall_score }
 budget:                  남은 재시도 횟수 (세트 전체 단위, 무한루프 방지)
@@ -55,6 +55,8 @@ budget:                  남은 재시도 횟수 (세트 전체 단위, 무한�
 → "판단은 LLM, 통과/재시도 결정은 코드"라는 원칙은 리디자인 이후에도 그대로 유지.
 
 > **2026-07-09 정정**: 문항 개수는 예시 문제(`passage_text`)의 문항 수와 무관하게 `num_items`로 별도 지정된다(사용자가 자연어로 명시하지 않으면 기본값 5, `main.py`가 LLM 판단으로 추출). 초기엔 "생성 개수가 예시 문제 개수와 일치해야 한다"는 전제로 `count_match`를 LLM Judge가 판단했으나, 이 전제 자체가 실제 설계와 맞지 않아 폐기 — 개수 일치는 이제 LLM Judge가 아니라 코드가 직접 검증한다.
+
+> **2026-07-21 변경**: `standards`를 교사 입력으로 받던 것을 폐지 — UI에서 성취기준 입력창을 제거하고 `spec`에서도 해당 필드를 삭제했다. 대신 에이전트가 `search_standards` 도구로 문항 주제에 맞는 성취기준을 스스로 검색해 `save_item`의 `standard` 인자를 채운다(가능하면 검색, 관련 자료가 없으면 빈 값으로 진행 — 저장을 막지 않음).
 
 ### 모듈 ③ 생기부 윤문 도우미 — 검증 Chain (LCEL)
 

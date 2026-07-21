@@ -14,7 +14,7 @@ def test_validate_reports_unscored_item_and_structure_failure():
         "standard": "",
     })
     state = {
-        "spec": {"passage_text": "합성 예시", "standards": [], "num_items": 1},
+        "spec": {"passage_text": "합성 예시", "num_items": 1},
         "similarity_judge_result": {},
     }
 
@@ -43,7 +43,7 @@ def test_validate_passes_only_approved_complete_set():
         "overall_score": 4,
     })
     state = {
-        "spec": {"passage_text": "합성 예시", "standards": [], "num_items": 1},
+        "spec": {"passage_text": "합성 예시", "num_items": 1},
         "similarity_judge_result": {
             "type_ratio_score": 0.8,
             "difficulty_match": True,

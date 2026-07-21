@@ -31,7 +31,6 @@ def main() -> None:
     num_items = 1
     spec: ExamSpec = {
         "passage_text": PASSAGE_TEXT,
-        "standards": ["민주주의 핵심 원리 이해"],
         "num_items": num_items,
     }
 
