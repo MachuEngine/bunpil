@@ -63,7 +63,7 @@ async def request_slot():
     finally:
         _REQUEST_SLOTS.release()
 
-# 예시 문제 붙여넣기 최대 길이. 현재 스택(Qwen2.5-7B, 32K 네이티브 context) 기준.
+# 예시 문제 붙여넣기 최대 길이. 현재 스택(Qwen2.5-14B, 32K 네이티브 context) 기준.
 MAX_PASSAGE_LENGTH = 8000
 
 

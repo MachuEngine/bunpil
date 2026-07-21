@@ -23,7 +23,7 @@
 
 ## 개요
 
-교사의 반복 업무 중 가장 시간이 많이 드는 두 가지 — **시험 문항 출제**와 **학교생활기록부 문구 작성** — 를 소형 오픈소스 LLM(Qwen2.5-7B)으로 보조하는 서비스입니다. 포트폴리오 프로젝트이자 현직 교사 1인이 실사용 중입니다.
+교사의 반복 업무 중 가장 시간이 많이 드는 두 가지 — **시험 문항 출제**와 **학교생활기록부 문구 작성** — 를 소형 오픈소스 LLM(Qwen2.5-14B)으로 보조하는 서비스입니다. 포트폴리오 프로젝트이자 현직 교사 1인이 실사용 중입니다.
 
 | 모듈 | 입력 | 처리 | 출력 |
 |---|---|---|---|
@@ -384,8 +384,8 @@ budget=1에서는 "GPT-4o-mini가 전 지표 석권"으로 보였지만, 실제 
 우수해, **로컬 스택을 유지한다는 전제라면 이번 데이터는 7B→14B 승격을 지지**한다.
 GPT-4o-mini는 속도는 여전히 압도적이지만 실패율이 오히려 늘고(0%→13.3%) 개수를 목표의
 1.77배까지 과다생성하는 경향이 새로 나타나 "무조건 최선"이라 보기는 어려워졌다. 최종
-채택은 비용·외부 API 의존성 트레이드오프를 포함해 검토 중이며, 프로덕션은 여전히
-Qwen2.5-7B(로컬)를 사용 중이다.
+채택은 비용·외부 API 의존성 트레이드오프를 포함해 검토했고, 이 데이터를 근거로
+프로덕션을 Qwen2.5-14B(로컬 Ollama) / RunPod은 AWQ 4bit 양자화로 전환했다.
 
 ---
 
@@ -410,10 +410,9 @@ cp .env.example .env   # 필요 시 값 수정
 # Ollama 설치: https://ollama.com
 
 # 생성 전용 (OLLAMA_MODEL)
-ollama pull qwen2.5:7b
+ollama pull qwen2.5:14b
 
-# Judge 전용 (OLLAMA_JUDGE_MODEL) — 현재는 생성 모델과 동일한 7B 사용, 별도 pull 불필요
-# (14B는 하드웨어 확보 후 Judge 분리 테스트 예정)
+# Judge 전용 (OLLAMA_JUDGE_MODEL) — 현재는 생성 모델과 동일한 14B 사용, 별도 pull 불필요
 
 # 빠른 로직 테스트만 할 경우 (품질 낮음, 폴백 동작)
 # ollama pull qwen2.5:1.5b
@@ -464,7 +463,7 @@ flowchart LR
     Browser["🌐 브라우저"]
     Caddy["🔒 Caddy<br/>HTTPS 프록시"]
     EC2["🖥️ EC2 t3.medium<br/>FastAPI + ChromaDB"]
-    RunPod["⚡ RunPod 서버리스<br/>Qwen2.5-7B, vLLM"]
+    RunPod["⚡ RunPod 서버리스<br/>Qwen2.5-14B-AWQ, vLLM"]
     EBS[("💾 EBS 10GB<br/>ChromaDB 저장")]
 
     Browser --> Caddy --> Frontend["▲ Next.js<br/>frontend (3000)"]
@@ -592,7 +591,7 @@ bunpil/
 │   ├── test_*.py         # 기능 검증 (LLM·RAG·출제·생기부)
 │   ├── eval_*.py         # 품질 평가 (골든셋 기반 수치 지표)
 │   └── gen_*.py          # 골든셋 생성 도구
-├── runpod_handler/       # RunPod 서버리스 핸들러 (Qwen2.5-7B vLLM)
+├── runpod_handler/       # RunPod 서버리스 핸들러 (Qwen2.5-14B-AWQ vLLM)
 ├── deploy/               # EC2·Caddy·빌링알람 프로비저닝 스크립트
 ├── Dockerfile
 ├── docker-compose.yml

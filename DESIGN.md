@@ -158,7 +158,7 @@ budget:                  남은 재시도 횟수 (세트 전체 단위, 무한�
 
 ```
 브라우저 ─→ [앱] AWS EC2 (t3.medium, CPU)           ─→ [GPU] RunPod Serverless
-              FastAPI + Agent + ChromaDB                   Qwen2.5 7B / vLLM
+              FastAPI + Agent + ChromaDB                   Qwen2.5 14B(AWQ) / vLLM
               · PII 마스킹 후 추론 호출                     · 쓸 때만 과금, 유휴 시 0
               · ChromaDB는 EBS 볼륨에 저장                  · 콜드스타트 수초~수십초
 ```
@@ -200,7 +200,7 @@ budget:                  남은 재시도 횟수 (세트 전체 단위, 무한�
 
 **확정**
 - 호스팅: **AWS EC2(앱) + RunPod 서버리스(GPU)**
-- 모델: Qwen2.5 7B (서버리스 GPU에 적합, 시작값)
+- 모델: Qwen2.5 14B (로컬 Ollama) / RunPod은 AWQ 4bit 양자화(RTX A5000 24GB 기준)
 - 운영비: 월 ~$32–36 (1인 기준, RunPod min workers=0 가정)
 - **GitHub Actions CI** (2026-07-14 결정·구현 완료): 코드 회귀 확인용 **경량 CI만 도입**, LLM
   eval 자동화는 도입하지 않기로 결정

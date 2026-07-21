@@ -9,7 +9,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 os.environ.setdefault("LLM_BACKEND", "local")
-os.environ.setdefault("OLLAMA_MODEL", "qwen2.5:7b")
+os.environ.setdefault("OLLAMA_MODEL", "qwen2.5:14b")
 
 from app.modules.exam import ExamSpec, get_exam_graph
 from app.modules.exam.tools import init_session

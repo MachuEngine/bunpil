@@ -1,4 +1,4 @@
-"""Qwen2.5-7B-Instruct — tool calling 지원."""
+"""Qwen2.5-14B-Instruct-AWQ — tool calling 지원."""
 import sys
 import os
 import uuid
@@ -49,10 +49,10 @@ except Exception as e:
     traceback.print_exc()
     sys.exit(1)
 
-MODEL = "Qwen/Qwen2.5-7B-Instruct"
+MODEL = "Qwen/Qwen2.5-14B-Instruct-AWQ"  # RTX A5000 24GB에 float16 14B가 안 들어가 AWQ 4bit 사용
 print(f"모델 로드 시작: {MODEL}", flush=True)
 try:
-    llm = LLM(model=MODEL, dtype="float16", gpu_memory_utilization=0.90)
+    llm = LLM(model=MODEL, quantization="awq", dtype="float16", gpu_memory_utilization=0.90)
     tokenizer = llm.get_tokenizer()
     print("모델 로드 완료", flush=True)
 except Exception as e:
