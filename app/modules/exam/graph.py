@@ -48,7 +48,7 @@ def plan_node(state: ExamState) -> dict:
     초기화를 했었음). passage_text는 save_item의 원문 복사 게이트가 참조."""
     init_session(
         state["spec"].get("passage_text", ""),
-        state["spec"].get("num_items", 5),
+        state["spec"].get("num_items", 2),
     )
     return {
         "validation_passed": False,
@@ -160,7 +160,7 @@ def agent_node(state: ExamState) -> dict:
 
     spec = state["spec"]
     passage_text = spec.get("passage_text", "")
-    num_items = spec.get("num_items", 5)
+    num_items = spec.get("num_items", 2)
     existing_items = get_draft_items()
 
     system_prompt = _build_system_prompt(
@@ -237,7 +237,7 @@ def validate_node(state: ExamState) -> dict:
     (문항 개수는 예시 문제 개수와 무관하게 지정된 값을 따라야 하므로)."""
     judge = state.get("similarity_judge_result", {})
     draft_items = get_draft_items()
-    count_match = len(draft_items) == state["spec"].get("num_items", 5)
+    count_match = len(draft_items) == state["spec"].get("num_items", 2)
     rejected_ids = [
         item.get("item_id", "") for item in draft_items if item.get("status") != "approved"
     ]
@@ -252,7 +252,7 @@ def validate_node(state: ExamState) -> dict:
     feedback = []
     if not count_match:
         feedback.append(
-            f"문항 개수 불일치(목표 {state['spec'].get('num_items', 5)}개, 현재 {len(draft_items)}개)"
+            f"문항 개수 불일치(목표 {state['spec'].get('num_items', 2)}개, 현재 {len(draft_items)}개)"
         )
     if rejected_ids:
         feedback.append(f"품질 점수 미달 또는 미채점 문항: {', '.join(rejected_ids)}")

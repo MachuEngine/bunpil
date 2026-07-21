@@ -67,7 +67,7 @@ async def request_slot():
 MAX_PASSAGE_LENGTH = 8000
 
 
-DEFAULT_NUM_ITEMS = 5
+DEFAULT_NUM_ITEMS = 2
 
 
 async def _extract_num_items(passage_text: str) -> int:
@@ -83,7 +83,7 @@ async def _extract_num_items(passage_text: str) -> int:
             "content": (
                 "다음은 교사가 문항 생성 서비스에 입력한 텍스트입니다. "
                 "이 텍스트에서 교사가 명시적으로 요청한 생성 문항 개수를 찾으세요. "
-                "명시적인 개수 요청이 있으면 그 숫자만 응답하고, 없으면 5라고만 응답하세요. "
+                f"명시적인 개수 요청이 있으면 그 숫자만 응답하고, 없으면 {DEFAULT_NUM_ITEMS}라고만 응답하세요. "
                 "설명 없이 숫자만 응답하세요."
             ),
         },

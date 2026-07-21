@@ -44,7 +44,7 @@
 **State**
 
 ```
-spec:                    { passage_text(예시 문제 원문), num_items(생성 개수, 기본 5) }
+spec:                    { passage_text(예시 문제 원문), num_items(생성 개수, 기본 2) }
 draft_items:             [ { 문항, 유형, 난이도, judge_score, 상태 } ]
 similarity_judge_result: { type_ratio_score, difficulty_match, overall_score }
 budget:                  남은 재시도 횟수 (세트 전체 단위, 무한루프 방지)

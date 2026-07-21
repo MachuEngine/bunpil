@@ -3,7 +3,7 @@ from typing_extensions import TypedDict
 
 class ExamSpec(TypedDict):
     passage_text: str        # 교사가 붙여넣은 예시 문제 원문 (에이전트 프롬프트에 직접 삽입)
-    num_items: int           # 생성할 문항 개수. 예시 문제 개수와 무관 — 기본값 5(main.py가 채움)
+    num_items: int           # 생성할 문항 개수. 예시 문제 개수와 무관 — 기본값 2(main.py가 채움)
 
 
 class DraftItem(TypedDict):
