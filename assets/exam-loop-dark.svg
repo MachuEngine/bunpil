@@ -1,0 +1,45 @@
+<svg width="1400" height="300" viewBox="0 0 1400 300" xmlns="http://www.w3.org/2000/svg" font-family="Inter, -apple-system, 'Segoe UI', Pretendard, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#4B5563"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="1400" height="300" fill="#0D1117"/>
+
+  <rect x="20" y="128" width="130" height="44" rx="22" fill="#1B1F27" stroke="#2E3440"/>
+  <text x="85" y="155" text-anchor="middle" font-size="13" font-weight="600" fill="#E6E8EB">🟢 문항 시작</text>
+  <line x1="150" y1="150" x2="182" y2="150" stroke="#4B5563" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="185" y="30" width="800" height="240" rx="20" fill="#12151B" stroke="#242A33"/>
+  <text x="215" y="58" font-size="13" font-weight="700" fill="#9CA3AF">🔁 문항마다 반복</text>
+
+  <rect x="215" y="123" width="180" height="54" rx="12" fill="#241C10" stroke="#4A3B1C"/>
+  <text x="305" y="145" text-anchor="middle" font-size="12.5" fill="#EFE0AE">🔍 search_standards</text>
+  <text x="305" y="163" text-anchor="middle" font-size="12.5" fill="#EFE0AE">search_regulations</text>
+  <line x1="395" y1="150" x2="407" y2="150" stroke="#5C4B23" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="410" y="123" width="190" height="54" rx="12" fill="#1B1F27" stroke="#2E3440"/>
+  <text x="505" y="145" text-anchor="middle" font-size="12.5" fill="#E6E8EB">validate_item_format</text>
+  <text x="505" y="163" text-anchor="middle" font-size="12.5" fill="#9CA3AF">(오류 시 자기교정)</text>
+  <text x="607" y="112" text-anchor="middle" font-size="10.5" fill="#C7A63E">통과</text>
+  <line x1="600" y1="150" x2="612" y2="150" stroke="#5C4B23" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="615" y="123" width="175" height="54" rx="12" fill="#241C10" stroke="#4A3B1C"/>
+  <text x="702" y="145" text-anchor="middle" font-size="12.5" fill="#EFE0AE">save_item</text>
+  <text x="702" y="163" text-anchor="middle" font-size="12.5" fill="#EFE0AE">+ 한국어 게이트</text>
+  <line x1="790" y1="150" x2="802" y2="150" stroke="#5C4B23" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="805" y="123" width="140" height="54" rx="12" fill="#241C10" stroke="#4A3B1C"/>
+  <text x="875" y="154" text-anchor="middle" font-size="12.5" fill="#EFE0AE">record_score</text>
+
+  <path d="M875,177 C 875,222 305,222 305,177" fill="none" stroke="#5C4B23" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#a)"/>
+  <text x="590" y="246" text-anchor="middle" font-size="10.5" fill="#C7A63E">↺ 다음 문항으로 반복</text>
+
+  <line x1="985" y1="150" x2="1007" y2="150" stroke="#4B5563" stroke-width="1.5" marker-end="url(#a)"/>
+  <rect x="1010" y="128" width="190" height="44" rx="22" fill="#241C10" stroke="#4A3B1C"/>
+  <text x="1105" y="155" text-anchor="middle" font-size="13" font-weight="600" fill="#EFE0AE">📤 submit_for_review</text>
+
+  <line x1="1200" y1="150" x2="1222" y2="150" stroke="#4B5563" stroke-width="1.5" marker-end="url(#a)"/>
+  <rect x="1225" y="128" width="150" height="44" rx="22" fill="#1B1F27" stroke="#2E3440"/>
+  <text x="1300" y="155" text-anchor="middle" font-size="13" font-weight="600" fill="#E6E8EB">🔚 judge 노드로</text>
+</svg>
