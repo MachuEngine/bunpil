@@ -137,7 +137,7 @@ budget:                  남은 재시도 횟수 (세트 전체 단위, 무한�
 | 과정 | 평균 반복수·미충족 실패율·latency | 함수 | 예산 내 수렴 |
 | 종단 | 수정 없는 교사 채택률 | 사람 | 북극성 |
 
-검색 골든셋(`data/golden/retrieval_golden_final.json`): `standards` / `regulations` 실제 컬렉션에서 샘플링한 22개 청크(reviewed 21개). `scripts/gen_golden_retrieval.py`로 초안 생성 후 검수. (2026.07 리디자인으로 `past_exams` 참조 8개 제거, 30→22)
+검색 골든셋(`data/golden/retrieval_golden_final.json`): `standards` / `regulations` 실제 컬렉션에서 샘플링한 22개 청크(reviewed 21개). `golden_gen/gen_golden_retrieval.py`로 초안 생성 후 검수. (2026.07 리디자인으로 `past_exams` 참조 8개 제거, 30→22)
 
 ### 생기부 Chain (안전 지표 우선)
 

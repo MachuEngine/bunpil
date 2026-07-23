@@ -11,8 +11,8 @@ Judge(qwen2.5:7b, JUDGE_TPL 5점 앵커 + STRUCTURE_JUDGE_TPL 3점 앵커 포함
 실패율(0문항/예외).
 
 사용법:
-  .venv/bin/python scripts/compare_models.py --models qwen2.5-7b,qwen2.5-14b,llama3.1-8b
-  .venv/bin/python scripts/compare_models.py --models gpt-4o-mini   # OpenAI 비용 발생
+  .venv/bin/python experiments/compare_models.py --models qwen2.5-7b,qwen2.5-14b,llama3.1-8b
+  .venv/bin/python experiments/compare_models.py --models gpt-4o-mini   # OpenAI 비용 발생
 """
 import argparse
 import json
@@ -22,6 +22,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "golden_gen"))
 
 from dotenv import load_dotenv
 load_dotenv()

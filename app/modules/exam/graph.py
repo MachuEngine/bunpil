@@ -259,7 +259,7 @@ def judge_node(state: ExamState) -> dict:
     스스로 채점했다(self-judge) — 이 self-judge 신뢰도는 사람 라벨과 한 번도 대조된
     적이 없었고, 오프라인 eval이 검증하는 Judge(get_judge_backend())와 실제 배포된
     Judge(생성 모델 자신)가 서로 다른 코드 경로였다(검증-배포 불일치). 이제 런타임도
-    오프라인 eval(scripts/eval_lib.py judge_structure_one)과 동일한 judge_structure()를
+    오프라인 eval(evals/eval_lib.py judge_structure_one)과 동일한 judge_structure()를
     호출해 두 경로가 항상 같은 judge를 측정하도록 통일했다.
 
     Judge 호출이 실패하면(예: OPENAI_API_KEY 누락) 그대로 예외를 전파한다(fail-fast) —

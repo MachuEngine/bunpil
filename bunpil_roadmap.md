@@ -163,7 +163,7 @@ README "모델 선정" 절 참고.
 
 1. **오답매력도 미달 (2.846 / 목표 4.0)**
    - 코드: `app/modules/exam/graph.py` `agent_node`(123~125행, 오답 매력도 지시문) /
-     `scripts/eval_exam.py` `JUDGE_TPL`(117행~, 채점 few-shot)
+     `evals/eval_exam.py` `JUDGE_TPL`(117행~, 채점 few-shot)
    - 현상: 1단계(Judge 앵커)+2단계(agent_node 지시) 둘 다 적용해도 실제 생성 기준
      2.500→2.846(+0.346)에 그침. 목표까지 갭이 큼
    - 리뷰 시 볼 것: agent_node few-shot이 진짜 멀티턴 tool-call 예시가 아니라 텍스트 지시문뿐이라
@@ -171,7 +171,7 @@ README "모델 선정" 절 참고.
      추가하는 방향도 검토 후보
 
 2. **STRUCTURE_GOLDEN 구조 Judge 신뢰도 미달 (overall 이진 κ 0.167 / 목표 0.4)**
-   - 코드: `scripts/eval_exam.py` `STRUCTURE_JUDGE_TPL`(190행~, 3점 앵커 few-shot 포함) /
+   - 코드: `evals/eval_exam.py` `STRUCTURE_JUDGE_TPL`(190행~, 3점 앵커 few-shot 포함) /
      `data/golden/structure_golden.json`(entries 45개, human_label 전량 완료)
    - 현상: diff κ(난이도 일치)는 0.424(3회 평균, 목표 0.4 달성이나 변동성 큼 — 3회 중 1회 0.387로
      미달)로 그나마 개선됐지만, overall 이진 κ는 여전히 미달. Judge 점수 분포가 3점에 회피 수렴하는
@@ -251,7 +251,7 @@ README "모델 선정" 절 참고.
 | `app/common/rag/store.py` + `retriever.py` | ChromaDB 컬렉션 구조, 2단계 검색 흐름, 죽은 임시 컬렉션 코드 제거 | ✅ |
 | `app/modules/record/chain.py` | 수동 루프 구조(LCEL 파이프 아님 — `run()`이 `_step_mask/_step_polish/_step_validate`를 for 루프로 직접 호출), 하이브리드 위반 탐지 순서, RAG 싱글턴 통합 | ✅ |
 | `app/main.py` | `/exam`·`/exam/stream` 중복 제거, 실제 SSE 노드 단위 스트리밍 | ✅ |
-| `scripts/eval_ragas.py` | (2026-07-12 리뷰 완료) `build_sample()`이 실제 그래프 호출+RAG 검색으로 (question, context, answer) 구성 → `faithfulness_one()`(주장 분해 후 컨텍스트 대조) / `answer_relevancy_one()`(역질문 생성 후 임베딩 코사인 유사도) → `run_langsmith_experiments()`가 Dataset 동기화 후 `evaluate()`로 두 함수를 evaluator로 래핑. 버그는 없었고, 사소한 죽은 코드(도달 불가능한 `else 0.0` 폴백) 1건과 의도된 중복 방어 로직 1건만 확인(둘 다 동작에 영향 없어 수정 안 함) | ✅ |
+| `evals/eval_ragas.py` | (2026-07-12 리뷰 완료) `build_sample()`이 실제 그래프 호출+RAG 검색으로 (question, context, answer) 구성 → `faithfulness_one()`(주장 분해 후 컨텍스트 대조) / `answer_relevancy_one()`(역질문 생성 후 임베딩 코사인 유사도) → `run_langsmith_experiments()`가 Dataset 동기화 후 `evaluate()`로 두 함수를 evaluator로 래핑. 버그는 없었고, 사소한 죽은 코드(도달 불가능한 `else 0.0` 폴백) 1건과 의도된 중복 방어 로직 1건만 확인(둘 다 동작에 영향 없어 수정 안 함) | ✅ |
 
 ### 흐름만 파악하면 되는 파일
 - `app/common/llm/factory.py` — 환경변수 분기, 10줄
@@ -294,7 +294,7 @@ user_template: |
 
 ### 문항 품질 Judge에 "예시 문제 표절/패러프레이즈" 전용 지표 추가 (2026-07-17 논의, 결정 보류)
 - **현재 상태**: 이 개념은 이미 부분적으로 존재함 — `STRUCTURE_JUDGE_TPL`(구조 유사도 Judge,
-  `scripts/eval_exam.py`)의 `overall_score` 채점 기준에 "예시 문제를 그대로 복사한 경우"·
+  `evals/eval_exam.py`)의 `overall_score` 채점 기준에 "예시 문제를 그대로 복사한 경우"·
   "표현만 바꿔 사실상 같은 것을 묻는 패러프레이즈 반복"이 감점 요소로 이미 포함돼 있음
   (`eval_exam.py:199-201`). 다만 이게 유형/난이도 구조, 환각, 언어오염, 주제이탈과
   **하나의 0~5 overall_score에 뭉쳐 있어 표절 여부만 따로 뽑아볼 수 없음**.

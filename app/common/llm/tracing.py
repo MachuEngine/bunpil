@@ -7,7 +7,7 @@
 LLM_BACKEND 값을 보고 매 실행 시점에 코드가 자동으로 결정한다.
 
 호출 시점: load_dotenv() 직후, LangChain 트레이스가 발생할 수 있는 모든
-진입점(app/main.py, scripts/eval_*.py 등)에서 다른 로직보다 먼저 호출한다.
+진입점(app/main.py, evals/eval_*.py 등)에서 다른 로직보다 먼저 호출한다.
 """
 import os
 

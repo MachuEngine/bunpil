@@ -105,7 +105,7 @@
 
 원래는 `agent`가 `similarity_judge`라는 도구로 **자기 출력을 스스로 채점**했습니다(self-judge). 그런데 이 self-judge 신뢰도는 사람 라벨과 한 번도 대조된 적이 없었고, 정작 EVAL.md에 쌓아온 "구조 Judge 신뢰도" 수치는 전부 **오프라인** eval 스크립트(`get_judge_backend()` 재호출)를 측정한 것이었습니다 — 즉 "검증에 쓰는 Judge"와 "실제 배포된 judge"가 서로 다른 코드였습니다(검증-배포 불일치).
 
-해결책은 self-judge의 신뢰도를 측정하는 게 아니라, **애초에 같은 judge를 검증·배포 양쪽에서 쓰는 것**이었습니다. `similarity_judge` 도구를 없애고 별도 `judge` 노드를 추가해, 런타임과 오프라인 eval(`scripts/eval_lib.py`)이 `app/modules/exam/judge.py`의 `judge_structure()`를 그대로 공유하도록 통합했습니다. 이제 EVAL.md의 구조 Judge 신뢰도 수치가 곧 실제 배포된 judge의 신뢰도입니다.
+해결책은 self-judge의 신뢰도를 측정하는 게 아니라, **애초에 같은 judge를 검증·배포 양쪽에서 쓰는 것**이었습니다. `similarity_judge` 도구를 없애고 별도 `judge` 노드를 추가해, 런타임과 오프라인 eval(`evals/eval_lib.py`)이 `app/modules/exam/judge.py`의 `judge_structure()`를 그대로 공유하도록 통합했습니다. 이제 EVAL.md의 구조 Judge 신뢰도 수치가 곧 실제 배포된 judge의 신뢰도입니다.
 
 **트레이드오프**: `JUDGE_BACKEND=openai`(기본값)에서는 매 문항 세트 생성마다 `passage_text`(PII는 마스킹되지만 저작권 있는 교사 지문일 수 있음)가 OpenAI로 전송됩니다. API 키가 없거나 호출이 실패하면 조용히 폴백하지 않고 그대로 실패합니다(fail-fast) — 신뢰도가 검증 안 된 채로 게이트를 통과시키는 문제를 반복하지 않기 위함입니다. 로컬로만 처리하려면 `JUDGE_BACKEND=local`.
 
@@ -208,7 +208,7 @@ ReAct 도구 내부에 LLM 호출이 없습니다. 구조 유사도 채점은 �
 
 > 지표 전체 목록·골든셋 현황·결과 이력은 [EVAL.md](./EVAL.md)에서 계속 갱신합니다. 아래는 마지막 정식 측정치(2026-07-12, 생성 모델 qwen2.5:7b / Judge qwen2.5:14b) 스냅샷입니다 — 이후 생성 모델은 14B로, Judge는 gpt-5.6-luna로 교체됐고, 2026-07-23부터는 이 Judge가 오프라인 eval뿐 아니라 런타임 `judge` 노드에도 그대로 적용됩니다([모델 선정](#모델-선정) 참고). 이 조합 전체를 다시 골든셋에 돌린 정식 재측정은 아직 없어, 최신 구성 기준 수치는 아닙니다.
 
-### 출제 모듈 — `scripts/eval_exam.py`
+### 출제 모듈 — `evals/eval_exam.py`
 
 | 지표 | n | 기준 | 실측 |
 |---|---|---|---|
@@ -224,7 +224,7 @@ ReAct 도구 내부에 LLM 호출이 없습니다. 구조 유사도 채점은 �
 - Judge 종합평균 미달의 주원인은 오답매력도 — 실제 생성 기준 재검증 시 2.500→2.846(n=8→13, 객관식만)까지 개선했으나 목표(4.0)에는 크게 못 미침
 - 구조 유사도 골든셋은 20→45개로 확대·전량 라벨링 완료. 편향 원인 분석(Judge가 애매한 사례를 3점으로 회피 수렴하는 패턴 확인) 후 3점 앵커 few-shot 추가해 diff κ는 목표 달성, overall 이진 κ는 여전히 미달(EVAL.md 5·6절 참고)
 
-### 생기부 모듈 — `scripts/eval_record.py`
+### 생기부 모듈 — `evals/eval_record.py`
 
 | 지표 | n | 기준 | 실측 |
 |---|---|---|---|
@@ -497,11 +497,12 @@ bunpil/
 │   ├── standards/        # 사회과 교육과정 PDF
 │   └── golden/           # 골든셋 JSON — 정기 평가용 6종 + 실험 아카이브
 │                         # (파일별 용도·라벨 필드는 data/golden/README.md 참고)
+├── evals/                # 정기 품질 평가 — eval_exam.py / eval_record.py / eval_ragas.py (+ 공용 eval_lib.py)
+├── golden_gen/           # 골든셋 생성 도구 — gen_structure_golden.py / gen_golden_retrieval.py
+├── experiments/          # 일회성 실험·비교 기록 (compare_*.py 등, 결과는 data/golden/_*.json에 아카이브)
 ├── scripts/
 │   ├── index_*.py        # RAG 컬렉션 인덱싱
-│   ├── test_*.py         # 기능 검증 (LLM·RAG·출제·생기부)
-│   ├── eval_*.py         # 품질 평가 (골든셋 기반 수치 지표)
-│   └── gen_*.py          # 골든셋 생성 도구
+│   └── test_*.py         # 실제 로컬 모델로 파이프라인 배선 확인 (스모크 테스트)
 ├── runpod_handler/       # RunPod 서버리스 핸들러 (Qwen2.5-14B-AWQ vLLM)
 ├── deploy/               # EC2·Caddy·빌링알람 프로비저닝 스크립트
 ├── Dockerfile

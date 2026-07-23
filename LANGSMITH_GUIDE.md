@@ -11,7 +11,7 @@
 즉 LangSmith에 뭔가 남으려면 **eval/비교 스크립트를 셸에서 직접 실행**해야 한다:
 
 ```bash
-LANGCHAIN_TRACING_V2=true LANGCHAIN_API_KEY=your_key python scripts/eval_exam.py
+LANGCHAIN_TRACING_V2=true LANGCHAIN_API_KEY=your_key python evals/eval_exam.py
 ```
 
 `LANGCHAIN_API_KEY`는 [smith.langchain.com](https://smith.langchain.com) 로그인 후
@@ -50,12 +50,12 @@ Settings → API Keys에서 발급. `.env`에 미리 넣어두면 매번 셸에 
 실행을 파고들 때. `eval_exam.py`/`compare_models.py` 등을 실행한 직후 확인하면 된다.
 
 **필터 팁**: 트레이스마다 `metadata`에 `model`(`OLLAMA_MODEL` 값)·`backend`(`LLM_BACKEND` 값)가
-붙어 있다(`scripts/eval_lib.py:28`) — 여러 모델을 번갈아 비교 실행했다면 이 메타데이터로
+붙어 있다(`evals/eval_lib.py:28`) — 여러 모델을 번갈아 비교 실행했다면 이 메타데이터로
 필터링해서 "이건 14B 실행분만" 식으로 골라볼 수 있다.
 
 ### 3.2 Datasets & Experiments 탭 — "이번 변경이 나아졌나" (품질 추적용)
 
-`scripts/langsmith_experiments.py`가 골든셋 JSON을 LangSmith Dataset으로 동기화해둔
+`evals/langsmith_experiments.py`가 골든셋 JSON을 LangSmith Dataset으로 동기화해둔
 것이 3개 있다:
 
 | Dataset 이름 | 골든셋 소스 | 무엇을 채점하나 |
@@ -98,8 +98,8 @@ kappa가 어떻게 바뀌었나"를 EVAL.md에 손으로 옮겨 적지 않고 �
 | 파일 | 역할 |
 |---|---|
 | `app/common/llm/tracing.py` | dev/prod 프로젝트 자동 분기 (`init_langsmith_project()`) |
-| `scripts/langsmith_experiments.py` | Dataset 동기화 공용 유틸(`sync_dataset`, `identity_target`) |
-| `scripts/eval_exam.py` `run_langsmith_experiments()` | item-quality-judge / structure-judge 등록 |
-| `scripts/eval_ragas.py` `run_langsmith_experiments()` | rag-quality 등록 (매 실행 실제 생성 후 채점) |
-| `scripts/eval_lib.py` `_TRACE_META` | 트레이스에 붙는 `model`/`backend` 메타데이터 |
+| `evals/langsmith_experiments.py` | Dataset 동기화 공용 유틸(`sync_dataset`, `identity_target`) |
+| `evals/eval_exam.py` `run_langsmith_experiments()` | item-quality-judge / structure-judge 등록 |
+| `evals/eval_ragas.py` `run_langsmith_experiments()` | rag-quality 등록 (매 실행 실제 생성 후 채점) |
+| `evals/eval_lib.py` `_TRACE_META` | 트레이스에 붙는 `model`/`backend` 메타데이터 |
 | `app/modules/exam/judge.py` | 런타임 `judge` 노드와 오프라인 eval이 공유하는 채점 함수(`judge_structure()`) |
