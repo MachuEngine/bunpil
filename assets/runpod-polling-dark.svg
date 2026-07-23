@@ -1,0 +1,58 @@
+<svg width="950" height="350" viewBox="0 0 950 350" xmlns="http://www.w3.org/2000/svg" font-family="Inter, -apple-system, 'Segoe UI', Pretendard, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#4B5563"/>
+    </marker>
+    <marker id="ap" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/>
+    </marker>
+    <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#F3766B"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="950" height="350" fill="#0D1117"/>
+
+  <rect x="20" y="90" width="190" height="50" rx="12" fill="#1B1F27" stroke="#2E3440"/>
+  <text x="115" y="111" text-anchor="middle" font-size="12.5" font-weight="600" fill="#E6E8EB">POST /run</text>
+  <text x="115" y="129" text-anchor="middle" font-size="11" fill="#9CA3AF">read timeout 35s</text>
+  <line x1="210" y1="115" x2="227" y2="115" stroke="#4B5563" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="230" y="90" width="150" height="50" rx="12" fill="#1B1F27" stroke="#2E3440"/>
+  <text x="305" y="120" text-anchor="middle" font-size="12.5" fill="#E6E8EB">job_id 수신</text>
+  <line x1="380" y1="115" x2="397" y2="115" stroke="#4B5563" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="400" y="30" width="380" height="170" rx="20" fill="#12151B" stroke="#242A33"/>
+  <text x="420" y="58" font-size="12.5" font-weight="700" fill="#9CA3AF">🔁 최대 60회 · 5초 간격(최대 5분)</text>
+
+  <path d="M485,110 C 485,80 573,80 573,110" fill="none" stroke="#3A3F4A" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#a)"/>
+  <text x="529" y="76" text-anchor="middle" font-size="9.5" fill="#9CA3AF">IN_QUEUE / IN_PROGRESS</text>
+
+  <rect x="420" y="110" width="130" height="44" rx="12" fill="#1B1F27" stroke="#2E3440"/>
+  <text x="485" y="137" text-anchor="middle" font-size="12" fill="#E6E8EB">5초 대기</text>
+  <line x1="550" y1="132" x2="562" y2="132" stroke="#3A3F4A" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="565" y="110" width="195" height="44" rx="12" fill="#1B1F27" stroke="#2E3440"/>
+  <text x="662" y="137" text-anchor="middle" font-size="12" fill="#E6E8EB">GET /status/job_id</text>
+
+  <path d="M115,140 C 115,200 150,200 150,260" fill="none" stroke="#4B5563" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#a)"/>
+  <path d="M590,200 C 590,230 400,230 400,260" fill="none" stroke="#4B5563" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#a)"/>
+
+  <path d="M662,154 C 662,200 605,200 605,260" fill="none" stroke="#7C5FC7" stroke-width="1.5" marker-end="url(#ap)"/>
+  <path d="M662,154 C 662,200 815,200 815,260" fill="none" stroke="#C2504A" stroke-width="1.5" marker-end="url(#ar)"/>
+  <text x="605" y="216" text-anchor="middle" font-size="9.5" fill="#C4B5FD">COMPLETED</text>
+  <text x="815" y="216" text-anchor="middle" font-size="9.5" fill="#F3A6B2">FAILED/CANCELLED</text>
+
+  <rect x="20" y="260" width="260" height="50" rx="12" fill="#2B1414" stroke="#5C2430"/>
+  <text x="150" y="281" text-anchor="middle" font-size="12.5" font-weight="600" fill="#F3A6B2">⚠️ TimeoutError</text>
+  <text x="150" y="299" text-anchor="middle" font-size="10.5" fill="#F3A6B2">제출 타임아웃 · 재제출 안 함</text>
+
+  <rect x="310" y="260" width="180" height="50" rx="12" fill="#2B1414" stroke="#5C2430"/>
+  <text x="400" y="281" text-anchor="middle" font-size="12.5" font-weight="600" fill="#F3A6B2">⚠️ TimeoutError</text>
+  <text x="400" y="299" text-anchor="middle" font-size="10.5" fill="#F3A6B2">60회 초과</text>
+
+  <rect x="520" y="260" width="170" height="50" rx="12" fill="#201A33" stroke="#4B3B7A"/>
+  <text x="605" y="290" text-anchor="middle" font-size="12.5" font-weight="600" fill="#C4B5FD">✅ output 반환</text>
+
+  <rect x="730" y="260" width="170" height="50" rx="12" fill="#2B1414" stroke="#5C2430"/>
+  <text x="815" y="290" text-anchor="middle" font-size="12.5" font-weight="600" fill="#F3A6B2">❌ 예외 발생</text>
+</svg>
