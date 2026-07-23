@@ -3,12 +3,22 @@
 > 이 프로젝트에서 LangSmith를 언제·어떻게 켜고, 웹 UI에서 뭘 봐야 하는지 정리한 실전 가이드.
 > 설계 이유(dev/prod 분리 등)는 코드 주석에 이미 있으므로, 여기서는 "화면 어디를 보면 되는가"에 집중한다.
 
-## 1. 가장 먼저 알아야 할 것 — 앱은 트레이싱 안 됨
+## 1. 가장 먼저 알아야 할 것 — 모듈별로 트레이싱 여부가 다름
 
-`app/main.py:16`이 임포트 시점에 `os.environ["LANGCHAIN_TRACING_V2"] = "false"`를 강제로 박아둔다 —
-`.env`에 뭐라 적혀 있든 **실제 서비스 API 서버는 절대 트레이싱되지 않는다** (하드룰: 사용자 입력 비저장).
+**생기부 모듈은 절대 트레이싱 안 됨.** `record/chain.py`가 쓰는 `OllamaBackend`/`OpenAIBackend`/
+`RunPodBackend`(`app/common/llm/backends/`)는 LangChain `Runnable`이 아닌 순수 Python 클래스라
+`LANGCHAIN_TRACING_V2` 값과 무관하게 애초에 LangSmith 콜백에 안 걸린다 — 구조적으로 안전.
+하드룰 3(사용자 입력 비저장)이 생기부에는 예외 없이 적용된다.
 
-즉 LangSmith에 뭔가 남으려면 **eval/비교 스크립트를 셸에서 직접 실행**해야 한다:
+**출제 모듈은 2026-07-24부터 프로덕션에서도 트레이싱 가능.** `passage_text`·생성 문항은
+실존 인물 정보가 아니고 PII 마스킹(하드룰 2)도 LLM 호출 전에 이미 거치므로, 관측성 확보를
+위해 사용자 승인 하에 하드룰 3의 예외로 지정됐다(CLAUDE.md 참고). `.env`에
+`LANGCHAIN_TRACING_V2=true`를 켜두면 `app/main.py`가 `init_langsmith_project()`를 호출해
+실제 API 서버(`agent_node`의 ChatOllama/ChatRunPod, `judge_node`)도 트레이싱된다. 기본값은
+`false`(옵트인) — 켜려면 `LANGCHAIN_API_KEY`도 `.env`에 필요.
+
+합성 골든셋만 다루는 `evals/`/`experiments/` 스크립트는 원래대로 각 진입점에서 tracing을
+별도로 초기화한다(셸에서 직접 실행할 때만):
 
 ```bash
 LANGCHAIN_TRACING_V2=true LANGCHAIN_API_KEY=your_key python evals/eval_exam.py

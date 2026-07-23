@@ -10,11 +10,16 @@ logger = logging.getLogger(__name__)
 from dotenv import load_dotenv
 load_dotenv()
 
-# 사용자 입력 비저장 하드룰: 실제 요청을 처리하는 서버에서는 LangSmith가
-# 프롬프트·응답을 외부에 기록하지 못하도록 환경 설정과 무관하게 차단한다.
-# 합성 데이터 평가 스크립트는 각 진입점에서 tracing을 별도로 초기화한다.
-os.environ["LANGCHAIN_TRACING_V2"] = "false"
-os.environ["LANGSMITH_TRACING"] = "false"
+# 사용자 입력 비저장 하드룰(CLAUDE.md 3번): 생기부 메모는 예외 없이 트레이싱 차단된다 —
+# record/chain.py가 쓰는 OllamaBackend/OpenAIBackend/RunPodBackend(app/common/llm/backends/)는
+# LangChain Runnable이 아닌 순수 클래스라 LANGCHAIN_TRACING_V2 값과 무관하게 애초에 LangSmith
+# 콜백에 걸리지 않는다 — 구조적으로 안전, 별도 차단 로직 불필요.
+# 출제 모듈은 2026-07-24부터 하드룰 3의 예외: passage_text·생성 문항은 실존 인물 정보가
+# 아니고 PII 마스킹(하드룰 2)도 LLM 호출 전에 이미 거치므로, .env의 LANGCHAIN_TRACING_V2를
+# 그대로 존중해 프로덕션에서도 관측성을 확보한다(agent_node의 ChatOllama/ChatRunPod,
+# judge_node 둘 다 트레이싱 대상 — 사용자 승인, 자세한 배경은 LANGSMITH_GUIDE.md 1절).
+from app.common.llm.tracing import init_langsmith_project
+init_langsmith_project()
 
 from fastapi import Depends, FastAPI, Form, Header, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
