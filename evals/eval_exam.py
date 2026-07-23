@@ -204,10 +204,10 @@ def main():
     print(f"\nhuman_score 분포: { {k: _dist[k] for k in sorted(_dist)} } (n={len(ITEM_GOLDEN)})")
     llm = get_llm_backend()
     judge_llm = get_judge_backend()
-    _gen_model = os.getenv("OLLAMA_MODEL", "qwen2.5:7b-instruct")
-    _judge_model = os.getenv("OLLAMA_JUDGE_MODEL")
-    _fallback = "(폴백)" if not _judge_model else ""
-    print(f"[LLM] 생성: {_gen_model} | Judge: {_judge_model or _gen_model} {_fallback}".rstrip())
+    _gen_model = getattr(llm, "model", None) or os.getenv("OLLAMA_MODEL", "qwen2.5:7b-instruct")
+    _judge_model = getattr(judge_llm, "model", None) or _gen_model
+    _judge_kind = type(judge_llm).__name__.removesuffix("Backend")
+    print(f"[LLM] 생성: {_gen_model} | Judge: {_judge_model} ({_judge_kind})")
     print(f"\n2. 문항 품질 LLM Judge + Judge 신뢰도 검증 ({len(ITEM_GOLDEN)}개, judge_one 1회만 호출)...")
     scored_items = score_items(ITEM_GOLDEN, judge_llm)
     quality_result = eval_item_quality(scored_items)

@@ -5,6 +5,7 @@ from typing import Literal
 
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 from langgraph.graph import END, START, StateGraph
+from langsmith import traceable
 
 from app.common.llm import get_judge_backend
 
@@ -252,6 +253,7 @@ def agent_node(state: ExamState) -> dict:
     }
 
 
+@traceable(name="judge_node", run_type="chain")
 def judge_node(state: ExamState) -> dict:
     """생성된 문항 세트의 구조 유사도를 외부 Judge 백엔드(get_judge_backend())로 채점한다.
 

@@ -36,10 +36,10 @@ python evals/eval_record.py    # 생기부 모듈
 
 | 지표 | 방식 | 골든셋 | 기준 |
 |---|---|---|---|
-| Recall@5 / MRR | 함수 | `retrieval_golden_final.json` (22개, 21개 reviewed) | Recall ≥ 0.8 |
+| Recall@5 / MRR | 함수 | `retrieval_golden_final.json` (22개, 22개 reviewed) | Recall ≥ 0.8 |
 | 문항 품질(정답유일성·오답매력도·근거성) | LLM Judge | `item_golden.json` (30개, human_score) | 평균 ≥ 4.0 |
 | Judge 신뢰도(문항 품질) | 사람 라벨 대비 kappa/±1 일치율 | 〃 | kappa ≥ 0.4, ±1 ≥ 0.7 |
-| 구조 유사도 Judge 신뢰도 | 사람 라벨 대비 MAE/일치율 (LLM Judge, `judge_structure()`) + 문항 개수 일치(코드) | `structure_golden.json` (45개, human_label) | 미정(부트스트랩 단계, EVAL.md 5절) |
+| 구조 유사도 Judge 신뢰도 | 사람 라벨 대비 MAE/일치율 (LLM Judge, `judge_structure()`) + 문항 개수 일치(코드) | `structure_golden.json` (45개, human_label) | 참고값, 별도 pass/fail 게이트 없음 — overall 이진 kappa 게이트는 2026-07-24 폐기 결정(EVAL.md 6절) |
 
 > **2026-07-23부터**: `structure_golden.json`을 채점하는 `judge_structure()`가
 > `app/modules/exam/judge.py`에 있고, 이게 런타임 `graph.py`의 `judge_node`가
