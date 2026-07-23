@@ -32,57 +32,10 @@
 
 ### 시스템 구성도
 
-```mermaid
-flowchart TB
-    Browser["🌐 브라우저<br/>Next.js UI"]
-
-    subgraph API["⚙️ FastAPI · app/main.py"]
-        direction LR
-        EP1["/exam/stream (SSE)"]
-        EP2["/exam (JSON)"]
-        EP3["/record (JSON)"]
-    end
-
-    Browser --> API
-
-    subgraph ExamG["📝 출제 그래프 (LangGraph)"]
-        direction LR
-        Plan["plan"] --> Agent["agent<br/>문항 생성"] --> Judge["judge<br/>구조 유사도 채점"] --> Validate{"validate"}
-        Validate -. "미달 · 재시도" .-> Agent
-    end
-
-    subgraph RecordC["✍️ 생기부 체인 (수동 루프)"]
-        direction LR
-        Mask["mask_pii"] --> Polish["polish"] --> RValidate["validate"]
-    end
-
-    EP1 --> ExamG
-    EP2 --> ExamG
-    EP3 --> RecordC
-
-    RAG[("📚 ChromaDB<br/>규정 510 + 성취기준 573 청크<br/>BGE-M3 + BGE-reranker")]
-    GenLLM["🧠 생성 LLM<br/>Qwen2.5-14B<br/>Ollama(개발) / RunPod vLLM(운영)"]
-    JudgeLLM["🎯 Judge LLM<br/>gpt-5.6-luna<br/>생성 모델과 완전히 분리된 백엔드"]
-
-    Agent --> RAG
-    Agent --> GenLLM
-    Judge --> JudgeLLM
-    Polish --> GenLLM
-    RValidate --> GenLLM
-    RValidate --> RAG
-
-    class Browser,API,EP1,EP2,EP3,RAG neutral
-    class Plan,Agent,Validate exam
-    class Judge,JudgeLLM judge
-    class Mask,Polish,RValidate record
-    class GenLLM llm
-
-    classDef neutral fill:#F5F4F1,stroke:#8A8880,stroke-width:1px,color:#1A1A1A
-    classDef exam fill:#FEF3C7,stroke:#D97706,stroke-width:1.5px,color:#1A1A1A
-    classDef record fill:#ECFEFF,stroke:#0891B2,stroke-width:1.5px,color:#1A1A1A
-    classDef llm fill:#EDE9FE,stroke:#7C3AED,stroke-width:1.5px,color:#1A1A1A
-    classDef judge fill:#FFE4E6,stroke:#E11D48,stroke-width:1.5px,color:#1A1A1A
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/architecture-dark.svg">
+  <img src="./assets/architecture-light.svg" alt="분필 시스템 구성도 — 브라우저에서 FastAPI를 거쳐 출제 그래프(LangGraph)와 생기부 체인(수동 루프)으로 분기하고, 두 모듈이 ChromaDB·생성 LLM(Qwen2.5-14B)을 공유하며 judge 노드만 별도 Judge LLM(gpt-5.6-luna)을 사용하는 구조도">
+</picture>
 
 > 🎯로 표시한 **Judge LLM은 생성 LLM과 완전히 다른 백엔드**입니다 — 문항을 쓰는 모델이 자기 글을 자기가 채점하지 않도록 의도적으로 분리했습니다(배경은 [아키텍처](#아키텍처) 참고).
 

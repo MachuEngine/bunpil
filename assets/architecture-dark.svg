@@ -1,0 +1,77 @@
+<svg width="1040" height="640" viewBox="0 0 1040 640" xmlns="http://www.w3.org/2000/svg" font-family="Inter, -apple-system, 'Segoe UI', Pretendard, sans-serif">
+  <defs>
+    <marker id="arrow-d" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#4B5563"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1040" height="640" fill="#0D1117"/>
+
+  <!-- Browser -->
+  <rect x="420" y="24" width="200" height="52" rx="16" fill="#1B1F27" stroke="#2E3440"/>
+  <text x="520" y="55" text-anchor="middle" font-size="15" font-weight="600" fill="#E6E8EB">🌐 Browser (Next.js)</text>
+  <line x1="520" y1="76" x2="520" y2="108" stroke="#4B5563" stroke-width="1.5" marker-end="url(#arrow-d)"/>
+
+  <!-- Gateway -->
+  <rect x="270" y="112" width="500" height="100" rx="18" fill="#1B1F27" stroke="#2E3440"/>
+  <text x="520" y="146" text-anchor="middle" font-size="15" font-weight="700" fill="#E6E8EB">⚙️ FastAPI · app/main.py</text>
+  <text x="520" y="172" text-anchor="middle" font-size="12" fill="#9CA3AF">/exam/stream (SSE) · /exam (JSON) · /record (JSON)</text>
+
+  <path d="M395,212 C395,230 255,230 255,246" fill="none" stroke="#4B5563" stroke-width="1.5" marker-end="url(#arrow-d)"/>
+  <path d="M645,212 C645,230 795,230 795,246" fill="none" stroke="#4B5563" stroke-width="1.5" marker-end="url(#arrow-d)"/>
+
+  <!-- Exam graph card: x 40-470 -->
+  <rect x="40" y="246" width="430" height="290" rx="20" fill="#241C10" stroke="#4A3B1C"/>
+  <text x="255" y="278" text-anchor="middle" font-size="14" font-weight="700" fill="#E8C468">📝 출제 그래프 · LangGraph (ReAct)</text>
+
+  <rect x="75" y="300" width="360" height="36" rx="12" fill="#1B1F27" stroke="#3D3218"/>
+  <text x="255" y="323" text-anchor="middle" font-size="13" fill="#EFE0AE">plan · 세션 초기화</text>
+  <line x1="255" y1="336" x2="255" y2="348" stroke="#5C4B23" stroke-width="1.5" marker-end="url(#arrow-d)"/>
+
+  <rect x="75" y="348" width="360" height="36" rx="12" fill="#1B1F27" stroke="#3D3218"/>
+  <text x="255" y="371" text-anchor="middle" font-size="13" fill="#EFE0AE">agent · 문항 생성</text>
+  <line x1="255" y1="384" x2="255" y2="396" stroke="#5C4B23" stroke-width="1.5" marker-end="url(#arrow-d)"/>
+
+  <rect x="75" y="396" width="360" height="36" rx="12" fill="#2B141B" stroke="#5C2430"/>
+  <text x="255" y="419" text-anchor="middle" font-size="13" font-weight="700" fill="#FB7185">🎯 judge · 외부 Judge로 채점</text>
+  <line x1="255" y1="432" x2="255" y2="444" stroke="#5C4B23" stroke-width="1.5" marker-end="url(#arrow-d)"/>
+
+  <rect x="75" y="444" width="360" height="36" rx="12" fill="#1B1F27" stroke="#3D3218"/>
+  <text x="255" y="467" text-anchor="middle" font-size="13" fill="#EFE0AE">validate · 통과 판정(코드)</text>
+
+  <path d="M435,462 C 495,462 495,366 435,366" fill="none" stroke="#9C7C2E" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow-d)"/>
+  <text x="505" y="408" font-size="10.5" fill="#C7A63E">미달 ·</text>
+  <text x="505" y="421" font-size="10.5" fill="#C7A63E">재시도</text>
+
+  <!-- Record chain card: x 570-1000 -->
+  <rect x="570" y="246" width="430" height="290" rx="20" fill="#0F2226" stroke="#204349"/>
+  <text x="785" y="278" text-anchor="middle" font-size="14" font-weight="700" fill="#7DD3DC">✍️ 생기부 체인 · 수동 루프</text>
+
+  <rect x="605" y="300" width="360" height="36" rx="12" fill="#1B1F27" stroke="#1E3A3E"/>
+  <text x="785" y="323" text-anchor="middle" font-size="13" fill="#BFE9EE">mask_pii · PII 마스킹(호출 전)</text>
+  <line x1="785" y1="336" x2="785" y2="348" stroke="#2C4F54" stroke-width="1.5" marker-end="url(#arrow-d)"/>
+
+  <rect x="605" y="348" width="360" height="36" rx="12" fill="#1B1F27" stroke="#1E3A3E"/>
+  <text x="785" y="371" text-anchor="middle" font-size="13" fill="#BFE9EE">polish · 문체 교정</text>
+  <line x1="785" y1="384" x2="785" y2="396" stroke="#2C4F54" stroke-width="1.5" marker-end="url(#arrow-d)"/>
+
+  <rect x="605" y="396" width="360" height="36" rx="12" fill="#1B1F27" stroke="#1E3A3E"/>
+  <text x="785" y="419" text-anchor="middle" font-size="13" fill="#BFE9EE">validate · 규정·사실보존 검증</text>
+
+  <text x="785" y="452" text-anchor="middle" font-size="11" fill="#5FA8AF">→ 안전 출력 + 교사 책임 고지</text>
+
+  <!-- Backend row -->
+  <text x="520" y="565" text-anchor="middle" font-size="11.5" fill="#6B7280">공유 백엔드 — 두 모듈 모두 ChromaDB · 생성 LLM 사용, judge만 별도로 Judge LLM 사용</text>
+
+  <rect x="100" y="580" width="250" height="54" rx="16" fill="#1B1F27" stroke="#2E3440"/>
+  <text x="225" y="603" text-anchor="middle" font-size="12.5" font-weight="600" fill="#E6E8EB">📚 ChromaDB</text>
+  <text x="225" y="620" text-anchor="middle" font-size="10.5" fill="#9CA3AF">규정·성취기준 RAG</text>
+
+  <rect x="395" y="580" width="250" height="54" rx="16" fill="#1B1F27" stroke="#2E3440"/>
+  <text x="520" y="603" text-anchor="middle" font-size="12.5" font-weight="600" fill="#E6E8EB">🧠 Qwen2.5-14B</text>
+  <text x="520" y="620" text-anchor="middle" font-size="10.5" fill="#9CA3AF">생성 · Ollama / RunPod</text>
+
+  <rect x="690" y="580" width="250" height="54" rx="16" fill="#2B141B" stroke="#5C2430"/>
+  <text x="815" y="603" text-anchor="middle" font-size="12.5" font-weight="700" fill="#FB7185">🎯 gpt-5.6-luna</text>
+  <text x="815" y="620" text-anchor="middle" font-size="10.5" fill="#F3A6B2">Judge · 생성 모델과 분리</text>
+</svg>
