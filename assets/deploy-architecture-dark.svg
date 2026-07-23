@@ -1,0 +1,36 @@
+<svg width="1160" height="240" viewBox="0 0 1160 240" xmlns="http://www.w3.org/2000/svg" font-family="Inter, -apple-system, 'Segoe UI', Pretendard, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#4B5563"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="1160" height="240" fill="#0D1117"/>
+
+  <rect x="20" y="83" width="150" height="44" rx="22" fill="#1B1F27" stroke="#2E3440"/>
+  <text x="95" y="110" text-anchor="middle" font-size="13" font-weight="600" fill="#E6E8EB">🌐 브라우저</text>
+  <line x1="170" y1="105" x2="192" y2="105" stroke="#4B5563" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="195" y="80" width="170" height="50" rx="12" fill="#1B1F27" stroke="#2E3440"/>
+  <text x="280" y="101" text-anchor="middle" font-size="12.5" font-weight="600" fill="#E6E8EB">🔒 Caddy</text>
+  <text x="280" y="119" text-anchor="middle" font-size="11" fill="#9CA3AF">HTTPS 프록시</text>
+  <line x1="365" y1="105" x2="387" y2="105" stroke="#4B5563" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="390" y="80" width="200" height="50" rx="12" fill="#1B1F27" stroke="#2E3440"/>
+  <text x="490" y="101" text-anchor="middle" font-size="12.5" font-weight="600" fill="#E6E8EB">▲ Next.js</text>
+  <text x="490" y="119" text-anchor="middle" font-size="11" fill="#9CA3AF">frontend (3000)</text>
+  <line x1="590" y1="105" x2="612" y2="105" stroke="#4B5563" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="615" y="80" width="270" height="50" rx="12" fill="#1B1F27" stroke="#2E3440"/>
+  <text x="750" y="101" text-anchor="middle" font-size="12.5" font-weight="600" fill="#E6E8EB">🖥️ EC2 t3.medium</text>
+  <text x="750" y="119" text-anchor="middle" font-size="11" fill="#9CA3AF">FastAPI + ChromaDB (8765)</text>
+  <line x1="885" y1="105" x2="907" y2="105" stroke="#4B5563" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="910" y="80" width="230" height="50" rx="12" fill="#1B1F27" stroke="#2E3440"/>
+  <text x="1025" y="101" text-anchor="middle" font-size="12.5" font-weight="600" fill="#E6E8EB">⚡ RunPod 서버리스</text>
+  <text x="1025" y="119" text-anchor="middle" font-size="11" fill="#9CA3AF">Qwen2.5-14B-AWQ · vLLM</text>
+
+  <path d="M750,130 C 750,150 750,150 750,165" fill="none" stroke="#4B5563" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#a)"/>
+  <rect x="640" y="168" width="220" height="50" rx="12" fill="#1B1F27" stroke="#2E3440"/>
+  <text x="750" y="189" text-anchor="middle" font-size="12.5" font-weight="600" fill="#E6E8EB">💾 EBS 10GB</text>
+  <text x="750" y="207" text-anchor="middle" font-size="11" fill="#9CA3AF">ChromaDB 저장</text>
+</svg>

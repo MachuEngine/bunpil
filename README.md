@@ -157,35 +157,10 @@ LangGraph 에이전트는 BaseChatModel 인터페이스만 알면 되고, RunPod
 
 RunPodBackend는 비동기 `/run`으로 작업을 한 번만 제출한 뒤 동일한 `job_id`를 폴링해, 긴 생성(멀티턴 ReAct)도 중복 실행 없이 안전하게 기다립니다.
 
-```mermaid
-flowchart LR
-    Submit["POST /run<br/>read timeout 35s"]
-    ID["job_id 수신"]
-    Submit --> ID
-
-    subgraph Loop["🔁 최대 60회 · 5초 간격(최대 5분)"]
-        direction LR
-        Wait["5초 대기"]
-        Status{"GET /status/job_id"}
-        Wait --> Status
-        Status -- "IN_QUEUE / IN_PROGRESS" --> Wait
-    end
-
-    ID --> Loop
-    Status -- "COMPLETED" --> Done["output 반환"]
-    Status -- "FAILED/CANCELLED" --> Fail["예외 발생"]
-    Loop -. "60회 초과" .-> Timeout["TimeoutError"]
-    Submit -. "제출 응답 타임아웃" .-> SubmitTimeout["TimeoutError<br/>재제출 안 함"]
-
-    class Submit,ID,Status neutral
-    class Done llm
-    class Fail,Timeout,SubmitTimeout warn
-    style Loop fill:#FAFAF8,stroke:#C3C2B7,stroke-width:1px
-
-    classDef neutral fill:#F5F4F1,stroke:#8A8880,stroke-width:1px,color:#1A1A1A
-    classDef llm fill:#EDE9FE,stroke:#7C3AED,stroke-width:1.5px,color:#1A1A1A
-    classDef warn fill:#FEE2E2,stroke:#DC2626,stroke-width:1.5px,color:#1A1A1A
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/runpod-polling-dark.svg">
+  <img src="./assets/runpod-polling-light.svg" alt="RunPod 폴링 루프 — POST /run 제출 후 job_id를 받아 최대 60회, 5초 간격으로 상태를 폴링하고, COMPLETED/FAILED/CANCELLED/타임아웃에 따라 결과를 분기하는 흐름도">
+</picture>
 
 > `/run` 제출 응답을 받지 못하면 job 자체는 이미 실행 중일 수 있으므로, 무작정 재제출하지 않고 명확한 예외로 상위 로직에 알립니다.
 
@@ -407,23 +382,10 @@ BUNPIL_API_KEY=replace_with_a_long_random_value BACKEND_URL=http://localhost:876
 
 > **현재 상태(2026-07-22)**: RunPod 서버리스는 크레딧 소진으로 엔드포인트가 비활성 상태입니다. 아래는 정상 운영 시 아키텍처이며, 재개 시 크레딧 충전 + 엔드포인트 재생성만으로 복구 가능합니다(설정 자체는 유지됨).
 
-```mermaid
-flowchart LR
-    Browser["🌐 브라우저"]
-    Caddy["🔒 Caddy<br/>HTTPS 프록시"]
-    EC2["🖥️ EC2 t3.medium<br/>FastAPI + ChromaDB"]
-    RunPod["⚡ RunPod 서버리스<br/>Qwen2.5-14B-AWQ, vLLM"]
-    EBS[("💾 EBS 10GB<br/>ChromaDB 저장")]
-
-    Browser --> Caddy --> Frontend["▲ Next.js<br/>frontend (3000)"]
-    Frontend --> EC2
-    EC2["🖥️ EC2 t3.medium<br/>FastAPI + ChromaDB (8765)"] --> RunPod
-    EC2 -.-> EBS
-
-    class Browser,Caddy,Frontend,EC2,RunPod,EBS neutral
-
-    classDef neutral fill:#F5F4F1,stroke:#8A8880,stroke-width:1px,color:#1A1A1A
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/deploy-architecture-dark.svg">
+  <img src="./assets/deploy-architecture-light.svg" alt="배포 아키텍처 — 브라우저에서 Caddy(HTTPS)를 거쳐 Next.js frontend, EC2의 FastAPI+ChromaDB로 이어지고, EC2가 RunPod 서버리스(vLLM)를 호출하며 EBS에 ChromaDB를 저장하는 구조도">
+</picture>
 
 > **프론트엔드 배포**: `docker-compose.yml`의 `frontend` 서비스(`frontend/Dockerfile`, Next.js `output: "standalone"` 빌드)가 3000 포트로 UI를 서빙하고, `frontend/app/api/*/route.ts`가 컨테이너 내부에서 `BACKEND_URL=http://app:8765`로 FastAPI에 프록시합니다. Caddy는 3000만 바라보면 됩니다(아래 Caddyfile 참고). `docker compose up -d --build`로 `app`+`frontend`가 함께 뜹니다.
 
