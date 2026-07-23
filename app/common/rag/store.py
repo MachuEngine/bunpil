@@ -78,7 +78,7 @@ class RAGStore:
             즉, 청크 개수를 반환 함.
         """
         try:
-            return self._collection(collection_name).count()
+            return self._collection(collection_name).count() # ChromaDB 라이브러리가 제공하는 Collection 객체의 .count() 메서드
         except Exception:
             return 0
 
