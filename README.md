@@ -51,7 +51,7 @@ flowchart TB
         Validate -. "미달 · 재시도" .-> Agent
     end
 
-    subgraph RecordC["✍️ 생기부 체인 (LCEL)"]
+    subgraph RecordC["✍️ 생기부 체인 (수동 루프)"]
         direction LR
         Mask["mask_pii"] --> Polish["polish"] --> RValidate["validate"]
     end
@@ -124,7 +124,7 @@ flowchart TB
 
 ### 출제 모듈 — ReAct 에이전트 + 분리된 Judge
 
-에이전트(생성 LLM)가 추론과 문항 생성을 **직접** 담당하고, 도구 6개는 검색·저장·검증의 **순수 계산**만 수행합니다(도구 내부 LLM 호출 없음 — LLM을 도구 안에 중첩하는 안티패턴 제거). 구조 유사도 채점만은 도구가 아니라 그래프의 별도 `judge` 노드가 담당하며, 생성 모델과 **완전히 다른 LLM 백엔드**를 호출합니다.
+에이전트(생성 LLM)가 추론과 문항 생성을 **직접** 담당하고, 도구 7개는 검색·저장·검증의 **순수 계산**만 수행합니다(도구 내부 LLM 호출 없음 — LLM을 도구 안에 중첩하는 안티패턴 제거). 구조 유사도 채점만은 도구가 아니라 그래프의 별도 `judge` 노드가 담당하며, 생성 모델과 **완전히 다른 LLM 백엔드**를 호출합니다.
 
 | 도구 | 역할 |
 |---|---|
@@ -638,7 +638,7 @@ bunpil/
 │   │   ├── llm/          # LLM 추상화 (OllamaBackend / RunPodBackend / OpenAIBackend / ChatRunPod)
 │   │   └── rag/          # PDF 파싱, 임베딩, 리랭킹, ChromaDB
 │   ├── modules/
-│   │   ├── exam/         # 출제 모듈 — graph.py(LangGraph) / tools.py(도구 6개) / judge.py(Judge 채점 함수)
+│   │   ├── exam/         # 출제 모듈 — graph.py(LangGraph) / tools.py(도구 7개) / judge.py(Judge 채점 함수)
 │   │   └── record/       # 생기부 모듈 (수동 루프 Chain)
 │   └── main.py           # FastAPI (/exam/stream · /exam · /record · /health)
 ├── frontend/             # Next.js UI

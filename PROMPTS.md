@@ -53,7 +53,8 @@ LLM 호출 추상화 레이어를 만들어줘.
 
 ```
 출제 모듈을 LangGraph ReAct Agent로 구현해줘. CLAUDE.md의 아키텍처를 따른다.
-- State: passage_text / standards / num_items / draft_items / similarity_judge_result / validation_feedback / budget
+- State: passage_text / num_items / draft_items / similarity_judge_result / validation_feedback / budget
+  (2026-07-21: `standards`는 사용자 입력에서 폐지 — 에이전트가 `search_standards` 도구로 스스로 검색)
 - 노드 순서: plan → agent(ReAct) → validate. 검증 미달이면 budget 범위에서 agent로 재시도
 - 도구: 성취기준·법령 RAG / 형식 검증 / 문항 저장·폐기 / 품질 점수 기록 / 구조 유사도 판단
 - Agent는 예시 문제를 프롬프트에서만 참고하고, 사용자 입력은 ChromaDB·로그·캐시에 저장하지 않음
@@ -61,6 +62,8 @@ LLM 호출 추상화 레이어를 만들어줘.
 - budget과 불완전 응답 재촉 횟수로 무한루프 방지
 완료 기준: 예시 문제 붙여넣기 → 정확한 개수의 승인 문항 생성 + 구조 유사도 검증. 통합 테스트 포함. 확인되면 멈추고 보고해줘.
 ```
+
+> **2026-07-23 갱신**: 구조 유사도 판단("similarity_judge")은 위 프롬프트대로 agent 도구로 처음 구현됐으나, 이후 사람 라벨과 신뢰도가 검증된 적 없는 자기채점이라는 문제가 드러나 노드 순서가 `plan → agent → judge → validate`로 바뀌었다(agent는 `submit_for_review`만 호출, 별도 `judge` 노드가 생성 모델과 분리된 백엔드로 채점). 최신 구조는 `app/modules/exam/judge.py`·README 참고.
 
 ---
 
@@ -87,6 +90,11 @@ LLM 호출 추상화 레이어를 만들어줘.
 [엄수] 메모에 없는 사실 추가 금지(생성 아닌 '다듬기'). 마스킹은 외부/모델 호출 전에. 입력은 비저장. 로그에 PII 금지.
 완료 기준: 메모 입력 → 마스킹 동작 + 윤문 + 규정 위반 플래그 표시. 확인되면 멈추고 보고해줘.
 ```
+
+> **실제 구현 정정**: 위 프롬프트는 LCEL(파이프 연산자 체인)을 지시했지만, 실제 `RecordChain.run()`은
+> `_step_mask`/`_step_polish`/`_step_validate`를 for 루프로 직접 호출하는 수동 루프로 구현됐다
+> (재시도 로직 때문에 단순 파이프보다 이 구조가 더 맞았음). DESIGN.md/README.md 등 다른 문서의
+> "LCEL"이라는 표현도 이 이유로 전부 "수동 루프"로 정정됨 — 이 표기 불일치를 한동안 못 잡고 있었다.
 
 ---
 
@@ -120,7 +128,7 @@ Next.js로 2모드 UI를 만들어줘.
 
 ```
 배포를 진행해줘. 학습 목적이니 EC2/Caddy 단계는 무엇을 왜 하는지 설명하면서 같이 가자.
-(a) RunPod 서버리스: Qwen2.5 7B(vLLM) 핸들러 컨테이너 패키징 → 서버리스 엔드포인트 배포 → LLM 레이어를 이 엔드포인트로 전환
+(a) RunPod 서버리스: Qwen2.5 14B(AWQ 양자화, vLLM) 핸들러 컨테이너 패키징 → 서버리스 엔드포인트 배포 → LLM 레이어를 이 엔드포인트로 전환
 (b) EC2: t3.medium 프로비저닝, 보안그룹 설정, Docker로 앱 배포, ChromaDB는 EBS 볼륨
 (c) Caddy 리버스 프록시 + HTTPS(+도메인)
 (d) billing alarm 설정

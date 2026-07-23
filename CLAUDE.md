@@ -11,9 +11,9 @@
 ## 스택
 
 - Python / FastAPI (비동기)
-- LangGraph(출제 agent) / LCEL(생기부 chain)
+- LangGraph(출제 agent) / 수동 루프(생기부 chain, LangChain 컴포넌트 직접 호출)
 - ChromaDB + BGE-reranker, 임베딩 BGE-M3 — **임베딩·리랭킹은 CPU**
-- LLM: Qwen2.5 14B (RunPod은 AWQ 양자화, vLLM 배포). GPT-3.5/Ollama는 **합성 데이터 평가 전용**
+- LLM: 생성 Qwen2.5 14B(RunPod은 AWQ 양자화, vLLM 배포) / Judge gpt-5.6-luna(OpenAI, 기본) — 생성 모델과 완전히 분리된 별도 백엔드(judge 노드). 근거는 MODEL_SELECTION.md
 - UI: Next.js (frontend/)
 - 배포: AWS EC2(앱) + RunPod 서버리스(GPU), Caddy HTTPS
 

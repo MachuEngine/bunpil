@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """출제 모듈 통합 테스트 (passage_text 붙여넣기 리디자인 반영).
-예시 문제 텍스트를 입력으로 ReAct 에이전트가 문항 세트를 생성하고
-similarity_judge 결과 기반으로 재시도 여부를 판단하는 흐름을 확인한다.
+예시 문제 텍스트를 입력으로 ReAct 에이전트가 문항 세트를 생성하고,
+별도 judge 노드(get_judge_backend())가 채점한 결과 기반으로 재시도
+여부를 판단하는 흐름을 확인한다(2026-07-23부터 자기채점 아님).
 """
 import os
 import sys
