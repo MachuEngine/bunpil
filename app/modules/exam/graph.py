@@ -6,9 +6,12 @@ from typing import Literal
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 from langgraph.graph import END, START, StateGraph
 
+from app.common.llm import get_judge_backend
+
+from .judge import judge_structure
 from .llm import get_langchain_model
 from .state import ExamState
-from .tools import TOOLS, get_draft_items, get_judge_result, init_session, reset_judge
+from .tools import TOOLS, get_draft_items, init_session
 
 logger = logging.getLogger(__name__)
 
@@ -43,9 +46,9 @@ def _looks_like_broken_tool_call(content) -> bool:
 
 def plan_node(state: ExamState) -> dict:
     """세션을 초기화한다. 요청 전체에서 단 한 번만 호출됨 — 재시도 시에는 agent_node가
-    문항을 유지한 채 reset_judge()만 호출한다(부분 진행을 재시도마다 버리지 않기 위함,
-    2026-07-10 개선. 이전에는 agent_node가 매 재시도마다 init_session()으로 전체
-    초기화를 했었음). passage_text는 save_item의 원문 복사 게이트가 참조."""
+    이미 저장된 문항을 유지한 채 부족분만 이어서 작성한다(부분 진행을 재시도마다 버리지
+    않기 위함, 2026-07-10 개선. 이전에는 agent_node가 매 재시도마다 init_session()으로
+    전체 초기화를 했었음). passage_text는 save_item의 원문 복사 게이트가 참조."""
     init_session(
         state["spec"].get("passage_text", ""),
         state["spec"].get("num_items", 2),
@@ -71,6 +74,11 @@ def _build_system_prompt(
     remaining = max(0, num_items - len(existing_items))
 
     def _summary(items):
+        """
+        기존 문항들을 사람이 읽을 만한 요약 목록으로 변환하는 내부 헬퍼. 
+        item_id, 유형/난이도, 점수, 질문 앞 40자만 보여줌 — 전체 문항 텍스트를
+        다 넣으면 프롬프트가 불필요하게 길어지니 식별에 필요한 만큼만.
+        """
         return "\n".join(
             f"  {i+1}. [id={it.get('item_id','?')}, {it.get('item_type','?')}/{it.get('difficulty','?')}, "
             f"score={it.get('judge_score', 0)}] {str(it.get('question',''))[:40]}"
@@ -103,21 +111,21 @@ def _build_system_prompt(
         progress_note = f"\n\n목표보다 많은 {len(existing_items)}개 문항이 저장돼 있습니다:\n{_summary(existing_items)}\n"
         count_instruction = (
             f"목표는 {num_items}개입니다. discard_item으로 초과 문항 {abs(remaining)}개를 폐기한 뒤 "
-            "남은 세트를 similarity_judge로 평가하세요. 새 문항을 추가하지 마세요."
+            "남은 세트를 submit_for_review로 제출하세요. 새 문항을 추가하지 마세요."
         )
-        action_instruction = "초과 문항을 폐기하고 similarity_judge를 호출하세요:"
+        action_instruction = "초과 문항을 폐기하고 submit_for_review를 호출하세요:"
     else:
         progress_note = f"\n\n목표 개수({num_items}개)는 이미 채워져 있습니다:\n{_summary(existing_items)}\n"
         if validation_feedback:
             count_instruction = (
                 f"이전 검증 실패 사유: {validation_feedback}\n"
-                "단순 재채점만 하지 마세요. 실패 사유에 해당하는 문항을 discard_item으로 폐기하고, "
-                "유형·난이도·품질을 교정한 새 문항을 저장·채점한 뒤 similarity_judge를 다시 호출하세요."
+                "단순 재제출만 하지 마세요. 실패 사유에 해당하는 문항을 discard_item으로 폐기하고, "
+                "유형·난이도·품질을 교정한 새 문항을 저장·채점한 뒤 submit_for_review를 다시 호출하세요."
             )
-            action_instruction = "문항을 실제로 교체한 뒤 similarity_judge를 호출하세요:"
+            action_instruction = "문항을 실제로 교체한 뒤 submit_for_review를 호출하세요:"
         else:
-            count_instruction = "새 문항을 추가하지 말고 similarity_judge로 세트를 평가하세요."
-            action_instruction = "바로 similarity_judge 도구를 호출하세요:"
+            count_instruction = "새 문항을 추가하지 말고 submit_for_review로 제출하세요."
+            action_instruction = "바로 submit_for_review 도구를 호출하세요:"
 
     return (
         "당신은 한국 고등학교 사회 문항 출제 전문가 에이전트입니다. 한국어로만 응답하세요.\n\n"
@@ -135,9 +143,8 @@ def _build_system_prompt(
         "4. save_item — 검증 통과한 문항 저장\n"
         "5. save_item 응답을 받은 다음 턴에 record_score — 반환된 item_id와 품질 점수(0~5점) 기록\n"
         "6. [교체 시] discard_item — 기존 문항을 폐기한 뒤 새 문항 저장\n\n"
-        "문항 세트 작성이 모두 끝나면 similarity_judge 도구를 호출해 "
-        "예시 문제와의 구조적 유사도(유형 비율·난이도 구성)를 스스로 평가하세요. "
-        "(문항 개수 일치 여부는 이 도구가 아니라 시스템이 자동으로 검증합니다.)\n\n"
+        "문항 세트 작성이 모두 끝나면 submit_for_review 도구를 호출해 제출하세요. "
+        "(구조 유사도 평가·문항 개수 검증은 이 도구가 아니라 시스템이 자동으로 수행합니다.)\n\n"
         "문항은 당신이 직접 작성합니다. "
         "객관식 선지는 반드시 ①②③④ 형식으로 4개 작성하세요.\n\n"
         "오답(정답이 아닌 선지)은 명백히 틀리거나 문제와 무관한 내용이 아니라, "
@@ -153,11 +160,12 @@ def agent_node(state: ExamState) -> dict:
 
     2026-07-10 개선: 재시도마다 전체를 초기화하지 않는다. 이미 저장된 문항
     (get_draft_items())은 유지하고, 부족한 개수만 이어서 작성하도록 프롬프트를
-    동적으로 구성한다(reset_judge()로 판정 결과만 초기화 — 누적된 문항 기준으로
-    다시 판단해야 하므로).
-    """
-    reset_judge()
+    동적으로 구성한다.
 
+    2026-07-23: 구조 유사도 자기채점(similarity_judge)을 제거했다 — 이제 에이전트는
+    문항 작성·저장·채점 후 submit_for_review로 "끝났다"는 신호만 보내고, 실제
+    구조 유사도 채점은 별도 judge_node(get_judge_backend())가 담당한다.
+    """
     spec = state["spec"]
     passage_text = spec.get("passage_text", "")
     num_items = spec.get("num_items", 2)
@@ -172,6 +180,17 @@ def agent_node(state: ExamState) -> dict:
     user_content = "위 지침에 따라 문항을 작성하세요."
 
     tool_map = {t.name: t for t in TOOLS}
+    # @tool 데코레이션이 붙은 함수는 그냥 함수가 아닌 tool 객체임.
+    # tool 객체는 .name 등의 속성을 가지고 있음
+    # tool_map = {
+    #   "search_regulations": search_regulations,
+    #   "search_standards": search_standards,
+    #   "validate_item_format": validate_item_format,
+    #   "save_item": save_item,
+    #   "record_score": record_score,
+    #   "discard_item": discard_item,
+    #   "submit_for_review": submit_for_review,
+    # }
     llm = get_langchain_model().bind_tools(TOOLS)
     messages = [SystemMessage(content=system_prompt), HumanMessage(content=user_content)]
 
@@ -180,22 +199,25 @@ def agent_node(state: ExamState) -> dict:
     # 실제로는 모델이 도구를 부르려다 형식만 깨뜨린 경우가 섞여 있었음(TROUBLESHOOTING.md).
     # 연속 2회까지는 형식 오류로 보고 재작성을 요청하고, 그래도 안 되면 원래대로 종료
     # (바깥쪽 turn cap 14가 항상 최종 방어선 — 무한루프는 불가능).
+
+    # 최대 14턴까지만 루프.
+    # malformed_streak: 연속으로 몇 번 "tool_calls는 비었는데 진짜 안 끝난 것 같다"고 판단했는지 세는 카운터
     malformed_streak = 0
     for _ in range(14):
         response = _invoke_with_retry(llm, messages)
         messages.append(response)
 
+        # getattr - 파이썬 내장 함수.
+        # 어떤 객체에서 특정 이름(문자열)의 속성을 꺼내오되, 그 속성이 없으면 기본값을 사용해라
         if not getattr(response, "tool_calls", []):
-            incomplete = (
-                len(get_draft_items()) != num_items
-                or not get_judge_result()
-            )
+            incomplete = len(get_draft_items()) != num_items
+            # 진짜 끝난게 아니고 도구 호출에 이상이 있는 케이스 && 이 도구 호출 안되는 경우가 3번 미만 째인지
             if incomplete and malformed_streak < 3:
                 malformed_streak += 1
                 reason = (
                     "도구 호출 형식이 손상되었습니다."
                     if _looks_like_broken_tool_call(response.content)
-                    else "아직 목표 문항 저장과 구조 평가가 끝나지 않았습니다."
+                    else "아직 목표 문항 저장과 제출이 끝나지 않았습니다."
                 )
                 messages.append(HumanMessage(
                     content=f"{reason} 설명 없이, "
@@ -205,7 +227,7 @@ def agent_node(state: ExamState) -> dict:
             break
 
         malformed_streak = 0
-        judged = False
+        submitted = False
         for tc in response.tool_calls:
             fn = tool_map.get(tc["name"])
             if not fn:
@@ -219,20 +241,40 @@ def agent_node(state: ExamState) -> dict:
                     # 고칠 수 있도록 오류를 도구 응답 형태로 되돌려준다.
                     result_content = f"도구 호출 오류 — 인자 형식을 확인하고 다시 호출하세요: {e}"
             messages.append(ToolMessage(content=result_content, tool_call_id=tc["id"]))
-            if tc["name"] == "similarity_judge":
-                judged = True
-        if judged:
+            if tc["name"] == "submit_for_review":
+                submitted = True
+        if submitted:
             break
 
     return {
         "agent_messages": messages,
-        "similarity_judge_result": get_judge_result(),
         "budget": state["budget"] - 1,
     }
 
 
+def judge_node(state: ExamState) -> dict:
+    """생성된 문항 세트의 구조 유사도를 외부 Judge 백엔드(get_judge_backend())로 채점한다.
+
+    2026-07-23 도입: 이전엔 생성 에이전트 자신이 similarity_judge 도구로 자기 출력을
+    스스로 채점했다(self-judge) — 이 self-judge 신뢰도는 사람 라벨과 한 번도 대조된
+    적이 없었고, 오프라인 eval이 검증하는 Judge(get_judge_backend())와 실제 배포된
+    Judge(생성 모델 자신)가 서로 다른 코드 경로였다(검증-배포 불일치). 이제 런타임도
+    오프라인 eval(scripts/eval_lib.py judge_structure_one)과 동일한 judge_structure()를
+    호출해 두 경로가 항상 같은 judge를 측정하도록 통일했다.
+
+    Judge 호출이 실패하면(예: OPENAI_API_KEY 누락) 그대로 예외를 전파한다(fail-fast) —
+    조용히 폴백하면 신뢰도가 검증되지 않은 채로 프로덕션 게이트를 통과시키는 문제가
+    재발하므로, 실패를 감추지 않고 명확한 에러로 드러낸다."""
+    spec = state["spec"]
+    passage_text = spec.get("passage_text", "")
+    items = get_draft_items()
+    judge_llm = get_judge_backend()
+    result = judge_structure(passage_text, items, judge_llm)
+    return {"similarity_judge_result": result}
+
+
 def validate_node(state: ExamState) -> dict:
-    """similarity_judge 결과를 threshold로 판정한다.
+    """judge_node가 채점한 similarity_judge_result를 threshold로 판정한다.
     count_match는 LLM 판단이 아니라 spec["num_items"] 기준으로 코드가 직접 계산한다
     (문항 개수는 예시 문제 개수와 무관하게 지정된 값을 따라야 하므로)."""
     judge = state.get("similarity_judge_result", {})
@@ -257,7 +299,7 @@ def validate_node(state: ExamState) -> dict:
     if rejected_ids:
         feedback.append(f"품질 점수 미달 또는 미채점 문항: {', '.join(rejected_ids)}")
     if not judge:
-        feedback.append("similarity_judge 미호출")
+        feedback.append("구조 유사도 미채점")
     else:
         if judge.get("type_ratio_score", 0) < 0.7:
             feedback.append("유형 비율 유사도 미달")
@@ -284,11 +326,13 @@ def build_exam_graph():
     g = StateGraph(ExamState)
     g.add_node("plan", plan_node)
     g.add_node("agent", agent_node)
+    g.add_node("judge", judge_node)
     g.add_node("validate", validate_node)
 
     g.add_edge(START, "plan")
     g.add_edge("plan", "agent")
-    g.add_edge("agent", "validate")
+    g.add_edge("agent", "judge")
+    g.add_edge("judge", "validate")
     g.add_conditional_edges("validate", should_retry, {"agent": "agent", "end": END})
 
     return g.compile()

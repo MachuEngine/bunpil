@@ -129,7 +129,8 @@ async def _run_exam(spec) -> dict:
 
 _NODE_MESSAGES = {
     "plan": "준비 중...",
-    "validate": "생성된 문항의 구조적 유사도를 검증하고 있습니다...",
+    "judge": "생성된 문항의 구조적 유사도를 채점하고 있습니다...",
+    "validate": "채점 결과가 기준을 통과했는지 확인하고 있습니다...",
 }
 
 

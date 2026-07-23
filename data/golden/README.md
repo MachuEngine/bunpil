@@ -6,7 +6,7 @@
 |---|---|---|---|
 | retrieval_golden_final.json | eval_exam.py | expected_chunk_id + reviewed | RAG 검색 Recall@5 평가 |
 | item_golden.json | eval_exam.py | human_score | 문항 품질(오답매력도 등) Judge 신뢰도 검증 |
-| structure_golden.json | eval_exam.py | human_label | 구조 유사도 Judge 신뢰도 검증 |
+| structure_golden.json | eval_exam.py | human_label | 구조 유사도 Judge 신뢰도 검증 — 2026-07-23부터 이 Judge(`get_judge_backend()`)가 런타임 `judge` 노드와 동일 코드이므로, 이 수치가 곧 배포된 judge의 신뢰도(자세한 내용은 MODEL_SELECTION.md 2.5절) |
 | masking_golden.json | eval_record.py | pii | 생기부 개인정보 마스킹 평가 |
 | hallucination_golden.json | eval_record.py | forbidden | 생기부 환각 탐지 평가 |
 | violation_golden.json | eval_record.py | label | 생기부 위반 문구 탐지 평가 |

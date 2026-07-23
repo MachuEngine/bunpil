@@ -25,9 +25,19 @@
 구조가 곧 무의미해질 `past_exams`/`check_duplicate`도 이때 완전히 제거)
 
 ```
-예시 문제 붙여넣기(passage_text) → Agent(ReAct) ↔ 도구 → similarity_judge 구조 유사도 자체 평가
-  → 코드가 threshold 판정 → 미달 시 세트 전체 재시도(budget) → 교사 검토 세트
+예시 문제 붙여넣기(passage_text) → Agent(ReAct) ↔ 도구 → submit_for_review로 제출
+  → judge_node(외부 Judge 백엔드)가 구조 유사도 채점 → 코드가 threshold 판정
+  → 미달 시 세트 전체 재시도(budget) → 교사 검토 세트
 ```
+
+> **2026-07-23 변경(옵션 B)**: 구조 유사도 채점을 생성 에이전트의 자기채점(self-judge)에서
+> 별도 Judge 노드로 분리했다. 계기: 런타임 self-judge 신뢰도가 사람 라벨과 한 번도
+> 대조된 적이 없었고, 오프라인 eval이 검증하는 Judge(`get_judge_backend()`)와 실제
+> 배포된 judge(생성 모델 자신)가 서로 다른 코드 경로였다(검증-배포 불일치). 이제
+> 런타임 `judge_node`도 오프라인 eval과 동일한 `app/modules/exam/judge.py`의
+> `judge_structure()`를 호출해 두 경로가 항상 같은 judge를 측정한다. 트레이드오프:
+> `JUDGE_BACKEND=openai`(기본값)에서는 매 문항 세트 생성마다 `passage_text`(PII
+> 마스킹은 되지만 저작권 있는 교사 지문일 수 있음)가 OpenAI로 전송된다(6절 참고).
 
 **도구(Tools)**
 
@@ -39,22 +49,28 @@
 | 저장 | `save_item` — 검증 통과 문항 저장 | 함수 |
 | 폐기 | `discard_item` — 승인 불가 문항을 ID로 제거 | 함수 |
 | 자체 채점 | `record_score` — 품질 자체 평가 기록 | 함수 |
-| 구조 유사도 판단 | `similarity_judge` — 예시 문제와의 구조 유사도 자체 평가 | LLM as Judge |
+| 제출 신호 | `submit_for_review` — 작성 완료 신호(인자 없음) | 함수 |
+
+**노드**: `plan → agent → judge → validate → (재시도: agent | 종료)`. `judge` 노드는 도구가
+아니라 그래프 노드 — `agent`가 `submit_for_review`를 호출해 작성을 끝내면, `judge`가
+`get_judge_backend()`(생성 모델과 별개 백엔드)로 구조 유사도를 채점한다.
 
 **State**
 
 ```
 spec:                    { passage_text(예시 문제 원문), num_items(생성 개수, 기본 2) }
 draft_items:             [ { 문항, 유형, 난이도, judge_score, 상태 } ]
-similarity_judge_result: { type_ratio_score, difficulty_match, overall_score }
+similarity_judge_result: { type_ratio_score, difficulty_match, overall_score } — judge_node가 기록
 budget:                  남은 재시도 횟수 (세트 전체 단위, 무한루프 방지)
 ```
 
-**Agent(LLM)가 판단하는 것**: 문항 세트 작성, 형식 자기수정, 구조 유사도 자체 평가(`similarity_judge` 호출 — 유형 비율·난이도·종합 유사도만).
-**코드가 판단하는 것**: 문항 개수 일치 여부(`len(draft_items) == spec["num_items"]`), `similarity_judge` 결과의 threshold 통과 여부, 재시도 여부.
-→ "판단은 LLM, 통과/재시도 결정은 코드"라는 원칙은 리디자인 이후에도 그대로 유지.
+**Agent(LLM, 생성 모델)가 판단하는 것**: 문항 세트 작성, 형식 자기수정, 제출 시점 판단(`submit_for_review`).
+**Judge(LLM, 별도 백엔드)가 판단하는 것**: 구조 유사도(유형 비율·난이도·종합 유사도) — `judge_node`.
+**코드가 판단하는 것**: 문항 개수 일치 여부(`len(draft_items) == spec["num_items"]`), Judge 결과의 threshold 통과 여부, 재시도 여부.
+→ "판단은 LLM, 통과/재시도 결정은 코드"라는 원칙은 유지하되, 2026-07-23부터 "판단하는 LLM"이
+생성 모델(Agent)과 Judge로 분리됨(과거엔 생성 모델이 자기 출력을 자기가 판단했음).
 
-> **2026-07-09 정정**: 문항 개수는 예시 문제(`passage_text`)의 문항 수와 무관하게 `num_items`로 별도 지정된다(사용자가 자연어로 명시하지 않으면 기본값 5, `main.py`가 LLM 판단으로 추출). 초기엔 "생성 개수가 예시 문제 개수와 일치해야 한다"는 전제로 `count_match`를 LLM Judge가 판단했으나, 이 전제 자체가 실제 설계와 맞지 않아 폐기 — 개수 일치는 이제 LLM Judge가 아니라 코드가 직접 검증한다.
+> **2026-07-09 정정**: 문항 개수는 예시 문제(`passage_text`)의 문항 수와 무관하게 `num_items`로 별도 지정된다(사용자가 자연어로 명시하지 않으면 기본값 2 — 2026-07-21 5에서 축소, `main.py`가 LLM 판단으로 추출). 초기엔 "생성 개수가 예시 문제 개수와 일치해야 한다"는 전제로 `count_match`를 LLM Judge가 판단했으나, 이 전제 자체가 실제 설계와 맞지 않아 폐기 — 개수 일치는 이제 LLM Judge가 아니라 코드가 직접 검증한다.
 
 > **2026-07-21 변경**: `standards`를 교사 입력으로 받던 것을 폐지 — UI에서 성취기준 입력창을 제거하고 `spec`에서도 해당 필드를 삭제했다. 대신 에이전트가 `search_standards` 도구로 문항 주제에 맞는 성취기준을 스스로 검색해 `save_item`의 `standard` 인자를 채운다(가능하면 검색, 관련 자료가 없으면 빈 값으로 진행 — 저장을 막지 않음).
 
@@ -81,7 +97,7 @@ budget:                  남은 재시도 횟수 (세트 전체 단위, 무한�
 | 벡터스토어 | ChromaDB + Rerank (BGE-reranker) |
 | 임베딩 | BGE-M3 |
 | LLM 서빙 | vLLM + Qwen2.5 (프로덕션) |
-| 평가용 모델 | Ollama 소형 / OpenAI 비교 모델 (합성 데이터 평가 전용) |
+| Judge(평가) 모델 | OpenAI gpt-5.6-luna(기본, `JUDGE_BACKEND=openai`) / Ollama 로컬(대안) — 2026-07-23부터 오프라인 eval뿐 아니라 런타임(`judge_node`)에도 적용, 생성 백엔드와 완전히 독립. 채택 근거는 MODEL_SELECTION.md |
 | 검증 | LLM as a Judge |
 | 프롬프트 | Few-shot / CoT |
 | 프론트엔드 | Next.js (frontend/) |
@@ -117,7 +133,7 @@ budget:                  남은 재시도 횟수 (세트 전체 단위, 무한�
 |---|---|---|---|
 | 검색 | Recall@5, MRR | 함수 | R@5 ≥ 0.8 |
 | 문항 | 정답 유일성·오답 매력도·근거성 | LLM Judge | 5점 척도 평균 ≥ 4.0 (보정 후 확정) |
-| 구조 유사도 | type_ratio_score·difficulty_match·overall_score (LLM Judge) + 문항 개수 일치(코드) | LLM Judge(개수 제외) + 코드(개수) | 미정 (부트스트랩 단계) |
+| 구조 유사도 | type_ratio_score·difficulty_match·overall_score (LLM Judge) + 문항 개수 일치(코드) | LLM Judge(개수 제외) + 코드(개수) | diff κ ≥0.4 달성(0.424) / overall 이진 κ 0.4 미달(0.167) — 열린 이슈, EVAL.md 5·6절. 2026-07-23부터 이 Judge가 런타임 judge_node와 동일 코드라 이 수치가 곧 배포된 judge의 신뢰도임 |
 | 과정 | 평균 반복수·미충족 실패율·latency | 함수 | 예산 내 수렴 |
 | 종단 | 수정 없는 교사 채택률 | 사람 | 북극성 |
 
@@ -133,9 +149,10 @@ budget:                  남은 재시도 횟수 (세트 전체 단위, 무한�
 | 🟡 | 문체 적합성 | LLM Judge | 5점 척도 평균 ≥ 4.0 |
 | 🟢 | 교사 채택률·수정량 | 사람 | 북극성 |
 
-**모델 채택 근거**: 위 평가셋을 Qwen2.5와 Ollama/OpenAI 비교 모델로 돌려 정량 비교 → Qwen 채택 근거 확보.
+**모델 채택 근거**: 생성 모델(Qwen2.5-7B→14B)·Judge 모델(qwen2.5 계열→gpt-5.6-luna) 모두
+위 평가셋으로 정량 비교 후 채택 — 상세 비교 데이터·판단 근거는 [MODEL_SELECTION.md](./MODEL_SELECTION.md) 참고.
 
-**골든셋 현황**: 출제 검색 22개(21개 검수 완료) + STRUCTURE_GOLDEN 14개(2026-07-09 num_items 아키텍처로 전면 재생성, 실제 qwen2.5:7b 출력, 라벨링 대기) / 생기부(위반문장 50 + 마스킹 20 + 메모→윤문 20). 모든 골든셋은 `data/golden/*.json`으로 외부화(하드코딩 금지).
+**골든셋 현황**: 출제 검색 22개(21개 검수 완료) + STRUCTURE_GOLDEN 45개(사람 라벨링 전량 완료) / 생기부(위반문장 50 + 마스킹 20 + 메모→윤문 20). 모든 골든셋은 `data/golden/*.json`으로 외부화(하드코딩 금지).
 
 > **2026-07-09 num_ctx 발견**: STRUCTURE_GOLDEN 재생성 중 로컬 Ollama가 기본 `num_ctx=4096`으로 돌고 있어(모델은 32K 네이티브 지원) 멀티턴 ReAct 루프의 검색 결과 누적이 몇 턴 만에 컨텍스트를 초과시키고, 컨텍스트가 잘리며 모델이 시스템 프롬프트를 잃고 응답이 깨지는 문제를 확인함 → `app/modules/exam/llm.py`의 `ChatOllama`에 `num_ctx=16384` 명시로 수정. 동일 passage 재현 테스트로 확인(4096: 0/5문항 → 16384: 5/5문항). RunPod(vLLM)는 `max_model_len` 미지정 시 모델 네이티브 값을 쓰므로 로컬 개발 환경에만 있던 격차로 추정.
 
@@ -151,6 +168,11 @@ budget:                  남은 재시도 횟수 (세트 전체 단위, 무한�
 - 실데이터 미사용, 전부 합성
 - ChromaDB **영구 컬렉션은 공개 자료(규정·성취기준)만**. 교사가 붙여넣은 예시 문제(`passage_text`)는 ChromaDB에 전혀 적재되지 않고 요청 처리 중 프롬프트에만 사용된 후 폐기. 학생 개인정보는 어디에도 미적재
 - 생기부 출력에 "교사 최종 책임(보조수단)" 고지 표시
+- **⚠️ 2026-07-23부터**: `JUDGE_BACKEND=openai`(기본값)에서는 문항 세트 생성마다 `passage_text`가
+  구조 유사도 채점을 위해 OpenAI(gpt-5.6-luna)로 전송된다. PII 마스킹은 이 호출 이전에 이미
+  적용돼 있으나(`_build_spec`이 그래프 진입 전에 마스킹), **저작권 있는 교사 지문 자체는 마스킹
+  대상이 아니라 그대로 외부에 전송됨** — 의도적으로 수용한 트레이드오프(생성·Judge 모델 분리
+  우선). 로컬로만 처리하려면 `JUDGE_BACKEND=local`로 전환할 것
 
 ---
 
@@ -202,7 +224,11 @@ budget:                  남은 재시도 횟수 (세트 전체 단위, 무한�
 
 **확정**
 - 호스팅: **AWS EC2(앱) + RunPod 서버리스(GPU)**
-- 모델: Qwen2.5 14B (로컬 Ollama) / RunPod은 AWQ 4bit 양자화(RTX A5000 24GB 기준)
+- 생성 모델: Qwen2.5 14B (로컬 Ollama) / RunPod은 AWQ 4bit 양자화(RTX A5000 24GB 기준)
+- Judge 모델: gpt-5.6-luna (OpenAI, 2026-07-21 결정 — 로컬 Judge 대비 신뢰도 우위, 근거는 MODEL_SELECTION.md)
+- **Judge 아키텍처: 런타임 자기채점(self-judge) 폐기, 별도 judge_node로 분리(2026-07-23, 옵션 B)** —
+  self-judge 신뢰도가 검증된 적 없었고 오프라인 eval Judge와 런타임 judge가 다른 코드였던
+  검증-배포 불일치를 해소하기 위함. 생성 모델과 Judge 모델이 완전히 분리됨(2절 참고)
 - 운영비: 월 ~$32–36 (1인 기준, RunPod min workers=0 가정)
 - **GitHub Actions CI** (2026-07-14 결정·구현 완료): 코드 회귀 확인용 **경량 CI만 도입**, LLM
   eval 자동화는 도입하지 않기로 결정
@@ -218,4 +244,3 @@ budget:                  남은 재시도 횟수 (세트 전체 단위, 무한�
 
 **나중에 정해도 되는 것**
 - 비용 절감 시 앱을 Lightsail/저가 VPS로 이전 (AWS 학습가치 ↓)
-- 모델 14B 확장 여부 (품질 부족 시)

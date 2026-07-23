@@ -215,7 +215,9 @@ def main():
     print(f"   종합평균={quality_result['avg_overall']:.2f}/5, 합격률={quality_result['pass_rate']*100:.0f}%")
     print(f"   κ={reliability_result['cohen_kappa']:.3f}, ±1 일치율={reliability_result['agreement_within_1']:.3f}")
 
-    # 3. 구조 유사도 Judge 신뢰도
+    # 3. 구조 유사도 Judge 신뢰도 — get_judge_backend()로 채점. 2026-07-23부터 이 Judge가
+    #    런타임 judge_node와 동일한 코드(app/modules/exam/judge.py)를 공유하므로, 이 수치가
+    #    곧 실제 배포된 judge의 신뢰도다(검증-배포 불일치 해소).
     structure_golden = _load_structure_golden()
     print(f"\n3. 구조 유사도 Judge 신뢰도 검증 (STRUCTURE_GOLDEN {len(structure_golden)}개)...")
     structure_result = eval_structure_judge(structure_golden, judge_llm, limit=len(structure_golden) or 1)
