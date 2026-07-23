@@ -9,7 +9,11 @@ def get_langchain_model(temperature: float = 0.7):
     """LangGraph ReAct 에이전트용 LangChain 호환 LLM을 반환한다.
 
     temperature 기본값 0.7 — ChatRunPod 기존 기본값과 동일하게 맞춰 두 백엔드가
-    같은 조건으로 비교되도록 함(2026-07-10 temperature A/B 테스트 근거, TROUBLESHOOTING.md 참고)."""
+    같은 조건으로 비교되도록 함(2026-07-10 temperature A/B 테스트 근거, TROUBLESHOOTING.md 참고).
+    
+    * temperature: 언어 모델이 답변을 만들 때 답변의 무작위성(randomness)와
+                    창의성(creativity)를 조절하는 파라미터.
+    """
     backend = os.getenv("LLM_BACKEND", "local")
     if backend == "local":
         return ChatOllama(

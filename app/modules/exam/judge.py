@@ -1,5 +1,5 @@
 """출제 문항 세트의 구조 유사도를 채점하는 로직 — 런타임(graph.py의 judge_node)과
-오프라인 eval(scripts/eval_lib.py의 judge_structure_one)이 이 STRUCTURE_JUDGE_TPL·
+오프라인 eval(evals/eval_lib.py의 judge_structure_one)이 이 STRUCTURE_JUDGE_TPL·
 judge_structure()를 공유한다.
 
 2026-07-23 도입 배경: 이전엔 생성 에이전트 자신이 similarity_judge 도구로 자기

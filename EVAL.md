@@ -1,6 +1,6 @@
 # 분필(Bunpil) 평가(Eval) 문서
 
-`scripts/eval_exam.py`, `scripts/eval_record.py`가 측정하는 지표, 골든셋 현황, 실행 방법, 결과 이력을 모아둔 참고 문서.
+`evals/eval_exam.py`, `evals/eval_record.py`가 측정하는 지표, 골든셋 현황, 실행 방법, 결과 이력을 모아둔 참고 문서.
 모델 교체·프롬프트 튜닝 등 평가에 영향을 주는 변경이 있을 때마다 [결과 이력](#4-결과-이력)에 행을 추가한다.
 
 > **2026-07-12부터**: 문항 품질 Judge·구조 유사도 Judge·RAG 품질(Faithfulness/Answer
@@ -45,8 +45,8 @@
 
 | 지표 | 방식 | 상태 |
 |---|---|---|
-| Faithfulness | 자체 구현(Ragas 알고리즘, LLM Judge) — `scripts/eval_ragas.py` | ✅ 첫 측정 완료(n=5, 0.600) — Ragas 패키지는 의존성 충돌로 미사용, 8절 참고 |
-| Answer Relevancy | 자체 구현(Ragas 알고리즘, 임베딩 코사인 유사도) — `scripts/eval_ragas.py` | ✅ 첫 측정 완료(n=5, 0.631) — 8절 참고 |
+| Faithfulness | 자체 구현(Ragas 알고리즘, LLM Judge) — `evals/eval_ragas.py` | ✅ 첫 측정 완료(n=5, 0.600) — Ragas 패키지는 의존성 충돌로 미사용, 8절 참고 |
+| Answer Relevancy | 자체 구현(Ragas 알고리즘, 임베딩 코사인 유사도) — `evals/eval_ragas.py` | ✅ 첫 측정 완료(n=5, 0.631) — 8절 참고 |
 
 ## 2. 골든셋 현황
 
@@ -54,20 +54,20 @@
 |---|---|---|---|
 | retrieval_golden | `data/golden/retrieval_golden_final.json` | 22개 (reviewed 21개) | 실데이터 기반, 사람 검수. 2026.07 past_exams 참조 8개 제거(30→22) |
 | STRUCTURE_GOLDEN | `data/golden/structure_golden.json` | 14개 (라벨링 대기) | count_match 폐기·num_items 도입으로 Claude 부트스트랩 전량 폐기, 실제 qwen2.5:7b 출력으로 전면 재생성(정확히 일치 5·부족 8·초과 1) — human_label 라벨링 대기 |
-| MASKING_GOLDEN | `data/golden/masking_golden.json` | 20개 | 합성. 2026-07-09 `scripts/eval_record.py` 하드코딩에서 외부화 |
-| VIOLATION_GOLDEN | `data/golden/violation_golden.json` | 50개 | 위반 25 + 정상 25. 2026-07-09 `scripts/eval_record.py` 하드코딩에서 외부화 |
-| HALLUCINATION_GOLDEN | `data/golden/hallucination_golden.json` | 20개 | 합성. 2026-07-09 `scripts/eval_record.py` 하드코딩에서 외부화 |
-| ITEM_GOLDEN | `data/golden/item_golden.json` | 30개 | human_score 1~5점 분포. 2026-07-09 `scripts/eval_exam.py` 하드코딩에서 외부화 |
+| MASKING_GOLDEN | `data/golden/masking_golden.json` | 20개 | 합성. 2026-07-09 `evals/eval_record.py` 하드코딩에서 외부화 |
+| VIOLATION_GOLDEN | `data/golden/violation_golden.json` | 50개 | 위반 25 + 정상 25. 2026-07-09 `evals/eval_record.py` 하드코딩에서 외부화 |
+| HALLUCINATION_GOLDEN | `data/golden/hallucination_golden.json` | 20개 | 합성. 2026-07-09 `evals/eval_record.py` 하드코딩에서 외부화 |
+| ITEM_GOLDEN | `data/golden/item_golden.json` | 30개 | human_score 1~5점 분포. 2026-07-09 `evals/eval_exam.py` 하드코딩에서 외부화 |
 | example_question_retrieval_test | `data/golden/example_question_retrieval_test.json` | 8개 (reviewed 0개) | 주제어가 아닌 "실제 문제 문장" 스타일 query — standards 컬렉션과의 문체 격차 검증용, 라벨링 대기 |
 
 ## 3. 실행 방법
 
 ```bash
 # 출제 모듈 평가
-python scripts/eval_exam.py
+python evals/eval_exam.py
 
 # 생기부 모듈 평가
-python scripts/eval_record.py
+python evals/eval_record.py
 ```
 
 Windows 콘솔에서 실행 시 `cp949` 인코딩 오류(`UnicodeEncodeError`)가 날 수 있음 — 실행 전 `chcp 65001` 또는 `set PYTHONIOENCODING=utf-8` 필요.

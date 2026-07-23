@@ -17,8 +17,8 @@ temperature를 낮추면 구조화 출력(tool calling)이 더 안정적이라�
   추가해 --prompt-variant로 선택 가능하게 함.
 
 사용법:
-  python scripts/test_temperature_effect.py --check-variant   # 지시 위치/강조 변경 효과만 소표본으로 빠르게 확인
-  python scripts/test_temperature_effect.py --full --n 28 --prompt-variant strong  # 본 실험
+  python experiments/test_temperature_effect.py --check-variant   # 지시 위치/강조 변경 효과만 소표본으로 빠르게 확인
+  python experiments/test_temperature_effect.py --full --n 28 --prompt-variant strong  # 본 실험
 """
 import argparse
 import json
@@ -26,6 +26,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "golden_gen"))
 
 from dotenv import load_dotenv
 load_dotenv()

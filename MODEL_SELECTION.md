@@ -3,8 +3,8 @@
 > 생성(출제 문항 작성) LLM과 평가(Judge) LLM을 각각 어떤 기준으로 후보군에 올렸고,
 > 무엇을 근거로 최종 모델을 채택했는지 정리한 문서. 실험 원본 데이터·회차별 로그는
 > [EVAL.md](./EVAL.md) 7·7.1·9절, 실험 이력은 [bunpil_roadmap.md](./bunpil_roadmap.md)에 있으며
-> 이 문서는 그 결론만 압축한 요약본이다. 실험 스크립트: `scripts/compare_models.py`(생성 모델),
-> `scripts/compare_judge_models.py`(Judge 모델).
+> 이 문서는 그 결론만 압축한 요약본이다. 실험 스크립트: `experiments/compare_models.py`(생성 모델),
+> `experiments/compare_judge_models.py`(Judge 모델).
 
 ---
 
@@ -26,7 +26,7 @@
 
 ### 1.2 비교 방법
 
-- `scripts/compare_models.py`: 동일 15개 `passage_text` 샘플(num_items 3/5/7, 단일·다중
+- `experiments/compare_models.py`: 동일 15개 `passage_text` 샘플(num_items 3/5/7, 단일·다중
   지문형 혼합)을 각 후보 모델로 "생성 모델"만 교체해 실행.
 - 채점은 **고정된 하나의 Judge(qwen2.5:7b)**로 통일 — 모델이 자기 출력을 자기가 채점하는
   self-scoring bias를 배제하기 위함.
@@ -96,7 +96,7 @@ GPT-4o-mini는 budget=1에서 전 지표를 석권하는 것처럼 보였으나,
   합성 데이터(ITEM_GOLDEN·STRUCTURE_GOLDEN, 전부 사람이 만든 가상 시나리오/실제 공개
   성취기준 기반 생성물)만 대상이라 하드룰 1(실제 학생 데이터 미사용)에 저촉되지 않음.
 
-### 2.3 비교 결과 (`scripts/compare_judge_models.py`, 2026-07-17)
+### 2.3 비교 결과 (`experiments/compare_judge_models.py`, 2026-07-17)
 
 같은 생성물(ITEM_GOLDEN n=30, STRUCTURE_GOLDEN n=45)을 두 Judge로 각각 재채점만 실행 —
 생성은 재실행하지 않음.
@@ -126,7 +126,7 @@ overall MAE 0.600은 qwen2.5-14B를 몇 달간 튜닝해 얻은 최고 기록(MA
   직접 비교가 아니라 재보정 기준선으로 다시 쌓아야 함 — 이 단절은 감수하기로 결정.
 - **적용**: `.env.example`의 `JUDGE_BACKEND=openai`(기본값), `OPENAI_JUDGE_MODEL=gpt-5.6-luna`.
   로컬 `OLLAMA_JUDGE_MODEL=qwen2.5:14b`는 `JUDGE_BACKEND=local`로 되돌릴 때를 위한
-  대안 경로로 유지(어댑터 구현은 이미 존재, `scripts/compare_judge_models.py` 참고).
+  대안 경로로 유지(어댑터 구현은 이미 존재, `experiments/compare_judge_models.py` 참고).
 - **생성 모델과 다른 백엔드를 쓰는 이유**: 생성은 로컬 Qwen2.5-14B(1.4절, 비용·데이터
   로컬 처리 우선), Judge는 gpt-5.6-luna(신뢰도 우선) — 두 역할의 우선순위가 다르다는
   점(§2.1)이 그대로 서로 다른 채택 결론으로 이어진 사례.

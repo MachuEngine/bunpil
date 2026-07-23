@@ -15,9 +15,9 @@ OpenAI 비용도 작다(judge_one ~391 입력/~28 출력, judge_structure_one ~1
 기본값(JUDGE_BACKEND=local)에서는 이 스크립트를 실행하지 않는 한 아무것도 바뀌지 않음.
 
 사용법:
-  .venv/bin/python scripts/compare_judge_models.py --judges qwen2.5-7b
-  .venv/bin/python scripts/compare_judge_models.py --judges qwen2.5-7b,gpt-5.6-luna   # OpenAI 비용 발생
-  .venv/bin/python scripts/compare_judge_models.py --judges gpt-5.6-luna,gpt-5.6-sol  # 플래그십까지 비교
+  .venv/bin/python experiments/compare_judge_models.py --judges qwen2.5-7b
+  .venv/bin/python experiments/compare_judge_models.py --judges qwen2.5-7b,gpt-5.6-luna   # OpenAI 비용 발생
+  .venv/bin/python experiments/compare_judge_models.py --judges gpt-5.6-luna,gpt-5.6-sol  # 플래그십까지 비교
 """
 import argparse
 import json
@@ -26,6 +26,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "evals"))
 
 from dotenv import load_dotenv
 load_dotenv()

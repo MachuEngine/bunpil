@@ -3,7 +3,7 @@
 
 출력: data/golden/retrieval_golden.json
 reviewed: false — LLM 생성 초안이므로 사람이 검수 후 true로 변경해야 함.
-실행: python scripts/gen_golden_retrieval.py
+실행: python golden_gen/gen_golden_retrieval.py
 """
 import asyncio
 import json
