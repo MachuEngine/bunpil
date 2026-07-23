@@ -149,7 +149,7 @@
 **트레이드오프**: 매 문항 세트 생성마다 `passage_text`(PII 마스킹됨, 저작권은 별개)가
 OpenAI로 전송됨 — 사용자 확인 후 수용. 로컬 전용 처리가 필요하면 `JUDGE_BACKEND=local`.
 
-상세 설계·코드 대조는 근거는 [MODEL_SELECTION.md](./MODEL_SELECTION.md) 2.5절,
+상세 설계·코드 대조는 근거는 [MODEL_SELECTION.md](./MODEL_SELECTION.md) 2절,
 README "모델 선정" 절 참고.
 
 ---

@@ -163,7 +163,7 @@ budget:                  남은 재시도 횟수 (세트 전체 단위, 무한�
 - 개인정보 **마스킹은 입력 단계**에서, 외부/모델 호출 전에 수행
 - 사용자 입력(생기부 메모·교사가 붙여넣은 예시 문제)은 **비저장 처리** — 영구 저장은 공개 코퍼스뿐
 - **로그·캐시에 PII 금지**
-- API 서버의 LangSmith 트레이싱은 강제로 비활성화하고, 합성 데이터 평가 스크립트에서만 선택적으로 사용
+- LangSmith 트레이싱: 생기부 모듈은 API 서버에서도 예외 없이 비활성(구조적으로 안 걸림, `record/chain.py`가 쓰는 백엔드가 LangChain Runnable이 아님). 출제 모듈은 2026-07-24부터 예외 — PII 마스킹 후 프로덕션에도 적용 가능(`LANGCHAIN_TRACING_V2=true` 옵트인, 기본값은 false). 합성 데이터 평가 스크립트(`evals/`)는 원래대로 선택적 사용. 자세한 내용은 LANGSMITH_GUIDE.md 1절
 - 브라우저 요청은 Next.js 서버가 프록시하며, FastAPI는 `BUNPIL_API_KEY` 서버 간 인증을 요구
 - 실데이터 미사용, 전부 합성
 - ChromaDB **영구 컬렉션은 공개 자료(규정·성취기준)만**. 교사가 붙여넣은 예시 문제(`passage_text`)는 ChromaDB에 전혀 적재되지 않고 요청 처리 중 프롬프트에만 사용된 후 폐기. 학생 개인정보는 어디에도 미적재
@@ -224,11 +224,8 @@ budget:                  남은 재시도 횟수 (세트 전체 단위, 무한�
 
 **확정**
 - 호스팅: **AWS EC2(앱) + RunPod 서버리스(GPU)**
-- 생성 모델: Qwen2.5 14B (로컬 Ollama) / RunPod은 AWQ 4bit 양자화(RTX A5000 24GB 기준)
-- Judge 모델: gpt-5.6-luna (OpenAI, 2026-07-21 결정 — 로컬 Judge 대비 신뢰도 우위, 근거는 MODEL_SELECTION.md)
-- **Judge 아키텍처: 런타임 자기채점(self-judge) 폐기, 별도 judge_node로 분리(2026-07-23, 옵션 B)** —
-  self-judge 신뢰도가 검증된 적 없었고 오프라인 eval Judge와 런타임 judge가 다른 코드였던
-  검증-배포 불일치를 해소하기 위함. 생성 모델과 Judge 모델이 완전히 분리됨(2절 참고)
+- 생성·Judge 모델 선정 및 런타임 분리 아키텍처(2026-07-23): 결론과 실측 데이터는 **MODEL_SELECTION.md**
+  1·2절, 배경 서사는 `bunpil_roadmap.md` 참고 — 여기서 반복하지 않음
 - 운영비: 월 ~$32–36 (1인 기준, RunPod min workers=0 가정)
 - **GitHub Actions CI** (2026-07-14 결정·구현 완료): 코드 회귀 확인용 **경량 CI만 도입**, LLM
   eval 자동화는 도입하지 않기로 결정
@@ -239,7 +236,7 @@ budget:                  남은 재시도 횟수 (세트 전체 단위, 무한�
     기존 EVAL.md 추세는 로컬 Ollama 기준이고 GitHub Actions 러너에는 해당 모델 인프라가 없다.
     다른 Judge로 CI 점수를 만들면 비교 기준이 달라지며, 생성·채점 결과의 변동성도 자동 블로킹
     게이트에 적합하지 않다. 이 규모에서는 로컬 수동 실행 + EVAL.md 기록을 유지한다.
-    `eval_exam.py`/`eval_record.py`/`eval_ragas.py`는 변경 없이 로컬 실행 스크립트로 유지
+    `evals/eval_exam.py`/`evals/eval_record.py`/`evals/eval_ragas.py`는 변경 없이 로컬 실행 스크립트로 유지
   - self-hosted runner(로컬 Ollama 호출)도 인프라 유지 부담 대비 이득이 적어 검토 후 제외
 
 **나중에 정해도 되는 것**
