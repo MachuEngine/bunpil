@@ -57,7 +57,25 @@ def _rule_violations(text: str) -> List[str]:
     return found
 
 
-
+""" 
+필드	             의미
+------------------------------------------
+memo	            사용자가 입력한 원본 메모
+masked	            개인정보를 가린 메모
+pii_found	        발견된 개인정보 유형
+polished	        LLM이 윤문한 문장
+violations	        발견된 위반 사항
+generated_pii	    LLM이 새로 생성한 개인정보
+validation_status	검증 상태
+attempt	            현재 시도 횟수
+------------------------------------------
+validation_status
+    - pending: 아직 검사하지 않음
+    - passed: 검증 통과
+    - violations_found: 위반 발견
+    - unavailable: 검증 시스템 오류 또는 자료 부족
+"""
+# 처리 과정에서 지속 전달되는 상태값 구조
 class RecordState(TypedDict):
     memo: str
     masked: str
@@ -68,7 +86,7 @@ class RecordState(TypedDict):
     validation_status: Literal["pending", "passed", "violations_found", "unavailable"]
     attempt: int
 
-
+# 최종적으로 사용자에게 반환할 결과 구조
 class RecordOutput(TypedDict):
     masked_memo: str
     pii_found: List[str]
@@ -80,6 +98,8 @@ class RecordOutput(TypedDict):
 
 class RecordChain:
     def __init__(self):
+        # RecordChain 객체가 생성될 때 다음 구성요소를 준비 
+        # 규정 저장소 / 규정 검색기 / 언어 모델 
         self._store = get_store()
         self._retriever = get_retriever()
         self._llm = get_llm_backend()
