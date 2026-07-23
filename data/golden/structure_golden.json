@@ -12,7 +12,7 @@
         "overall_score": "사람이 매긴 종합 유사도 점수 (0~5 정수). human_label 전체가 null이면 라벨링 전(eval_structure_judge가 자동 스킵)."
       }
     },
-    "provenance": "2026-07-09 count_match 폐기·num_items 도입 이후 실제 qwen2.5:7b 출력 기반으로 전면 재생성. 이전 부트스트랩(Claude 합성 str_001~003)과 count_match 기반 pending 항목은 아키텍처 변경으로 전부 폐기하고 새로 생성함.",
+    "provenance": "2026-07-09 count_match 폐기·num_items 도입 이후 최초 재생성은 qwen2.5:7b 출력 기반이었으나(이전 부트스트랩 Claude 합성 str_001~003과 count_match 기반 pending 항목은 이때 전부 폐기), 2026-07-11 tool-calling 재시도 버그 수정 후 str_001~051 20개 전량을 qwen2.5:14b로 재생성(entry별 code_version=\"post_2026-07-11_malformed_retry_fix_qwen14b\" 참고). 2026-07-12 신규 주제 25개(str_052~076)를 추가해 45개로 확대 — 이 역시 qwen2.5:14b 출력(code_version 태그는 미기록). 즉 현재 entries는 45개 전부 qwen2.5:14b 출력이며, 7B 출력은 더 이상 남아있지 않음.",
     "how_to_label": "passage_text·num_items와 generated_items를 비교해 사람이 human_label을 채운다 (개수 일치 여부는 라벨링 대상이 아님 — len(generated_items)==num_items로 코드가 이미 검증). eval_structure_judge()는 이 고정된 쌍을 LLM에게 다시 보여주고 판단시킨 뒤, 그 결과를 human_label과 비교한다.\ndifficulty_match 판단 기준: (1) passage_text에 상/중/하가 명시된 경우(예: '1. (하) ...') 그 라벨을 기준으로 generated_items의 difficulty와 비교. (2) 명시적 난이도 라벨이 없는 경우(예: str_001), 라벨러가 문항 내용(다루는 개념의 난이도, 보기 구성의 복잡도 등)을 보고 실제 교사라면 이 예시 문제를 어떤 난이도로 인식할지 암묵적으로 추론한 뒤, 그 추론된 기준선을 generated_items의 explicit difficulty 라벨과 비교해 difficulty_match를 채운다."
   },
   "entries": [

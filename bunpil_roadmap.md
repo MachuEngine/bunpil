@@ -158,8 +158,15 @@ README "모델 선정" 절 참고.
 
 ### 🔧 코드 리뷰용 잔여 이슈 요약 (2026-07-14 재확인)
 
-아래 3건은 목표 미달로 **실제로 열려있는 이슈**. 나머지(출제 에이전트 안정성, Ragas/LangSmith
+아래 2건은 목표 미달로 **실제로 열려있는 이슈**. 나머지(출제 에이전트 안정성, Ragas/LangSmith
 연동)는 결정·구현이 이미 확정/완료돼 재검토 대상이 아님(하단 상세 항목 2·5번은 참고용 기록).
+
+> **STRUCTURE_GOLDEN 구조 Judge "overall 이진(≥3) κ ≥ 0.4" 목표는 2026-07-24 폐기 결정**(사용자 확인)
+> — 몇 달간 few-shot 튜닝을 거쳐도 0.000~0.178 사이를 벗어나지 못했고, 대신 이미 계산 중인
+> difficulty_match 일치율·overall MAE로 충분하다고 판단. `eval_structure_judge()`는 애초에 이
+> binary kappa를 계산하지 않는 상태였음(코드 확인 완료) — 되살리지 않기로 함. 최신 측정치(14B+
+> gpt-5.6-luna, n=45, 2026-07-24): difficulty_match 일치율 0.933, overall MAE **0.644**(역대 최저,
+> EVAL.md §4 참고).
 
 1. **오답매력도 미달 (2.846 / 목표 4.0)**
    - 코드: `app/modules/exam/graph.py` `agent_node`(123~125행, 오답 매력도 지시문) /
@@ -170,16 +177,7 @@ README "모델 선정" 절 참고.
      실효성이 약할 수 있음(EVAL.md 6절). `validate_item_format`에 오답매력도 최소 기준 게이트를
      추가하는 방향도 검토 후보
 
-2. **STRUCTURE_GOLDEN 구조 Judge 신뢰도 미달 (overall 이진 κ 0.167 / 목표 0.4)**
-   - 코드: `evals/eval_exam.py` `STRUCTURE_JUDGE_TPL`(190행~, 3점 앵커 few-shot 포함) /
-     `data/golden/structure_golden.json`(entries 45개, human_label 전량 완료)
-   - 현상: diff κ(난이도 일치)는 0.424(3회 평균, 목표 0.4 달성이나 변동성 큼 — 3회 중 1회 0.387로
-     미달)로 그나마 개선됐지만, overall 이진 κ는 여전히 미달. Judge 점수 분포가 3점에 회피 수렴하는
-     경향은 3점 앵커 추가로 완화했으나 근본 해결은 아님
-   - 리뷰 시 볼 것: EVAL.md 5절 "다음 방향은 사용자와 논의 예정"이라고 열어둔 지점 — 예를 들어
-     이진 판정 자체를 다른 방식(임계값 조정, 다중 샘플 투표 등)으로 바꾸는 안 검토
-
-3. **생기부 규정 위반 Recall 미달 + 알려진 RAG 우회 리스크 (0.927 / 목표 0.95)**
+2. **생기부 규정 위반 Recall 미달 + 알려진 RAG 우회 리스크 (0.927 / 목표 0.95)**
    - 코드: `app/modules/record/chain.py` `_rule_violations`(39행~, 키워드 3종: `_RULE_BACKGROUND`
      33행/`_RULE_RELIGION_POLITICS` 34행/`_RULE_APPEARANCE` 36행) / `_step_validate`(105행~,
      112행에서 `self._retriever.retrieve(..., REGULATION_COLLECTION, top_k=3)`로 RAG 검증) /
