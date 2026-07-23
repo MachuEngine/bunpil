@@ -88,59 +88,17 @@
 | `record_score` | 문항 품질 자체 평가 기록 |
 | `submit_for_review` | 문항 세트 작성 완료 신호(인자 없음) — 이후 채점은 `judge` 노드가 수행 |
 
-```mermaid
-flowchart LR
-    Start(["문항 시작"])
-
-    subgraph Loop["🔁 문항마다 반복"]
-        direction LR
-        Search["🔍 search_standards<br/>search_regulations"]
-        Validate{"validate_item_format"}
-        Save["save_item<br/>+ 한국어 게이트"]
-        Score["record_score"]
-
-        Search --> Validate
-        Validate -- "형식 오류" --> Validate
-        Validate -- "통과" --> Save --> Score
-        Score -.-> Search
-    end
-
-    Submit["📤 submit_for_review"]
-    End(["루프 종료 → judge 노드로"])
-
-    Start --> Loop --> Submit --> End
-
-    class Start,End,Validate neutral
-    class Search,Save,Score,Submit exam
-    style Loop fill:#FAFAF8,stroke:#C3C2B7,stroke-width:1px
-
-    classDef neutral fill:#F5F4F1,stroke:#8A8880,stroke-width:1px,color:#1A1A1A
-    classDef exam fill:#FEF3C7,stroke:#D97706,stroke-width:1.5px,color:#1A1A1A
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/exam-loop-dark.svg">
+  <img src="./assets/exam-loop-light.svg" alt="문항 생성 루프 — search_standards/search_regulations로 검색 후 validate_item_format 통과 시 save_item, record_score까지 반복하고 submit_for_review로 judge 노드에 넘기는 흐름도">
+</picture>
 
 세트 전체는 LangGraph 그래프가 관리합니다. `agent`가 `submit_for_review`로 제출하면 `judge` 노드가 **생성 모델과 완전히 분리된 Judge 백엔드**(`get_judge_backend()`)로 구조 유사도를 채점하고, `validate` 노드가 코드로 판정(문항 개수 일치 + Judge 결과 threshold)합니다. 미달 시 최대 5회까지 `agent`로 재시도합니다 — 이때 **이미 만든 문항은 유지하고 부족분만 이어서 작성**합니다(부분 진행 보존).
 
-```mermaid
-flowchart LR
-    START(["START"])
-    plan["plan<br/>세션 초기화 · 1회"]
-    agent["agent<br/>문항 생성<br/>(재시도 시 부족분만)"]
-    judge["judge<br/>Judge 백엔드로<br/>구조 유사도 채점"]
-    validate{"validate<br/>개수==num_items<br/>+ Judge threshold"}
-    END(["END"])
-
-    START --> plan --> agent --> judge --> validate
-    validate -- "미달 & budget > 0" --> agent
-    validate -- "통과 또는 소진" --> END
-
-    class START,END,validate neutral
-    class plan,agent exam
-    class judge judge
-
-    classDef neutral fill:#F5F4F1,stroke:#8A8880,stroke-width:1px,color:#1A1A1A
-    classDef exam fill:#FEF3C7,stroke:#D97706,stroke-width:1.5px,color:#1A1A1A
-    classDef judge fill:#FFE4E6,stroke:#E11D48,stroke-width:1.5px,color:#1A1A1A
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/exam-graph-dark.svg">
+  <img src="./assets/exam-graph-light.svg" alt="LangGraph 상태 흐름 — START에서 plan, agent, judge를 거쳐 validate가 개수·Judge threshold를 판정하고, 미달 시 agent로 재시도, 통과 또는 소진 시 END로 가는 상태도">
+</picture>
 
 <details>
 <summary><b>왜 <code>judge</code> 노드를 따로 뒀는가 (2026-07-23 변경, 펼치기)</b></summary>
@@ -157,22 +115,10 @@ flowchart LR
 
 순서가 고정된 파이프라인입니다. **PII 마스킹이 반드시 모델 호출보다 앞**에 있어, 원문 개인정보가 LLM에 도달하지 않습니다.
 
-```mermaid
-flowchart LR
-    Memo["📄 교사 관찰 메모"]
-    Mask["1️⃣ mask_pii<br/>정규식 · 모델 호출 전"]
-    Polish["2️⃣ polish<br/>Few-shot 문체 교정"]
-    Validate["3️⃣ validate<br/>규정 + 사실보존 검증"]
-    Out["✅ 안전 출력 또는 출력 보류<br/>+ 사유 + 책임 고지"]
-
-    Memo --> Mask --> Polish --> Validate --> Out
-
-    class Memo,Out neutral
-    class Mask,Polish,Validate record
-
-    classDef neutral fill:#F5F4F1,stroke:#8A8880,stroke-width:1px,color:#1A1A1A
-    classDef record fill:#ECFEFF,stroke:#0891B2,stroke-width:1.5px,color:#1A1A1A
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/record-chain-dark.svg">
+  <img src="./assets/record-chain-light.svg" alt="생기부 3단계 체인 — 교사 관찰 메모가 mask_pii, polish, validate를 순서대로 거쳐 안전 출력 또는 출력 보류로 끝나는 흐름도">
+</picture>
 
 ### API와 스트리밍
 
@@ -204,21 +150,10 @@ data: {"status": "error",     "msg": "요청을 처리하지 못했습니다."} 
 
 LangGraph 에이전트는 BaseChatModel 인터페이스만 알면 되고, RunPod과의 실제 HTTP 통신은 별도 레이어가 전담합니다. (Judge 백엔드는 이 경로를 타지 않는 별개 인터페이스 — `LLMBackend.generate()`, `app/common/llm/base.py`.)
 
-```mermaid
-flowchart LR
-    Agent["🤖 LangGraph ReAct 에이전트<br/>BaseChatModel 인터페이스만 필요"]
-    Chat["🔌 ChatRunPod<br/>chat_runpod.py · 메시지 형식 변환"]
-    Backend["📡 RunPodBackend<br/>runpod.py · HTTP 통신 전담"]
-    GPU[("⚡ RunPod 서버리스 GPU<br/>vLLM + handler.py")]
-
-    Agent --> Chat --> Backend --> GPU
-
-    class Agent,GPU neutral
-    class Chat,Backend llm
-
-    classDef neutral fill:#F5F4F1,stroke:#8A8880,stroke-width:1px,color:#1A1A1A
-    classDef llm fill:#EDE9FE,stroke:#7C3AED,stroke-width:1.5px,color:#1A1A1A
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/runpod-backend-dark.svg">
+  <img src="./assets/runpod-backend-light.svg" alt="ChatRunPod ↔ RunPodBackend — LangGraph ReAct 에이전트가 BaseChatModel 인터페이스로 ChatRunPod를 호출하고, ChatRunPod가 RunPodBackend를 거쳐 RunPod 서버리스 GPU(vLLM)와 통신하는 구조도">
+</picture>
 
 RunPodBackend는 비동기 `/run`으로 작업을 한 번만 제출한 뒤 동일한 `job_id`를 폴링해, 긴 생성(멀티턴 ReAct)도 중복 실행 없이 안전하게 기다립니다.
 
