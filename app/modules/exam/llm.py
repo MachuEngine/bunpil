@@ -14,7 +14,7 @@ def get_langchain_model(temperature: float = 0.7):
     if backend == "local":
         return ChatOllama(
             base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
-            model=os.getenv("OLLAMA_MODEL", "qwen2.5:7b-instruct"),
+            model=os.getenv("OLLAMA_MODEL", "qwen2.5:14b-instruct"),
             num_predict=2048,  # RunPod 백엔드(max_tokens=2048)와 동일 캡 — 미설정 시 폭주 생성 위험
             num_ctx=16384,  # Ollama 기본값(4096)은 멀티턴 ReAct+RAG 검색 결과 누적 시 쉽게 초과되어
             # 컨텍스트가 잘리고 모델이 시스템 프롬프트를 잃어 응답이 깨지는 원인이 됨(2026-07-09 확인).

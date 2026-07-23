@@ -25,4 +25,4 @@ def init_langsmith_project() -> None:
         return  # 기본값이 아닌 값이 명시적으로 설정됨 — override로 간주, 그대로 사용
     backend = os.getenv("LLM_BACKEND", "local")
     suffix = "prod" if backend in _PROD_BACKENDS else "dev"
-    os.environ["LANGCHAIN_PROJECT"] = f"{base}-{suffix}"
+    os.environ["LANGCHAIN_PROJECT"] = f"{base}-{suffix}" # 프로젝트명을 bunpil에서 bunpil-prod / bunpil-dev 로 나누어서 LangSmith에서 구분할 수 있음. 

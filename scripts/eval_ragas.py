@@ -116,7 +116,7 @@ def build_sample(sample: dict) -> dict:
     state = graph.invoke(
         {
             "spec": spec, "budget": 1, "draft_items": [], "agent_messages": [],
-            "validation_passed": False, "similarity_judge_result": {}, "error": "",
+            "validation_passed": False, "similarity_judge_result": {},
         }
     )
     items = get_draft_items()

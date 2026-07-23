@@ -9,7 +9,7 @@ from ..base import LLMBackend
 class OllamaBackend(LLMBackend):
     def __init__(self, model=None):
         self.base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-        self.model = model or os.getenv("OLLAMA_MODEL", "qwen2.5:7b-instruct")
+        self.model = model or os.getenv("OLLAMA_MODEL", "qwen2.5:14b-instruct")
 
     """
     (입력) -> 모델에 입력할 시스템/유저 프롬프트입니다. 
@@ -34,7 +34,7 @@ class OllamaBackend(LLMBackend):
     json=payload
 
     {
-        "model": "qwen2.5:7b-instruct",
+        "model": "qwen2.5:14b-instruct",
         "messages": [
             {
                 "role": "user",

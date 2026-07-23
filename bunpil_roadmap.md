@@ -2,8 +2,9 @@
 
 ## 진행 상태 요약
 
-- ✅ 완료: 배포, LangSmith 트레이싱, 골든셋 구축, eval 스크립트 실데이터 전환, Judge/생성 모델 분리, 7B 전환 및 첫 eval 실행, 코드 리뷰(`chat_runpod.py`, `graph.py`·`tools.py`·`store.py`+`retriever.py`·`chain.py`·`main.py`), 출제 모듈 passage_text 리디자인(2026.07, FEEDBACK_DRIVEN_REDESIGN_v2.md), 리디자인 후속 코드 리뷰 지적사항 5건 정리(2026.07, 69ebdee), GitHub Actions 경량 CI 도입(2026.07)
-- ⬜ 남은 작업: 아래 "남은 작업" 목록 참고 (우선순위 순)
+- ✅ 완료: 배포(현재 RunPod는 크레딧 소진으로 일시 비활성 — 아래 "남은 작업" 참고), LangSmith 트레이싱, 골든셋 구축, eval 스크립트 실데이터 전환, 출제 모듈 passage_text 리디자인, GitHub Actions 경량 CI, 생성 모델 7B→14B 승격, Judge 모델 gpt-5.6-luna 채택, 출제 성취기준 사용자 입력 제거(2026-07-21), README/DESIGN/MODEL_SELECTION 문서 갱신(2026-07-22), **런타임 self-judge 폐기 → 별도 judge 노드로 생성·Judge 모델 완전 분리(2026-07-23, 아래 상세)**
+- 🔄 진행 중: 코드 리뷰(아래 "참고 — 코드 리뷰 대상 파일" 표는 예전 스냅샷 — 실제 완료 여부는 재확인 필요, 진행 상황은 별도 문서로 추적 예정)
+- ⬜ 남은 작업: 성능 개선 미달 지표 3건 + 포트폴리오 정리 (아래 "남은 작업" 참고)
 
 ---
 
@@ -82,7 +83,11 @@
   0.55, 정답유일성 4.81(5개 중 최고). 품질은 우수하지만 속도가 가장 느리고 실패율도
   GPT-4o-mini·Qwen2.5-14B(둘 다 0%)에 못 미쳐 로컬 대안으로도 뚜렷한 우위 없음 — 채택
   근거 약함, 현재로선 우선순위 아님
-- 최종 채택은 사용자 결정 대기(비용·외부 API 의존 트레이드오프 고려 필요)
+- **최종 결정**: budget=1 조건은 재시도 없는 하한선일 뿐이라 실제 프로덕션 조건(`budget=5`)으로
+  재검증한 결과, 7B와 14B의 속도 격차가 사실상 사라지고(258.8s vs 260.2s) 14B가 실패율·개수
+  충족률에서 뚜렷이 우수해 **Qwen2.5-14B로 승격**(2026-07-15, 커밋 `8301b6e`, 이후 `22a2628`로
+  실제 전환). GPT-4o-mini는 budget=5에서 실패율 상승·과다생성이 드러나 보류. 상세는 EVAL.md
+  7.1절, 채택 근거 요약은 [MODEL_SELECTION.md](./MODEL_SELECTION.md) 참고.
 
 ### Judge 모델 비교 실험 (2026-07-17)
 - 배경: `get_judge_backend()`(`app/common/llm/factory.py`)가 `LLM_BACKEND`와 무관하게 항상
@@ -106,9 +111,46 @@
 - **해석**: judge 신뢰도가 로컬 오픈모델(7B~14B)의 근본적 한계였다는 가설을 뒷받침하는
   결과. 다만 n=30/45로 표본이 여전히 작고, GPT의 절대 점수 편향이 qwen보다 큰 상충 신호가
   있어 "완전히 신뢰 가능한 judge"보다는 "qwen보다 확실히 나은 judge" 정도로 해석 권장.
-  실제 judge 교체 여부(비용은 gpt-5.6-luna 기준 한 사이클 105회 호출에 약 $0.10 수준으로
-  걸림돌 아님, 대신 과거 kappa/MAE 히스토리와의 단절·재보정 필요가 트레이드오프)는 사용자
-  결정 대기.
+- **최종 결정(2026-07-21)**: 비용(한 사이클 $0.10 수준)은 걸림돌이 아니었고, kappa/MAE
+  히스토리 단절이라는 트레이드오프를 감수하고 **gpt-5.6-luna를 Judge 기본값으로 채택**
+  (`JUDGE_BACKEND=openai` 기본화). 생성은 비용·데이터 로컬 처리 우선으로 로컬 Qwen2.5-14B
+  유지 — 두 역할의 우선순위가 달라 서로 다른 백엔드로 분리됐다. 근거 요약은
+  [MODEL_SELECTION.md](./MODEL_SELECTION.md) 참고.
+
+### 런타임 self-judge 폐기 → 생성·Judge 모델 완전 분리 (2026-07-23)
+
+**배경**: 위 Judge 모델 비교(2026-07-17)·채택(2026-07-21) 당시, `JUDGE_BACKEND`는
+**오프라인 eval 스크립트에만** 영향을 줬다. 실제 런타임(출제 그래프)에서 구조 유사도
+판단은 생성 에이전트 자신이 `similarity_judge` 도구로 스스로 채점했다(self-judge) —
+이 self-judge의 신뢰도는 사람 라벨과 한 번도 대조된 적이 없었다. 이걸 측정해보려고
+`self_judge_result`/`self_judge_passed` 필드를 STRUCTURE_GOLDEN에 캡처하는 계측을
+잠시 도입(2026-07-22)하고 45개 재생성을 시도했으나, 로컬 하드웨어(M5 24GB) 기준
+항목당 소요 시간 편차가 너무 커서(2분~30분+) 전량 재생성이 비현실적이었다.
+
+이 과정에서 **더 근본적인 문제**를 발견: "검증에 쓰는 Judge"(오프라인
+`get_judge_backend()`)와 "실제 배포된 judge"(런타임 self-judge)가 애초에 서로 다른
+코드 경로였다(검증-배포 불일치). self-judge 신뢰도를 측정하는 것보다, 애초에 생성
+모델과 Judge 모델을 런타임에서도 분리해 **같은 judge를 검증·배포 양쪽에서 쓰는 것**이
+더 근본적인 해결책이라고 판단해 self-judge 신뢰도 측정 작업은 중단하고(STRUCTURE_GOLDEN은
+세션 시작 전 상태로 원복) 이 아키텍처 변경(옵션 B)으로 전환했다.
+
+**적용**:
+- `app/modules/exam/judge.py` 신규 — `STRUCTURE_JUDGE_TPL`·`judge_structure()`를
+  `scripts/eval_lib.py`에서 이곳으로 이동, 런타임·오프라인 eval이 이 함수를 공유
+- `tools.py`: `similarity_judge` 도구 제거, 무인자 종료 신호 `submit_for_review` 추가
+- `graph.py`: `judge` 노드 신규(`plan→agent→judge→validate`), `agent_node`에서 자기채점
+  로직 전부 제거
+- `JUDGE_BACKEND`가 이제 **프로덕션 앱 실행에도 적용**됨(이전엔 eval 전용) — 기본값
+  `openai`에서 키 없음/호출 실패 시 fail-fast(조용한 로컬 폴백 없음, 사용자 결정)
+- `eval_lib.py`/`eval_exam.py`/`gen_structure_golden.py`의 self-judge 계측 코드는 전부
+  되돌림(더 이상 필요 없음 — 오프라인 `eval_structure_judge()` 결과가 곧 런타임 judge
+  신뢰도이므로)
+
+**트레이드오프**: 매 문항 세트 생성마다 `passage_text`(PII 마스킹됨, 저작권은 별개)가
+OpenAI로 전송됨 — 사용자 확인 후 수용. 로컬 전용 처리가 필요하면 `JUDGE_BACKEND=local`.
+
+상세 설계·코드 대조는 근거는 [MODEL_SELECTION.md](./MODEL_SELECTION.md) 2.5절,
+README "모델 선정" 절 참고.
 
 ---
 
@@ -189,7 +231,7 @@
      자동 게이트에 부적합 — 이 규모(1인+지인 실사용)엔 로컬 수동 실행 + EVAL.md 기록 유지가 더 적합.
      `eval_exam.py`/`eval_record.py`/`eval_ragas.py`는 변경 없음. self-hosted runner도 인프라 부담
      대비 이득 적어 제외
-7. **문서화 및 포트폴리오 정리**
+7. **문서화 및 포트폴리오 정리** — README/DESIGN.md/`MODEL_SELECTION.md` 최신 모델 결정 반영 완료(2026-07-22). 남은 것: 아키텍처 다이어그램(README에 mermaid로 이미 있음, 스크린샷 별도 불필요할 수 있음) 확인, LangSmith 트레이스 스크린샷, 기술 블로그 초안(`blog_draft.md` 진행 상태 확인 필요)
 
 ---
 
@@ -197,13 +239,17 @@
 
 "전부 읽기"가 아니라 **핵심 구조를 설명할 수 있는 수준**이 목표.
 
+> **2026-07-22 상태 정정**: 아래 ✅ 표시는 예전 리뷰 세션 기록이며, 실제로 코드 리뷰가
+> 전부 끝난 상태가 아님(사용자 확인). 어느 파일이 재검토 대상인지는 별도 md 문서로
+> 추적할 예정 — 그 전까지 이 표를 "완료 보증"으로 신뢰하지 말 것.
+
 | 파일 | 핵심 이해 포인트 | 상태 |
 |---|---|---|
 | `app/common/llm/backends/chat_runpod.py` | 왜 BaseChatModel을 직접 상속했는가, `_agenerate` vs `_generate` 차이 | ✅ |
 | `app/modules/exam/graph.py` | LangGraph 노드 구조, 각 노드의 역할과 연결 (리디자인 이후 구조로 재검토 완료) | ✅ |
 | `app/modules/exam/tools.py` | `@tool` 데코레이터, `_ctx` 공유 상태 문제, RAG 싱글턴 통합 | ✅ |
 | `app/common/rag/store.py` + `retriever.py` | ChromaDB 컬렉션 구조, 2단계 검색 흐름, 죽은 임시 컬렉션 코드 제거 | ✅ |
-| `app/modules/record/chain.py` | LCEL 파이프 구조, 하이브리드 위반 탐지 순서, RAG 싱글턴 통합 | ✅ |
+| `app/modules/record/chain.py` | 수동 루프 구조(LCEL 파이프 아님 — `run()`이 `_step_mask/_step_polish/_step_validate`를 for 루프로 직접 호출), 하이브리드 위반 탐지 순서, RAG 싱글턴 통합 | ✅ |
 | `app/main.py` | `/exam`·`/exam/stream` 중복 제거, 실제 SSE 노드 단위 스트리밍 | ✅ |
 | `scripts/eval_ragas.py` | (2026-07-12 리뷰 완료) `build_sample()`이 실제 그래프 호출+RAG 검색으로 (question, context, answer) 구성 → `faithfulness_one()`(주장 분해 후 컨텍스트 대조) / `answer_relevancy_one()`(역질문 생성 후 임베딩 코사인 유사도) → `run_langsmith_experiments()`가 Dataset 동기화 후 `evaluate()`로 두 함수를 evaluator로 래핑. 버그는 없었고, 사소한 죽은 코드(도달 불가능한 `else 0.0` 폴백) 1건과 의도된 중복 방어 로직 1건만 확인(둘 다 동작에 영향 없어 수정 안 함) | ✅ |
 

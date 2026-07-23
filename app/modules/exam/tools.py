@@ -33,21 +33,50 @@ def init_session(passage_text: str = "", target_num: int = 0) -> None:
         ctx = _request_ctx.get()
         ctx["items"] = []
         ctx["scores"] = {}
-        ctx["judge_result"] = {}
         ctx["passage_text"] = passage_text
         ctx["target_num"] = target_num
     except LookupError:
         _request_ctx.set({
             "items": [],
             "scores": {},
-            "judge_result": {},
             "passage_text": passage_text,
             "target_num": target_num,
         })
 
+"""
+**item : dict 언패킹. 
+item은 save_item이 저장해둔 문항 하나. 
+
+item = {
+    "item_id": "a1b2c3",
+    "question": "...",
+    "options": [...],
+    "answer": "①",
+    "item_type": "객관식",
+    "difficulty": "중",
+    "standard": "",
+}
+
+{**item, ...} 은 item 안에 든 모든 키-값 쌍을 새 dict에 그대로 펼쳐 넣어라 라는 의미
+
+eg. 
+{**item, "judge_score": score, "status": "..."} 를 풀어 쓰면 아래와 같은 의미.
+
+{
+    "item_id": item["item_id"],
+    "question": item["question"],
+    "options": item["options"],
+    "answer": item["answer"],
+    "item_type": item["item_type"],
+    "difficulty": item["difficulty"],
+    "standard": item["standard"],
+    "judge_score": score,        # ← item에는 없던 새 필드 추가
+    "status": "approved" or "rejected",  # ← 역시 새 필드 추가
+}
+"""
 
 def get_draft_items() -> list:
-    ctx = _get_ctx()
+    ctx = _get_ctx() # _request_ctx.get : _request_ctx가 가리키는 컨텍스트 (dict)을 가져옴 
     result = []
     for item in ctx["items"]:
         iid = item.get("item_id", "")
@@ -61,16 +90,15 @@ def get_draft_items() -> list:
         )
     return result
 
-
-def get_judge_result() -> dict:
-    return _get_ctx().get("judge_result", {})
-
-
-def reset_judge() -> None:
-    """재시도 시 문항(items/scores)은 유지하고 similarity_judge 결과만 초기화한다.
-    이전 시도(더 적은 문항 기준)의 판정이 이번 재시도(누적된 문항 기준) 결과에
-    잘못 남아있지 않도록 한다. 문항 자체를 지우지 않는 것이 init_session()과의 차이."""
-    _get_ctx()["judge_result"] = {}
+"""
+context (dict)
+    {
+        "items": list,          # 문항 dict들의 리스트
+        "scores": dict,         # item_id(str) → score(float) 매핑
+        "passage_text": str,    # 교사가 입력한 예시 문제 원문
+        "target_num": int,      # 목표 문항 개수 (예: 5)
+    }
+"""
 
 
 # ── 도구 정의 ──
@@ -80,7 +108,7 @@ def reset_judge() -> None:
 @tool
 def search_regulations(query: str) -> str:
     """교육과정 법령·지침에서 관련 내용을 검색합니다. query: 검색 키워드"""
-    count = get_store().count("regulations")
+    count = get_store().count("regulations") # regulations 컬렉션의 청크 개수를 반환 
     if count == 0:
         logger.warning("regulations 컬렉션이 비어있습니다.")
         return "교육과정 자료 없음"
@@ -88,7 +116,14 @@ def search_regulations(query: str) -> str:
     if not results:
         return "관련 규정 없음"
     return "\n\n".join(f"[{i+1}] {r['text'][:300]}" for i, r in enumerate(results))
-
+"""
+(return 되는 f-string 포맷 예시)
+    "[1] 2022 개정 교육과정 총론에 따르면 사회과 평가는...
+     [2] 성취기준 서술 시 유의사항은 다음과 같다...
+     [3] 문항 출제 시 특정 종교·정치적 견해를...
+     ..."
+위와 같은 문자열 전체가 LLM에게 도구 실행 결과로 전달 됨.
+"""
 
 @tool
 def search_standards(query: str) -> str:
@@ -262,26 +297,16 @@ def discard_item(item_id: str) -> str:
 
 
 @tool
-def similarity_judge(
-    type_ratio_score: float,
-    difficulty_match: bool,
-    overall_score: int,
-) -> str:
-    """예시 문제와 방금 작성한 문항 세트의 구조적 유사도를 기록합니다.
-    문항 세트 작성을 모두 마친 뒤, 스스로 판단한 평가 결과를 인자로 전달해 호출하세요.
-    (통과/재시도 여부는 이 도구가 아니라 이후 로직이 threshold로 결정합니다.
-    문항 개수 일치 여부는 이 도구가 아니라 코드가 자동으로 검증합니다.)
-    type_ratio_score: 유형(객관식/서술형) 구성 비율의 유사도 (0.0~1.0)
-    difficulty_match: 난이도 수준 구성이 예시 문제와 부합하는가
-    overall_score: 종합 평가 점수 (0~5, 5=매우 유사)
-    """
-    result = {
-        "type_ratio_score": float(max(0.0, min(1.0, type_ratio_score))),
-        "difficulty_match": bool(difficulty_match),
-        "overall_score": int(max(0, min(5, overall_score))),
-    }
-    _get_ctx()["judge_result"] = result
-    return f"구조 유사도 평가 기록됨: {result}"
+def submit_for_review() -> str:
+    """문항 세트 작성을 모두 마쳤다는 신호입니다. 문항 저장(save_item)과 채점
+    (record_score)이 끝난 뒤 이 도구를 호출하세요. 구조 유사도 평가·문항 개수
+    검증은 이 도구가 아니라 시스템이 자동으로 수행합니다.
+
+    2026-07-23: 이전엔 생성 에이전트가 similarity_judge 도구로 자기 출력을 스스로
+    채점했으나(self-judge), 사람 라벨 대비 신뢰도가 검증된 적이 없어 별도 Judge
+    노드(judge_node, get_judge_backend())로 분리했다 — 이 도구는 그 채점 이전에
+    "작성이 끝났다"는 신호만 전달한다."""
+    return "제출 완료 — 구조 유사도 평가를 진행합니다."
 
 
 TOOLS = [
@@ -291,5 +316,5 @@ TOOLS = [
     save_item,
     record_score,
     discard_item,
-    similarity_judge,
+    submit_for_review,
 ]

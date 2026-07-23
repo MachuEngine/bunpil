@@ -63,18 +63,11 @@ async def request_slot():
     finally:
         _REQUEST_SLOTS.release()
 
-# 예시 문제 붙여넣기 최대 길이. 현재 스택(Qwen2.5-7B, 32K 네이티브 context) 기준.
+# 예시 문제 붙여넣기 최대 길이. 현재 스택(Qwen2.5-14B, 32K 네이티브 context) 기준.
 MAX_PASSAGE_LENGTH = 8000
 
 
-def _parse_standards(standards: str) -> list:
-    std_list = [s.strip() for s in standards.splitlines() if s.strip()]
-    if not std_list and standards:
-        std_list = [s.strip() for s in standards.split(",") if s.strip()]
-    return std_list
-
-
-DEFAULT_NUM_ITEMS = 5
+DEFAULT_NUM_ITEMS = 2
 
 
 async def _extract_num_items(passage_text: str) -> int:
@@ -90,7 +83,7 @@ async def _extract_num_items(passage_text: str) -> int:
             "content": (
                 "다음은 교사가 문항 생성 서비스에 입력한 텍스트입니다. "
                 "이 텍스트에서 교사가 명시적으로 요청한 생성 문항 개수를 찾으세요. "
-                "명시적인 개수 요청이 있으면 그 숫자만 응답하고, 없으면 5라고만 응답하세요. "
+                f"명시적인 개수 요청이 있으면 그 숫자만 응답하고, 없으면 {DEFAULT_NUM_ITEMS}라고만 응답하세요. "
                 "설명 없이 숫자만 응답하세요."
             ),
         },
@@ -105,18 +98,15 @@ async def _extract_num_items(passage_text: str) -> int:
     return max(1, min(n, 20))  # 폭주 생성 방지
 
 
-async def _build_spec(passage_text: str, standards: str):
+async def _build_spec(passage_text: str):
     """예시 문제를 길이 제한·PII 마스킹 후 ExamSpec으로 구성한다."""
     from app.common.privacy import mask_pii
 
     truncated = len(passage_text) > MAX_PASSAGE_LENGTH
     text = passage_text[:MAX_PASSAGE_LENGTH] if truncated else passage_text
-    masked_text, passage_pii = mask_pii(text)
-    masked_standards, standards_pii = mask_pii(standards)
-    pii_found = list(dict.fromkeys([*passage_pii, *standards_pii]))
+    masked_text, pii_found = mask_pii(text)
     spec = {
         "passage_text": masked_text,
-        "standards": _parse_standards(masked_standards),
         "num_items": await _extract_num_items(masked_text),
     }
     return spec, truncated, pii_found
@@ -139,7 +129,8 @@ async def _run_exam(spec) -> dict:
 
 _NODE_MESSAGES = {
     "plan": "준비 중...",
-    "validate": "생성된 문항의 구조적 유사도를 검증하고 있습니다...",
+    "judge": "생성된 문항의 구조적 유사도를 채점하고 있습니다...",
+    "validate": "채점 결과가 기준을 통과했는지 확인하고 있습니다...",
 }
 
 
@@ -222,12 +213,11 @@ async def health():
 @app.post("/exam/stream")
 async def exam_stream(
     passage_text: str = Form(...),
-    standards: str = Form(""),
     _: None = Depends(verify_api_key),
 ):
     """예시 문제 텍스트를 받아 SSE로 진행 상황과 결과를 스트리밍한다."""
 
-    spec, truncated, pii_found = await _build_spec(passage_text, standards)
+    spec, truncated, pii_found = await _build_spec(passage_text)
 
     await _acquire_request_slot()
 
@@ -275,10 +265,9 @@ async def exam_stream(
 @app.post("/exam")
 async def exam(
     passage_text: str = Form(...),
-    standards: str = Form(""),
     _: None = Depends(verify_api_key),
 ):
-    spec, truncated, pii_found = await _build_spec(passage_text, standards)
+    spec, truncated, pii_found = await _build_spec(passage_text)
     async with request_slot():
         result = await _run_exam(spec)
     return {"truncated": truncated, "pii_found": pii_found, **result}

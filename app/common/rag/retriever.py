@@ -30,3 +30,36 @@ class RAGRetriever:
             }
             for r in ranked
         ]
+    
+        """
+        candidates = [
+            {"text": "사회계약론은 홉스, 로크, 루소가...", "metadata": {"source": "정치.pdf"}, "distance": 0.15},  # index 0
+            {"text": "삼권분립은 입법·행정·사법을...", "metadata": {"source": "정치.pdf"}, "distance": 0.22},      # index 1
+            {"text": "기본권은 자유권, 평등권...",      "metadata": {"source": "헌법.pdf"}, "distance": 0.31},      # index 2
+        ]
+
+        passages = [
+            "사회계약론은 홉스, 로크, 루소가...",   # index 0
+            "삼권분립은 입법·행정·사법을...",      # index 1
+            "기본권은 자유권, 평등권...",         # index 2
+        ]
+
+        ranked = [
+            {"index": 0, "score": 0.95},   # candidates[0]이 가장 관련 높다고 재평가됨
+            {"index": 2, "score": 0.60},   # candidates[2]가 두 번째
+        ]
+
+        return = [
+            {
+                candidates[0]["text"]      # "사회계약론은 홉스, 로크, 루소가..."
+                candidates[0]["metadata"]  # {"source": "정치.pdf"}
+                r["score"]                 # 0.95
+            },
+            {
+                candidates[2]["text"]      # "기본권은 자유권, 평등권..."
+                candidates[2]["metadata"]  # {"source": "헌법.pdf"}
+                r["score"]                 # 0.60
+            }
+        ]
+
+        """

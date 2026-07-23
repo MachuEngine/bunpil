@@ -6,6 +6,14 @@
 하지 않음 — 이 스크립트는 모델 출력 생성까지만 담당하고, 사람이 이후
 data/golden/structure_golden.json을 열어 human_label을 직접 채운다.
 
+2026-07-23: 런타임 구조 유사도 판단은 더 이상 생성 에이전트의 자기채점(self-judge)이
+아니다 — get_judge_backend()를 호출하는 별도 judge_node로 분리됐고, 이는 오프라인
+eval(judge_structure_one())과 완전히 같은 코드(app/modules/exam/judge.py)를 공유한다.
+따라서 이 스크립트가 뽑는 generated_items를 오프라인 eval_structure_judge()로 채점한
+결과가 곧 "런타임에 실제로 쓰이는 judge"의 신뢰도이며, 별도의 self-judge 캡처 필드는
+더 이상 필요 없다(2026-07-22에 잠시 도입했던 self_judge_result/self_judge_passed
+필드는 self-judge 자체가 폐기되며 함께 제거됨).
+
 count_match(생성 개수가 예시 문제 개수와 일치하는가)라는 옛 전제는 폐기됐다.
 생성 개수는 passage_text와 무관하게 num_items가 결정하므로, 여기서는
 passage_text(스타일/난이도 참고용)와 num_items(목표 개수)를 각 샘플에 함께 지정한다.
@@ -14,6 +22,11 @@ passage_text(스타일/난이도 참고용)와 num_items(목표 개수)를 각 �
 --only id1,id2,...: 지정한 id만 재생성 (기본: 전체). 기존 파일에서 같은 id만
                      교체하고, 라벨링된(human_label 있는) 다른 항목은 그대로 보존한다.
 --drop id1,id2,...: 기존 파일에서 완전히 제거할 id (예: 문항 0개로 골든셋 부적합 판정된 것)
+
+주의(2026-07-23): judge_node가 이제 실제로 매 생성마다 get_judge_backend()를 호출한다.
+JUDGE_BACKEND 기본값은 openai(gpt-5.6-luna)라 OPENAI_API_KEY가 없으면 이 스크립트도
+그대로 fail-fast로 실패한다. 골든셋 생성만 목적이면 `JUDGE_BACKEND=local` 환경변수로
+로컬 Judge를 쓰는 것을 권장(비용 없음, 대량 생성에 적합).
 
 출력: data/golden/structure_golden.json (entries 배열에 직접 기록, human_label: null)
 """
@@ -645,7 +658,6 @@ def generate_one(sample: dict, budget: int) -> dict:
             "agent_messages": [],
             "validation_passed": False,
             "similarity_judge_result": {},
-            "error": "",
         }
     )
     items = state.get("draft_items", [])

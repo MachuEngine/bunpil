@@ -19,18 +19,14 @@ def test_build_spec_masks_pii_before_num_items_llm(monkeypatch):
     monkeypatch.setattr(app.common.llm, "get_llm_backend", lambda: backend)
 
     spec, truncated, pii_found = asyncio.run(
-        _build_spec(
-            "김철수 학생 연락처 01012345678, 3문제 만들어줘.",
-            "한국고등학교 성취기준",
-        )
+        _build_spec("김철수 학생 연락처 01012345678, 3문제 만들어줘.")
     )
 
     model_input = backend.messages[-1]["content"]
     assert "김철수" not in model_input
     assert "01012345678" not in model_input
     assert spec["passage_text"] == model_input
-    assert spec["standards"] == ["[학교] 성취기준"]
-    assert set(pii_found) == {"이름", "전화번호", "학교명"}
+    assert set(pii_found) == {"이름", "전화번호"}
     assert truncated is False
 
 

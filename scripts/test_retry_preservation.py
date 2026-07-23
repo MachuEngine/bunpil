@@ -106,7 +106,6 @@ def run_new(sample: dict, budget: int) -> dict:
     """graph.py 실제 구현 사용(부분 진행 보존)."""
     spec: ExamSpec = {
         "passage_text": sample["passage_text"],
-        "standards": sample.get("standards", []),
         "num_items": sample["num_items"],
     }
     init_session()
@@ -114,7 +113,7 @@ def run_new(sample: dict, budget: int) -> dict:
     state = graph.invoke(
         {
             "spec": spec, "budget": budget, "draft_items": [], "agent_messages": [],
-            "validation_passed": False, "similarity_judge_result": {}, "error": "",
+            "validation_passed": False, "similarity_judge_result": {},
         }
     )
     items = state.get("draft_items", [])
