@@ -23,7 +23,7 @@
 
 ## 한눈에 보기
 
-교사의 반복 업무 중 가장 시간이 많이 드는 두 가지 — **시험 문항 출제**와 **학교생활기록부 문구 작성** — 를 소형 오픈소스 LLM(Qwen2.5-14B)으로 보조하는 서비스입니다. 포트폴리오 프로젝트이자 현직 교사 1인이 실사용 중입니다.
+교사의 반복 업무 중 가장 시간이 많이 드는 두 가지 — **시험 문항 출제**와 **학교생활기록부 문구 작성** — 를 소형 오픈소스 LLM(Qwen2.5-14B)으로 보조하는 서비스입니다. 포트폴리오 프로젝트로, 지인 교사 1인이 검증에 참여했습니다 — 단 모듈별 실사용 범위는 다릅니다: **출제 모듈**은 학생 개인정보가 애초에 개입하지 않는 구조라 실제 수업에 사용 중이지만, **생기부 윤문 모듈**은 실제 학생 정보가 입력될 수 있는 기능이라 하드룰 1(실제 학생 데이터 미사용)에 따라 합성 관찰 메모로만 테스트했고 실 현장 적용은 하지 않았습니다.
 
 | 모듈 | 입력 | 처리 | 출력 |
 |---|---|---|---|
@@ -72,7 +72,7 @@
 | RAG | ChromaDB + BGE-M3 임베딩 + BGE-reranker (모두 CPU) |
 | 생성 LLM 서빙 | Ollama (개발) / RunPod 서버리스 vLLM (프로덕션) |
 | Judge LLM | OpenAI gpt-5.6-luna(기본) / Ollama(대안) — 생성 백엔드와 독립 |
-| 트레이싱 | LangSmith (합성 데이터 평가 스크립트에서만 선택) |
+| 트레이싱 | LangSmith — 출제 모듈은 2026-07-24부터 PII 마스킹 후 프로덕션 API 서버에도 옵트인 트레이싱 허용(하드룰 3 예외). 생기부 모듈은 LangChain 미사용으로 구조적으로 트레이싱 불가 |
 | 배포 | AWS EC2 t3.medium + EBS + RunPod 서버리스 + Caddy HTTPS |
 
 ### 출제 모듈 — ReAct 에이전트 + 분리된 Judge
@@ -83,7 +83,7 @@
 |---|---|
 | `search_standards` / `search_regulations` | 성취기준·법령 RAG 검색 |
 | `validate_item_format` | 선지 4개·①②③④ 형식 등 결정론적 형식 검증 (오류 시 수정 지침 반환 → 자기교정) |
-| `save_item` | 문항 저장 — 한국어 검증 게이트 통과 시에만 저장 |
+| `save_item` | 문항 저장 — 한국어 오염 검사(한자 비율 ≥5% 또는 한글 부재 시 거부) + 예시 문제 그대로 베끼기 방지(bigram 포함률 ≥0.90 시 거부) + 세트 내 중복 방지(Jaccard ≥0.80 시 거부) 통과 시에만 저장 |
 | `discard_item` | 승인 불가 문항을 ID로 폐기 |
 | `record_score` | 문항 품질 자체 평가 기록 |
 | `submit_for_review` | 문항 세트 작성 완료 신호(인자 없음) — 이후 채점은 `judge` 노드가 수행 |
@@ -143,6 +143,7 @@ data: {"status": "error",     "msg": "요청을 처리하지 못했습니다."} 
 
 - **요청 간 세션 격리**: 출제 요청별 컨텍스트를 `contextvars.ContextVar`로 분리. `asyncio.to_thread` + `contextvars.copy_context()`로 worker 스레드에 전파.
 - **이벤트 루프 비블로킹**: `/exam`은 `asyncio.to_thread`로 LangGraph 실행. `/exam/stream`은 `graph.stream()`(동기 제너레이터)을 executor 스레드에서 돌리며 `asyncio.Queue`로 이벤트만 이벤트 루프에 전달. `/record`는 Chain 전체가 async이므로 `await chain.run()`으로 직접 호출.
+- **동시 요청 제한**: `asyncio.Semaphore(2)`로 전역 동시 처리 슬롯을 2개로 제한(GPU 백엔드 과부하 방지). 슬롯 획득 실패(0.05초 타임아웃) 시 429 반환.
 
 </details>
 
@@ -519,6 +520,7 @@ bunpil/
 | `BUNPIL_API_KEY` | Next.js → FastAPI 서버 간 인증 키(양쪽에 동일한 긴 무작위 값 설정) | 필수 |
 | `LLM_BACKEND` | 생성 모델 백엔드 — `local`(Ollama) / `runpod` / `openai`(모델 비교 실험용) | `local` |
 | `OLLAMA_MODEL` | 로컬 개발 생성 모델명 | `qwen2.5:14b` |
+| `OLLAMA_BASE_URL` | 로컬 Ollama 서버 주소 | `http://localhost:11434` |
 | `RUNPOD_API_KEY` | RunPod API 키 | — |
 | `RUNPOD_ENDPOINT_ID` | RunPod 엔드포인트 ID | — |
 | `JUDGE_BACKEND` | Judge 백엔드(생성 백엔드와 독립적으로 전환) — `local`(Ollama) / `openai`. **eval 스크립트와 프로덕션 앱 실행(judge 노드) 둘 다에 적용됨.** `openai`인데 키가 없거나 호출 실패 시 fail-fast | `openai` |
