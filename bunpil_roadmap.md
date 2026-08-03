@@ -9,7 +9,7 @@
 > 이력으로 보존하되 **더 이상 진행 대상이 아니다.**
 
 - ✅ 완료: 배포(현재 RunPod는 크레딧 소진으로 일시 비활성 — 아래 "남은 작업" 참고), LangSmith 트레이싱, 골든셋 구축, eval 스크립트 실데이터 전환, 출제 모듈 passage_text 리디자인, GitHub Actions 경량 CI, 생성 모델 7B→14B 승격, Judge 모델 gpt-5.6-luna 채택, 출제 성취기준 사용자 입력 제거(2026-07-21), README/DESIGN/MODEL_SELECTION 문서 갱신(2026-07-22), **런타임 self-judge 폐기 → 별도 judge 노드로 생성·Judge 모델 완전 분리(2026-07-23, 아래 상세)**, Agent Trajectory Eval 신규(2026-08-03, 아래 상세 — 재측정은 LangSmith 한도 소진으로 미완), 하이브리드 검색 도입 + 리랭커 조사(2026-08-03, BM25+dense RRF & `n_candidates` 20→10 — 전체 Recall@5 **1.000** 첫 달성, regulations MRR 0.667→0.753)
-- 🔄 진행 중: 코드 리뷰(아래 "참고 — 코드 리뷰 대상 파일" 표는 예전 스냅샷 — 실제 완료 여부는 재확인 필요, 진행 상황은 별도 문서로 추적 예정)
+- 🔄 진행 중: 코드 리뷰(아래 "참고 — 코드 리뷰 대상 파일" 표는 예전 스냅샷 — 신뢰 금지, 진행 상황은 [CODE_REVIEW_CHECKLIST.md](./CODE_REVIEW_CHECKLIST.md)로 추적)
 - ⬜ 남은 작업: 성능 개선 미달 지표 3건 + 포트폴리오 정리 (아래 "남은 작업" 참고)
 
 ---
@@ -228,7 +228,7 @@ ablation도 함께 측정해 MODEL_SELECTION.md 4절의 "기여도 미측정" �
 |---|---|---|---|
 | 1 | **Agent Trajectory 재측정** | 🔒 blocked | LangSmith 무료 한도 — **조회는 되는데 트레이스 수집(ingest)이 401**로 거부됨(2026-08-03 실측 확인). 한도 복구 후 `LANGCHAIN_TRACING_V2=true`로 `scripts/test_exam.py`를 몇 회 돌려 트레이스를 먼저 쌓고 `python evals/eval_trajectory.py --since 2026-07-23` 실행. 상세는 EVAL.md 11절 |
 | 2 | **오답매력도 2.846 / 목표 4.0** | ⬜ 미착수 | 기존 열린 이슈(아래 1번 항목). `agent_node` few-shot이 텍스트 지시문뿐이라 실효성이 약할 수 있음 — 진짜 멀티턴 tool-call 예시로 강화하거나 `validate_item_format`에 최소 기준 게이트 추가 검토 |
-| 3 | **코드 리뷰 전수 확인** | 🔄 진행 중 | 하단 "참고 — 코드 리뷰 대상 파일" 표는 예전 스냅샷이라 신뢰 금지. 2026-08-03에 `tools.py`·`retriever.py`·`chain.py`(삭제됨)를 실제로 훑으며 도구-코퍼스 불일치를 발견한 것이 부분 진행분 |
+| 3 | **코드 리뷰 전수 확인** | 🔄 진행 중 | 하단 "참고 — 코드 리뷰 대상 파일" 표는 예전 스냅샷이라 신뢰 금지. 체크리스트는 [CODE_REVIEW_CHECKLIST.md](./CODE_REVIEW_CHECKLIST.md)로 이전(2026-08-04, 경로 오류 6곳 정정 + 신규 파일 5개 반영). 2026-08-03에 `tools.py`·`retriever.py`·`chain.py`(삭제됨)를 실제로 훑으며 도구-코퍼스 불일치를 발견한 것이 부분 진행분 |
 | 4 | **더 어려운 검색 골든셋** | ⬜ 미착수 | `retrieval_golden_final.json` 22건은 Recall@5 **1.000**으로 천장 도달 — 이걸로는 추가 개선을 측정할 수 없다. 2026-08-03 신설한 `regulations_retrieval_candidates.json` 10건은 **0.500**이라 아직 여유가 있으니, 우선 이 10건을 정식 골든셋에 편입하는 것부터 검토 |
 | 5 | **리랭커 모델 교체(`bge-reranker-v2-m3`)** | ⏸️ 보류 | `n_candidates` 조정만으로 목표를 넘겨 착수 안 함(~2.3GB 다운로드 + CPU 추론 부담). 필요해지면 `BGE_RERANK_MODEL`만 바꿔 `experiments/compare_reranker.py`로 재측정 |
 | 6 | **RunPod 재가동** | ⏸️ 크레딧 소진 | 2026-07-22부터 일시 중단. 설정은 그대로라 크레딧 충전 시 바로 복구 가능 |
