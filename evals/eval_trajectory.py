@@ -154,8 +154,7 @@ def _classify_tool_run(run) -> str:
 
 # ── 조회 + 집계 ──────────────────────────────────────────────────
 
-def fetch_runs(client, project: str, days: int, limit: int) -> list:
-    start_time = datetime.now(timezone.utc) - timedelta(days=days)
+def fetch_runs(client, project: str, start_time: datetime, limit: int) -> list:
     # run_type 필터는 langsmith SDK 버전마다 지원 형태가 달라 클라이언트 측에서
     # 직접 나누는 편이 안전하다(이 스크립트의 원칙 — "분류는 전부 클라이언트 측").
     #
@@ -244,10 +243,10 @@ def aggregate(runs: list) -> dict:
 
 # ── 리포트 출력 ─────────────────────────────────────────────────────
 
-def print_report(result: dict, project: str, days: int) -> None:
+def print_report(result: dict, project: str, period_label: str) -> None:
     print("=" * 55)
     print("  분필 출제 모듈 — Agent Trajectory Eval")
-    print(f"  project={project}  기간=최근 {days}일")
+    print(f"  project={project}  기간={period_label}")
     print("=" * 55)
 
     t = result["tool_reliability"]
@@ -292,7 +291,15 @@ def main() -> None:
         "--project", default=None,
         help="LangSmith 프로젝트명 (기본: 현재 LANGCHAIN_PROJECT 값)",
     )
-    parser.add_argument("--days", type=int, default=30, help="조회 기간(일)")
+    parser.add_argument("--days", type=int, default=30, help="조회 기간(일) — --since가 있으면 무시됨")
+    parser.add_argument(
+        "--since", default=None,
+        help=(
+            "이 날짜(YYYY-MM-DD, UTC) 이후만 조회 — --days 대신 특정 기준일부터 보고 싶을 때. "
+            "예: --since 2026-07-23 (런타임 self-judge 폐기 이후, 즉 similarity_judge 도구가 "
+            "제거되고 submit_for_review가 도입된 시점부터만 봄 — bunpil_roadmap.md 참고)"
+        ),
+    )
     parser.add_argument("--limit", type=int, default=2000, help="조회할 최대 run 수(안전장치)")
     parser.add_argument("--json", default=None, help="집계 결과를 JSON으로도 저장할 경로")
     args = parser.parse_args()
@@ -301,13 +308,19 @@ def main() -> None:
     client = Client()
 
     project = args.project or os.environ.get("LANGCHAIN_PROJECT", "bunpil")
-    print(f"LangSmith 프로젝트 '{project}'에서 최근 {args.days}일 트레이스 조회 중...")
+    if args.since:
+        start_time = datetime.strptime(args.since, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        period_label = f"{args.since} 이후"
+    else:
+        start_time = datetime.now(timezone.utc) - timedelta(days=args.days)
+        period_label = f"최근 {args.days}일"
+    print(f"LangSmith 프로젝트 '{project}'에서 {period_label} 트레이스 조회 중...")
 
-    runs = fetch_runs(client, project, args.days, args.limit)
+    runs = fetch_runs(client, project, start_time, args.limit)
     print(f"조회된 run 수: {len(runs)}\n")
 
     result = aggregate(runs)
-    print_report(result, project, args.days)
+    print_report(result, project, period_label)
 
     if args.json:
         with open(args.json, "w", encoding="utf-8") as f:
