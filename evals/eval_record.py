@@ -158,7 +158,13 @@ def eval_regulation_retrieval(retriever) -> dict:
 
 @traceable(name="eval_violation_detection", run_type="chain", metadata=_TRACE_META)
 def eval_violation_detection(golden: list, chain: RecordChain) -> dict:
-    """규정 위반 검출 Recall / F1 측정."""
+    """규정 위반 **검출** Recall / F1 측정.
+
+    2026-08-03: 키워드 규칙과 LLM 규정 판정이 차단(violations)에서 경고(warnings)로
+    강등됐지만, 이 지표가 재는 것은 "탐지했는가"이지 "차단했는가"가 아니므로
+    **둘을 합쳐서** 센다. 그래야 강등 전후 수치를 계속 비교할 수 있다
+    (차단 동작이 바뀌었다고 탐지 성능 히스토리가 끊기면 안 됨).
+    """
     tp = fp = fn = tn = 0
 
     for item in golden:
@@ -169,12 +175,13 @@ def eval_violation_detection(golden: list, chain: RecordChain) -> dict:
             "pii_found": [],
             "polished": item["text"],
             "violations": [],
+            "warnings": [],
             "generated_pii": [],
             "validation_status": "pending",
             "attempt": 0,
         }
         result = _run_async(chain._step_validate(state))
-        detected = len(result["violations"]) > 0
+        detected = bool(result["violations"]) or bool(result.get("warnings"))
         expected = item["label"] == 1
 
         if expected and detected:

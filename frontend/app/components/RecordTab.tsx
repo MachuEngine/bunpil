@@ -8,7 +8,10 @@ interface RecordOutput {
   pii_found: string[];
   polished: string;
   violations: string[];
+  /** 차단하지 않는 주의 사항 — 결과는 정상 반환되고 교사가 보고 판단한다(2026-08-03) */
+  warnings?: string[];
   validation_status: "passed" | "violations_found" | "unavailable";
+  /** 교사 책임 고지 문구 — 위 warnings와 다름 */
   warning: string;
 }
 
@@ -179,13 +182,28 @@ export default function RecordTab() {
             ) : result.violations.length > 0 ? (
               <div className="rounded-xl bg-[#F7E9E4] p-4 space-y-1">
                 <p className="text-[13px] font-medium text-[#A63B2E] mb-1">
-                  규정 검증 결과 — 위반 발견
+                  안전 규칙 위반 — 결과를 숨겼습니다
                 </p>
                 {result.violations.map((v, i) => (
                   <p key={i} className="text-[13px] text-[#A63B2E]">
                     · {v}
                   </p>
                 ))}
+              </div>
+            ) : result.warnings && result.warnings.length > 0 ? (
+              <div className="rounded-xl bg-[#F5EBD8] p-4 space-y-1">
+                <p className="text-[13px] font-medium text-[#93601F] mb-1">
+                  확인이 필요한 표현이 있습니다 — 기재 여부는 선생님이 판단하세요
+                </p>
+                {result.warnings.map((w, i) => (
+                  <p key={i} className="text-[13px] text-[#93601F]">
+                    · {w}
+                  </p>
+                ))}
+                <p className="text-[12px] text-[#93601F] opacity-80 pt-1">
+                  교과 주제로서 언급한 경우(예: 사회 수업에서 다룬 정치·종교 개념)라면
+                  그대로 두셔도 됩니다.
+                </p>
               </div>
             ) : (
               <div className="rounded-xl bg-[#E5EEE4] px-4 py-3">
