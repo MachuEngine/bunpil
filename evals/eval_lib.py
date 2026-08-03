@@ -85,13 +85,19 @@ def cohen_kappa(human: list, llm: list, threshold: int = 3) -> float:
 
 @traceable(name="eval_retrieval", run_type="chain", metadata=_TRACE_META)
 def eval_retrieval(retriever: RAGRetriever, golden: list) -> dict:
-    """Recall@5, MRR 계산. chunk_preview substring 매칭으로 정답 판정."""
+    """Recall@5, MRR 계산. chunk_preview substring 매칭으로 정답 판정.
+
+    n_candidates를 명시하지 않고 `retrieve()`의 기본값을 따른다(2026-08-03 변경) —
+    이전엔 20을 하드코딩했는데, 기본값이 10으로 바뀌면서 eval이 프로덕션과 다른
+    설정을 측정하게 되는 검증-배포 불일치가 생겼다. 같은 종류의 불일치를
+    2026-07-23 judge에서 이미 한 번 겪었으므로(bunpil_roadmap.md) 반복하지 않는다.
+    """
     hits_at_5 = 0
     rr_sum = 0.0
 
     for item in golden:
         col = item["source_collection"]
-        results = retriever.retrieve(item["query"], col, top_k=5, n_candidates=20)
+        results = retriever.retrieve(item["query"], col, top_k=5)
         preview = item["chunk_preview"].strip()
 
         found_rank = None

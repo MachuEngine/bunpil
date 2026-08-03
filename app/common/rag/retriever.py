@@ -30,7 +30,8 @@ def _rrf(rankings: list[list[str]], k: int = _RRF_K) -> dict[str, float]:
 class RAGRetriever:
     """2단계 검색: (dense [+ BM25 융합]) 후보 추출 → reranker 재정렬.
 
-    hybrid=None이면 환경변수 `RAG_HYBRID`를 따른다(기본 false = 기존 dense 단독).
+    hybrid=None이면 환경변수 `RAG_HYBRID`를 따른다(기본 true — `false`로 두면
+    이전의 dense 단독 검색으로 되돌아간다).
     eval 스크립트가 같은 프로세스에서 on/off를 바꿔가며 A/B 비교할 수 있도록
     생성자 인자로도 직접 지정할 수 있게 열어뒀다.
     """
@@ -74,7 +75,12 @@ class RAGRetriever:
         query: str,
         collection_name: str,
         top_k: int = 5,
-        n_candidates: int = 20,
+        # 20 → 10 (2026-08-03 실측 근거). 후보를 늘리면 리랭커가 오히려 나빠진다:
+        # 골든 22건 전수 비교에서 10이 20보다 3건 개선·0건 악화(Recall@5 0.955→1.000,
+        # regulations MRR 0.667→0.753)였고, 리랭커가 채점할 쌍이 절반이라 약 2배 빠르다.
+        # bge-reranker-base가 후보가 많아질수록 오답을 상위로 잘못 올리는 것으로 보인다
+        # (EVAL.md 13절). 생기부(chain.py)는 원래부터 10을 명시해 쓰고 있었다.
+        n_candidates: int = 10,
     ) -> list[dict]:
         query_vec = self.embedder.embed([query])[0]
         candidates = self.store.query(collection_name, query_vec, n_results=n_candidates)
