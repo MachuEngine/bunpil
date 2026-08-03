@@ -33,6 +33,7 @@ graph.py/tools.py의 문자열 리터럴이 바뀌면 아래 상수들과 어긋
 출력에도 쓰지 않는다.
 """
 import argparse
+import itertools
 import json
 import os
 import sys
@@ -157,7 +158,15 @@ def fetch_runs(client, project: str, days: int, limit: int) -> list:
     start_time = datetime.now(timezone.utc) - timedelta(days=days)
     # run_type 필터는 langsmith SDK 버전마다 지원 형태가 달라 클라이언트 측에서
     # 직접 나누는 편이 안전하다(이 스크립트의 원칙 — "분류는 전부 클라이언트 측").
-    return list(client.list_runs(project_name=project, start_time=start_time, limit=limit))
+    #
+    # limit을 list_runs()에 그대로 넘기면 안 된다 — 이 SDK(0.10.0)는 limit을
+    # 커서 페이지네이션 크기가 아니라 /runs/query 요청의 limit 필드로 그대로
+    # 보내는데, LangSmith API는 요청당 최대 100까지만 허용한다(그 이상이면
+    # "Limit exceeds maximum allowed value of 100" 400 에러). 대신 limit 없이
+    # 호출해 커서 페이지네이션이 알아서 페이지를 넘기게 하고, 원하는 총량만큼만
+    # 클라이언트 쪽에서 islice로 끊는다.
+    runs_iter = client.list_runs(project_name=project, start_time=start_time)
+    return list(itertools.islice(runs_iter, limit))
 
 
 def aggregate(runs: list) -> dict:
