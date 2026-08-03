@@ -73,7 +73,7 @@
 - [x] ~~`evals/eval_record.py`~~ — **삭제됨** (4단계 참고, 리뷰 대상에서 소멸)
 - [x] `evals/eval_ragas.py` — 2026-07-12 리뷰 완료 기록 있음(`bunpil_roadmap.md`) — `build_sample()`→`faithfulness_one()`/`answer_relevancy_one()`→`run_langsmith_experiments()` 흐름 확인, 사소한 죽은 코드 1건·의도된 중복 방어 1건만 발견(둘 다 동작 무관, 미수정)
 - [ ] `evals/langsmith_experiments.py` — 위 eval 스크립트가 공통으로 쓰는 LangSmith Experiments 기록 유틸
-- [ ] `evals/eval_trajectory.py` — **(신규, 2026-08-03)** 산출물이 아니라 **과정**을 재는 스크립트. LangSmith 트레이스를 읽어 도구 호출 오류/거부율 분리, 재시도 원인(형식 실패 vs Judge 판단 불일치) 분류. `--since` 옵션의 필요성(신·구 아키텍처 트레이스 혼재 문제)이 리뷰 포인트. EVAL.md 11절, LANGSMITH_GUIDE.md 3.3절 참고
+- [ ] `evals/eval_trajectory.py` — **(신규, 2026-08-03)** 산출물이 아니라 **과정**을 재는 스크립트. LangSmith 트레이스를 읽어 도구 호출 오류/거부율 분리, 재시도 원인(형식 실패 vs Judge 판단 불일치) 분류. `--since` 옵션의 필요성(신·구 아키텍처 트레이스 혼재)과 타임존 처리(로컬 자정 해석 후 UTC 정규화 — 2026-08-04 수정)가 리뷰 포인트. EVAL.md 11·11.1절, LANGSMITH_GUIDE.md 3.3·3.3.1절 참고
 
 ## 7단계 — 실험/도구 스크립트 (가벼운 리뷰)
 

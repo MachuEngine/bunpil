@@ -101,8 +101,54 @@ LangSmith API를 읽기만 하고 모델은 호출하지 않는다(비용 없음
 > 전후 트레이스가 한 통계에 섞여 "지금 코드의 성능"을 잘못 읽게 된다(실제로 첫 실행에서
 > 이 혼재가 발견됐다 — EVAL.md 11절). **아키텍처를 바꾼 날짜를 `--since`로 주는 습관**을
 > 들일 것.
+>
+> 단 **날짜 경계는 하루 단위**라, 리팩터가 그날 *중에* 배포됐으면 당일 이른 실행분이
+> 여전히 섞인다. 깨끗한 비교가 필요하면 **배포 다음 날**을 기준으로 줄 것.
 
-지표 정의와 해석은 EVAL.md 11절 참고. 집계는 트레이스의 **카운트·카테고리만** 뽑고
+### 3.3.1 트레이스가 안 보일 때 — 실제로 겪은 함정 3개 (2026-08-04)
+
+"재측정 0건"이 나와 LangSmith 한도 소진으로 오진했는데, 전부 배선 문제였다.
+**같은 증상이 나오면 이 순서로 확인할 것.**
+
+**① 실행 스크립트가 `.env`를 읽는가**
+`scripts/test_exam.py`에는 `load_dotenv()`가 없었다. `LANGCHAIN_TRACING_V2=true`만 셸에서
+주면 **`LANGCHAIN_API_KEY` 없이 트레이싱이 켜져 401**이 난다. 조회 스크립트
+(`eval_trajectory.py`)는 `load_dotenv()`를 부르므로 조회만 되고 수집만 막히는 것처럼
+보인다 — 이 비대칭을 "한도"로 읽지 말 것. 확인법:
+
+```bash
+.venv/bin/python -c "
+from dotenv import load_dotenv; load_dotenv()
+import os; print('KEY:', bool(os.getenv('LANGCHAIN_API_KEY')))"
+```
+
+**② `init_langsmith_project()`를 호출하는가**
+안 부르면 `-dev`/`-prod` 자동 분기를 안 거쳐 `.env`의 `LANGCHAIN_PROJECT` 값이 그대로
+쓰인다 — 기본값이 `bunpil`이면 트레이스가 **`bunpil-dev`가 아니라 맨 `bunpil`로 샌다**.
+2026-08-04에 트레이스를 만드는 스크립트 5개에 이 호출을 추가했다.
+
+**③ `--since`의 타임존**
+이전에는 UTC 자정으로 해석해서, KST(UTC+9)에서 `--since <오늘>`을 주면 **오늘 오전 9시
+이전 트레이스가 통째로 빠졌다**(로컬 08-04 02:00 = UTC 08-03 17:00). 지금은 로컬 자정으로
+해석한 뒤 UTC로 정규화한다. 참고로 오프셋이 붙은 채(`+09:00`) API에 넘기면 무시되는 것으로
+보여 정규화가 필요했다.
+
+**한도인지 아닌지 확실히 구분하려면** ingest 엔드포인트를 직접 두드려 보면 된다 —
+`202 Accepted`가 오면 한도 문제가 아니다:
+
+```bash
+.venv/bin/python -c "
+import os,uuid,requests; from datetime import datetime,timezone
+from dotenv import load_dotenv; load_dotenv()
+r=requests.post('https://api.smith.langchain.com/runs',
+  headers={'x-api-key':os.environ['LANGCHAIN_API_KEY']},
+  json={'id':str(uuid.uuid4()),'name':'probe','run_type':'chain',
+        'start_time':datetime.now(timezone.utc).isoformat(),
+        'inputs':{},'session_name':'bunpil-dev'}, timeout=30)
+print(r.status_code, r.text[:120])"
+```
+
+지표 정의와 해석은 EVAL.md 11·11.1절 참고. 집계는 트레이스의 **카운트·카테고리만** 뽑고
 `passage_text`·생성 문항 원문은 콘솔에도 JSON에도 쓰지 않는다(하드룰 4).
 
 ## 4. 자주 헷갈리는 것들
@@ -128,7 +174,7 @@ LangSmith API를 읽기만 하고 모델은 호출하지 않는다(비용 없음
 |---|---|
 | `app/common/llm/tracing.py` | dev/prod 프로젝트 자동 분기 (`init_langsmith_project()`) |
 | `evals/langsmith_experiments.py` | Dataset 동기화 공용 유틸(`sync_dataset`, `identity_target`) |
-| `evals/eval_trajectory.py` | 트레이스 집계(도구 신뢰도·재시도 원인·궤적 형태) — 3.3절, EVAL.md 11절 |
+| `evals/eval_trajectory.py` | 트레이스 집계(도구 신뢰도·재시도 원인·궤적 형태) — 3.3절, 안 보일 때는 3.3.1절, 측정 결과는 EVAL.md 11·11.1절 |
 | `evals/eval_exam.py` `run_langsmith_experiments()` | item-quality-judge / structure-judge 등록 |
 | `evals/eval_ragas.py` `run_langsmith_experiments()` | rag-quality 등록 (매 실행 실제 생성 후 채점) |
 | `evals/eval_lib.py` `_TRACE_META` | 트레이스에 붙는 `model`/`backend` 메타데이터 |
