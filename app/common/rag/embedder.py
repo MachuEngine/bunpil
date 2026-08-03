@@ -10,9 +10,18 @@ class BGEEmbedder:
         self.model = BGEM3FlagModel(model_name, use_fp16=False)
 
     def embed(self, texts: list[str], batch_size: int = 8) -> list[list[float]]:
-        # 실제 임배딩 계산이 이뤄짐 
+        # 실제 임배딩 계산이 이뤄짐
         out = self.model.encode(texts, batch_size=batch_size, max_length=512)
         return out["dense_vecs"].tolist()
+
+    def tokenize(self, text: str) -> list[str]:
+        """BM25 어휘 검색(`lexical.py`)이 쓰는 토큰화. 임베딩 계산은 하지 않는다.
+
+        모델 추론 없이 이미 로드된 토크나이저(XLM-R sentencepiece)만 호출하므로
+        비용이 거의 없다. 한국어 조사를 별도 토큰으로 분리해줘서 형태소 분석기를
+        따로 붙이지 않아도 "가정환경"과 "가정환경이"가 같은 어간 토큰을 공유한다.
+        """
+        return self.model.tokenizer.tokenize(text)
     
     """
         batch_size=8은 "한 번에 모델에 넣을 텍스트 묶음 크기" 

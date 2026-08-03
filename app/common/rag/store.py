@@ -72,6 +72,28 @@ class RAGStore:
         except Exception:
             return set()
 
+    def all_documents(self, collection_name: str) -> list[dict]:
+        """컬렉션의 모든 청크를 id·본문·메타데이터로 반환한다.
+
+        BM25 역색인(`lexical.py`)을 세울 때 쓴다 — dense 검색은 상위 후보만
+        받아오면 되지만, 어휘 검색은 "정답 청크가 dense 후보에 아예 안 들어오는"
+        경우를 잡는 게 목적이라 컬렉션 전체를 봐야 한다. 청크가 수백 개
+        수준(regulations 472 / standards 557)이라 전량 조회해도 부담이 없다.
+        """
+        try:
+            col = self._collection(collection_name)
+            if col.count() == 0:
+                return []
+            res = col.get(include=["documents", "metadatas"])
+            return [
+                {"id": doc_id, "text": text, "metadata": meta}
+                for doc_id, text, meta in zip(
+                    res["ids"], res["documents"], res["metadatas"]
+                )
+            ]
+        except Exception:
+            return []
+
     def count(self, collection_name: str) -> int:
         """컬렉션의 문서 수를 반환한다. 컬렉션이 없거나 오류 시 0.
             문서 = 청크 
@@ -104,9 +126,12 @@ class RAGStore:
         """
         col = self._collection(collection_name)
         res = col.query(query_embeddings=[query_embedding], n_results=n_results)
+        # id는 하이브리드 검색에서 dense 순위와 BM25 순위를 같은 문서끼리 짝지을 때
+        # 쓴다(2026-08-03 추가). 본문 문자열로 짝지으면 동일 텍스트 청크가 뭉개지므로
+        # ChromaDB가 이미 갖고 있는 id를 그대로 조인 키로 쓴다.
         return [
-            {"text": doc, "metadata": meta, "distance": dist}
-            for doc, meta, dist in zip(
-                res["documents"][0], res["metadatas"][0], res["distances"][0]
+            {"id": doc_id, "text": doc, "metadata": meta, "distance": dist}
+            for doc_id, doc, meta, dist in zip(
+                res["ids"][0], res["documents"][0], res["metadatas"][0], res["distances"][0]
             )
         ]

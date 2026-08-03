@@ -1,13 +1,73 @@
+import os
+from collections import defaultdict
+
 from .embedder import BGEEmbedder
+from .lexical import BM25Index
 from .reranker import BGEReranker
 from .store import RAGStore
 
+# RRF 상수. 순위 1등과 2등의 점수 차이를 얼마나 완만하게 볼 것인가를 정한다.
+# 60은 RRF 원논문(Cormack et al., 2009) 이후 관례적으로 쓰는 기본값 —
+# 상위권 순위 차이를 과하게 벌리지 않아 두 검색기의 합의를 잘 반영한다.
+_RRF_K = 60
+
+
+def _rrf(rankings: list[list[str]], k: int = _RRF_K) -> dict[str, float]:
+    """Reciprocal Rank Fusion — 여러 검색 결과의 "등수"만 보고 합친다.
+
+    dense 점수(코사인 거리)와 BM25 점수는 스케일이 전혀 달라서 그냥 더할 수 없다.
+    RRF는 점수를 버리고 **등수의 역수**만 더하기 때문에 스케일 정규화가 필요 없다 —
+    3등이면 1/(60+3)을 더하는 식. 두 검색기 모두에서 상위에 오른 문서가 자연히
+    가장 높은 합산 점수를 받는다.
+    """
+    scores: dict[str, float] = defaultdict(float)
+    for ranking in rankings:
+        for rank, doc_id in enumerate(ranking, 1):
+            scores[doc_id] += 1.0 / (k + rank)
+    return scores
+
 
 class RAGRetriever:
-    def __init__(self, store: RAGStore, embedder: BGEEmbedder, reranker: BGEReranker):
+    """2단계 검색: (dense [+ BM25 융합]) 후보 추출 → reranker 재정렬.
+
+    hybrid=None이면 환경변수 `RAG_HYBRID`를 따른다(기본 false = 기존 dense 단독).
+    eval 스크립트가 같은 프로세스에서 on/off를 바꿔가며 A/B 비교할 수 있도록
+    생성자 인자로도 직접 지정할 수 있게 열어뒀다.
+    """
+
+    def __init__(
+        self,
+        store: RAGStore,
+        embedder: BGEEmbedder,
+        reranker: BGEReranker,
+        hybrid: bool | None = None,
+    ):
         self.store = store
         self.embedder = embedder
         self.reranker = reranker
+        # 기본값 true — 2026-08-03 A/B 측정에서 회귀 없이 개선만 확인돼 채택
+        # (전체 MRR 0.789→0.814, standards MRR 0.892→0.938, 후보 포함률 9/10→10/10).
+        # 되돌리려면 RAG_HYBRID=false. 근거는 MODEL_SELECTION.md 5절.
+        self.hybrid = (
+            os.getenv("RAG_HYBRID", "true").lower() == "true" if hybrid is None else hybrid
+        )
+        # 컬렉션별 BM25 인덱스 캐시. 값은 (청크 수, 인덱스) — 재인덱싱으로 청크 수가
+        # 바뀌면 낡은 인덱스를 버리고 다시 만든다(가벼운 무효화 장치).
+        self._bm25: dict[str, tuple[int, BM25Index]] = {}
+
+    def _get_bm25(self, collection_name: str) -> BM25Index | None:
+        count = self.store.count(collection_name)
+        if count == 0:
+            return None
+        cached = self._bm25.get(collection_name)
+        if cached and cached[0] == count:
+            return cached[1]
+        docs = self.store.all_documents(collection_name)
+        if not docs:
+            return None
+        index = BM25Index(docs, self.embedder.tokenize)
+        self._bm25[collection_name] = (count, index)
+        return index
 
     def retrieve(
         self,
@@ -18,6 +78,10 @@ class RAGRetriever:
     ) -> list[dict]:
         query_vec = self.embedder.embed([query])[0]
         candidates = self.store.query(collection_name, query_vec, n_results=n_candidates)
+
+        if self.hybrid:
+            candidates = self._fuse(query, collection_name, candidates, n_candidates)
+
         if not candidates:
             return []
         passages = [c["text"] for c in candidates]
@@ -30,7 +94,7 @@ class RAGRetriever:
             }
             for r in ranked
         ]
-    
+
         """
         candidates = [
             {"text": "사회계약론은 홉스, 로크, 루소가...", "metadata": {"source": "정치.pdf"}, "distance": 0.15},  # index 0
@@ -63,3 +127,44 @@ class RAGRetriever:
         ]
 
         """
+
+    def _fuse(
+        self,
+        query: str,
+        collection_name: str,
+        dense_hits: list[dict],
+        n_candidates: int,
+    ) -> list[dict]:
+        """dense 후보와 BM25 후보를 RRF로 합쳐 상위 n_candidates개를 돌려준다.
+
+        BM25는 dense 후보를 재정렬하는 게 아니라 **컬렉션 전체를 독립적으로 훑는다** —
+        해결하려는 문제가 "정답 청크가 dense 후보에 아예 안 들어오는 것"이라,
+        dense 결과 안에서만 순위를 바꿔서는 의미가 없기 때문이다.
+        """
+        index = self._get_bm25(collection_name)
+        if index is None:
+            return dense_hits
+
+        lexical_ids = index.top_ids(self.embedder.tokenize(query), n_candidates)
+        if not lexical_ids:
+            return dense_hits
+
+        dense_ids = [c["id"] for c in dense_hits]
+        fused = _rrf([dense_ids, lexical_ids])
+
+        by_id = {c["id"]: c for c in dense_hits}
+        merged: list[dict] = []
+        for doc_id, _ in sorted(fused.items(), key=lambda x: x[1], reverse=True):
+            hit = by_id.get(doc_id)
+            if hit is None:
+                # BM25만 찾아낸 문서 — dense 후보엔 없으므로 인덱스에서 본문을 가져온다.
+                # distance는 dense 검색을 안 거쳤다는 뜻으로 None을 둔다(리랭커는
+                # 본문만 쓰므로 이후 단계에 영향 없음).
+                doc = index.get(doc_id)
+                if doc is None:
+                    continue
+                hit = {"id": doc_id, "text": doc["text"], "metadata": doc["metadata"], "distance": None}
+            merged.append(hit)
+            if len(merged) >= n_candidates:
+                break
+        return merged
