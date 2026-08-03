@@ -2,7 +2,7 @@
 
 ## 진행 상태 요약
 
-- ✅ 완료: 배포(현재 RunPod는 크레딧 소진으로 일시 비활성 — 아래 "남은 작업" 참고), LangSmith 트레이싱, 골든셋 구축, eval 스크립트 실데이터 전환, 출제 모듈 passage_text 리디자인, GitHub Actions 경량 CI, 생성 모델 7B→14B 승격, Judge 모델 gpt-5.6-luna 채택, 출제 성취기준 사용자 입력 제거(2026-07-21), README/DESIGN/MODEL_SELECTION 문서 갱신(2026-07-22), **런타임 self-judge 폐기 → 별도 judge 노드로 생성·Judge 모델 완전 분리(2026-07-23, 아래 상세)**
+- ✅ 완료: 배포(현재 RunPod는 크레딧 소진으로 일시 비활성 — 아래 "남은 작업" 참고), LangSmith 트레이싱, 골든셋 구축, eval 스크립트 실데이터 전환, 출제 모듈 passage_text 리디자인, GitHub Actions 경량 CI, 생성 모델 7B→14B 승격, Judge 모델 gpt-5.6-luna 채택, 출제 성취기준 사용자 입력 제거(2026-07-21), README/DESIGN/MODEL_SELECTION 문서 갱신(2026-07-22), **런타임 self-judge 폐기 → 별도 judge 노드로 생성·Judge 모델 완전 분리(2026-07-23, 아래 상세)**, Agent Trajectory Eval 신규(2026-08-03, 아래 상세 — 재측정은 LangSmith 한도 소진으로 미완)
 - 🔄 진행 중: 코드 리뷰(아래 "참고 — 코드 리뷰 대상 파일" 표는 예전 스냅샷 — 실제 완료 여부는 재확인 필요, 진행 상황은 별도 문서로 추적 예정)
 - ⬜ 남은 작업: 성능 개선 미달 지표 3건 + 포트폴리오 정리 (아래 "남은 작업" 참고)
 
@@ -151,6 +151,27 @@ OpenAI로 전송됨 — 사용자 확인 후 수용. 로컬 전용 처리가 필
 
 상세 설계·코드 대조는 근거는 [MODEL_SELECTION.md](./MODEL_SELECTION.md) 2절,
 README "모델 선정" 절 참고.
+
+### Agent Trajectory Eval 신규 (2026-08-03)
+
+**배경**: 기존 eval은 전부 최종 산출물(문항 품질·구조 유사도·검색 Recall)만 채점했고,
+"에이전트가 그 결과에 어떻게 도달했는가"(도구 오호출, 재시도 사유)는 LangSmith UI에서
+트레이스를 하나씩 눈으로 펼쳐볼 수만 있었지 집계된 적이 없었다.
+
+**적용**: `evals/eval_trajectory.py` 신규 — **앱 코드 무변경**(LangGraph가 이미 자동으로
+남기는 노드/도구 run만 읽음). 도구 호출을 `error`/`rejected`(가드레일 정상 동작)/
+`empty_result`로 **분리** 집계하고, `validate` 노드의 `validation_feedback`을 형식·절차
+실패 vs Judge 판단 불일치로 분류한다. 문구 매칭이 깨지면 `unclassified`로 드러나게 했다.
+
+**첫 실행에서 발견**: 최근 30일 조회 결과에 2026-07-23 리팩터로 **제거된**
+`similarity_judge` 도구 호출이 30건 잡혀, 신·구 아키텍처 트레이스가 한 통계에 섞여
+있었음을 확인 → `--since YYYY-MM-DD` 옵션 추가. 부수적으로 `record_score` 거부율
+74%(존재하지 않는 `item_id`로 호출)라는 후보 이슈를 발견했으나, 아키텍처 혼재 때문에
+현재 코드의 문제인지 미확정.
+
+**남은 과제**: LangSmith 무료 플랜 조회 한도 소진(2026-08-03)으로 `--since 2026-07-23`
+재측정 미완 — 한도 복구 후 신 아키텍처만 놓고 재산출 필요. 상세는 [EVAL.md](./EVAL.md) 11절,
+사용법은 [LANGSMITH_GUIDE.md](./LANGSMITH_GUIDE.md) 3.3절 참고.
 
 ---
 

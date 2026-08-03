@@ -86,6 +86,30 @@ kappa가 어떻게 바뀌었나"를 EVAL.md에 손으로 옮겨 적지 않고 �
 > 즉 **과거 Experiment 자체는 남지만, Dataset 예제 목록은 항상 "최신 골든셋"** 이라는
 > 뜻 — Dataset 항목 개수가 실행마다 달라 보여도 버그가 아니다.
 
+### 3.3 트레이스를 눈으로 보지 않고 집계하기 — `eval_trajectory.py`
+
+3.1의 Traces 탭은 **개별 실행 하나**를 파고들 때 쓴다. 반대로 "지난 한 달 동안 도구가
+몇 번이나 거부됐나", "재시도 원인이 형식 문제였나 Judge 판단 문제였나" 같은 **분포**를
+보려면 트레이스를 하나씩 열어선 답이 안 나온다.
+
+```bash
+python evals/eval_trajectory.py --since 2026-07-23
+python evals/eval_trajectory.py --days 30 --json /tmp/traj.json
+```
+
+LangSmith API를 읽기만 하고 모델은 호출하지 않는다(비용 없음, 단 무료 플랜 조회 한도는
+소모). 집계 대상은 `LANGCHAIN_PROJECT` 환경변수가 가리키는 프로젝트이며, `--project`로
+직접 지정할 수도 있다(`bunpil-dev` / `bunpil-prod`).
+
+> **`--since`를 쓰는 이유**: 2026-07-23 self-judge 폐기로 `similarity_judge` 도구가
+> 사라지고 `submit_for_review`가 도입됐다. 그냥 `--days 30`으로 조회하면 그 리팩터
+> 전후 트레이스가 한 통계에 섞여 "지금 코드의 성능"을 잘못 읽게 된다(실제로 첫 실행에서
+> 이 혼재가 발견됐다 — EVAL.md 11절). **아키텍처를 바꾼 날짜를 `--since`로 주는 습관**을
+> 들일 것.
+
+지표 정의와 해석은 EVAL.md 11절 참고. 집계는 트레이스의 **카운트·카테고리만** 뽑고
+`passage_text`·생성 문항 원문은 콘솔에도 JSON에도 쓰지 않는다(하드룰 4).
+
 ## 4. 자주 헷갈리는 것들
 
 - **결정론적 지표(Recall@5, PII 마스킹, 키워드 사실추가율)는 LangSmith에 없다** — 이 3개는
@@ -109,6 +133,7 @@ kappa가 어떻게 바뀌었나"를 EVAL.md에 손으로 옮겨 적지 않고 �
 |---|---|
 | `app/common/llm/tracing.py` | dev/prod 프로젝트 자동 분기 (`init_langsmith_project()`) |
 | `evals/langsmith_experiments.py` | Dataset 동기화 공용 유틸(`sync_dataset`, `identity_target`) |
+| `evals/eval_trajectory.py` | 트레이스 집계(도구 신뢰도·재시도 원인·궤적 형태) — 3.3절, EVAL.md 11절 |
 | `evals/eval_exam.py` `run_langsmith_experiments()` | item-quality-judge / structure-judge 등록 |
 | `evals/eval_ragas.py` `run_langsmith_experiments()` | rag-quality 등록 (매 실행 실제 생성 후 채점) |
 | `evals/eval_lib.py` `_TRACE_META` | 트레이스에 붙는 `model`/`backend` 메타데이터 |

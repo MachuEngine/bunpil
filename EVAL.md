@@ -48,6 +48,20 @@
 | Faithfulness | 자체 구현(Ragas 알고리즘, LLM Judge) — `evals/eval_ragas.py` | ✅ 첫 측정 완료(n=5, 0.600) — Ragas 패키지는 의존성 충돌로 미사용, 8절 참고 |
 | Answer Relevancy | 자체 구현(Ragas 알고리즘, 임베딩 코사인 유사도) — `evals/eval_ragas.py` | ✅ 첫 측정 완료(n=5, 0.631) — 8절 참고 |
 
+### 출제 모듈 Agent Trajectory (`eval_trajectory.py`, 2026-08-03 신규)
+
+산출물이 아니라 **과정**을 본다 — 골든셋이 없고, 이미 LangSmith에 쌓인 트레이스를 집계한다.
+사람 라벨과 대조하는 게 아니라 실패 모드의 분포를 보는 것이라 **pass/fail 기준 없이 전부 참고값**.
+
+| 지표 | 방식 | 기준 |
+|---|---|---|
+| 도구 호출 오류율 / 거부율 / 빈결과율 | LangSmith `run_type="tool"` 집계 | 참고값 |
+| 재시도 원인 분류 (형식·절차 실패 vs Judge 판단 불일치) | `validate` 노드의 `validation_feedback` 문자열 분류 | 참고값 |
+| malformed tool-call 비율 | `agent_node`가 주입한 재작성 요청이 LLM 호출 입력에 등장한 비율 | 참고값 |
+| 궤적 형태 (세션당 agent 재진입 횟수, `submit_for_review` 도달률, validate 통과율) | 노드 run 집계 | 참고값 |
+
+상세 정의·첫 실행 결과·한계는 11절 참고.
+
 ## 2. 골든셋 현황
 
 | 골든셋 | 경로 | 규모 | 비고 |
@@ -68,7 +82,15 @@ python evals/eval_exam.py
 
 # 생기부 모듈 평가
 python evals/eval_record.py
+
+# 출제 모듈 Agent Trajectory (LangSmith 트레이스 집계 — 11절)
+python evals/eval_trajectory.py --since 2026-07-23
 ```
+
+> `eval_trajectory.py`는 모델을 호출하지 않고 LangSmith API만 읽는다(`LANGCHAIN_API_KEY` 필요).
+> 집계할 트레이스를 새로 만들려면 트레이싱을 켠 채로 출제 그래프를 한 번 돌려야 한다:
+> `CHROMA_PERSIST_DIR=./chroma_db python scripts/test_exam.py`
+> (`.env`에 `LANGCHAIN_TRACING_V2=true`가 이미 있다면 셸에서 다시 줄 필요 없음)
 
 Windows 콘솔에서 실행 시 `cp949` 인코딩 오류(`UnicodeEncodeError`)가 날 수 있음 — 실행 전 `chcp 65001` 또는 `set PYTHONIOENCODING=utf-8` 필요.
 
@@ -941,3 +963,105 @@ ret_003·008·022가 모두 rank1로 매칭되어서). 즉 검색 품질 자체�
    청킹 스킴이 바뀔 때마다 골든셋을 수작업으로 재보정할 필요가 줄어듦(별도 후속 과제).
 4. 청킹 개선을 숫자로 증명하려면 지금처럼 쉬운 골든셋 대신 **더 어려운 골든셋**을 만드는 게 맞는 방향(별개 작업).
 5. **프로덕션(EC2) ChromaDB 미반영** — 로컬만 재인덱싱. 실제 서빙 반영 시 컬렉션 drop & recreate 필요.
+
+---
+
+## 11. Agent Trajectory Eval (2026-08-03)
+
+### 배경
+
+기존 eval은 전부 **최종 산출물**을 채점한다 — 문항 품질(ITEM_GOLDEN), 구조 유사도
+(STRUCTURE_GOLDEN), 검색 Recall. 반면 "에이전트가 그 결과에 **어떻게 도달했는가**"
+(도구를 몇 번 잘못 불렀는지, 왜 재시도했는지)는 LangSmith UI에서 트레이스를 하나씩
+눈으로 펼쳐볼 수만 있었고 집계된 적이 없었다.
+
+`evals/eval_trajectory.py`는 이 갭을 메운다. **앱 코드(`graph.py`/`tools.py`)는 전혀
+건드리지 않고**, LangGraph가 이미 자동으로 남기는 노드/도구 run만 읽어서 집계한다.
+
+### 지표 정의
+
+**A. 도구 호출 신뢰도** (`run_type="tool"`) — 세 가지를 구분한다:
+
+| 구분 | 의미 |
+|---|---|
+| `error` | 예외 발생. `graph.py:239-243`이 잡아서 "인자 형식을 확인하고 다시 호출하세요"로 되돌리는 경로 |
+| `rejected` | 도구가 정상 실행됐지만 거부 응답을 반환(`저장 거부 —`, `점수 기록 거부 —`, `형식 오류 —` 등) |
+| `empty_result` | RAG 검색 결과 없음(`관련 규정 없음` 등) |
+
+> **`rejected`를 `error`와 분리하는 게 핵심.** `save_item`의 원문 복사 게이트나
+> `validate_item_format`의 형식 검증은 **가드레일이 의도대로 작동한 것**이지 실패가
+> 아니다. 둘을 한 숫자로 뭉치면 "도구 에러율 31%"처럼 잘못 읽힌다.
+
+**B. 재시도 원인 분류** — `validate` 노드의 `validation_feedback`을 두 축으로 나눈다.
+`graph.py:296-311`이 이미 6종 문구로 라벨링해 두었으므로 별도 라벨링이 필요 없다:
+
+| 분류 | 해당 feedback | 성격 |
+|---|---|---|
+| `format` | 문항 개수 불일치 / 품질 점수 미달·미채점 | 형식·절차 실패 |
+| `judgment` | 유형 비율 미달 / 난이도 불일치 / 종합 점수 미달 / 구조 유사도 미채점 | Judge 판단 불일치 |
+| `both` | 위 둘이 동시에 | — |
+| `unclassified` | 어느 문구에도 안 걸림 | **문자열 매칭이 깨졌다는 신호** |
+
+**C. 궤적 형태** — `plan` 노드는 요청당 1회만 실행되므로(`graph.py:48-56`) `plan` run 수가
+곧 세션 수다. `agent` 재진입 횟수 / 세션 수 = 평균 몇 바퀴 돌았는지(1.0이면 전원 첫 시도
+통과). `submit_for_review` 호출 수는 에이전트가 **자발적으로** 종료한 횟수(0이면 전부
+턴/budget 소진으로 강제 종료).
+
+### 첫 실행 결과 (2026-08-03, `bunpil-dev`, 최근 30일, run 1284건)
+
+| 항목 | 값 |
+|---|---|
+| 도구 호출 n | 591 |
+| 오류율 / 거부율 / 빈결과율 | 0.005 / **0.313** / 0.000 |
+| `record_score` | ok 41 / **rejected 116** |
+| `save_item` | ok 108 / rejected 39 / error 1 |
+| `validate_item_format` | ok 123 / rejected 26 |
+| 재시도 원인 (validate n=64) | format 44 / both 14 / judgment 4 / passed 2 |
+| malformed tool-call | **0건** |
+| 세션 수 / agent 재진입 | 34 / 64 (평균 1.88) |
+| `submit_for_review` 호출 | 0 |
+| validate 통과율 | 0.031 |
+
+### ⚠️ 이 수치는 신·구 아키텍처가 섞여 있음 (해석 주의)
+
+집계 결과에 **`similarity_judge` 도구 호출 30건**이 잡혔다. 이 도구는 2026-07-23
+"런타임 self-judge 폐기"(`bunpil_roadmap.md`)에서 **완전히 제거된 도구**다. 즉 최근 30일
+창에 그 리팩터 **이전** 로컬 실행분이 대량으로 포함돼 있다. `submit_for_review` 0건도
+같은 이유로 설명된다 — 그 도구는 리팩터로 새로 도입된 종료 신호라 옛날 실행엔 존재하지
+않았다.
+
+따라서 **위 표의 `validation_passed_rate 0.031`, `record_score` 거부율 74% 등은 현재
+아키텍처의 성능이 아니다.** 이 시점에 `--since 2026-07-23` 옵션을 추가했고, 신
+아키텍처만 놓고 재측정하는 것은 **미완**(아래 "남은 과제").
+
+### 그럼에도 관찰된 것
+
+- **`record_score` 거부율 74%(116/157)**: 이 도구는 존재하지 않는 `item_id`일 때만 거부한다
+  (`tools.py:281-282`). 즉 에이전트가 방금 `save_item`으로 받은 ID가 아닌 엉뚱한 ID로
+  점수를 기록하려 한 시도가 4건 중 3건꼴. `save_item` 성공 108건 대비 `record_score`
+  성공 41건으로 격차도 크다. 두 도구 다 리팩터 전후로 존재하므로 **아키텍처 버전과
+  무관하게 재현될 가능성이 있는 실제 후보 이슈**.
+- **malformed tool-call 0건**: `_looks_like_broken_tool_call`(`graph.py:41`) 재작성 요청이
+  한 번도 안 걸렸다. 2026-07-11에 qwen2.5:7b/14b 양쪽에서 재현되던 tool_call 형식 손상
+  문제(TROUBLESHOOTING.md)가 최근 실행분에서는 관측되지 않는다.
+
+### 한계 (결과 인용 시 반드시 함께 언급할 것)
+
+1. **프로덕션 관측이 아니다.** RunPod 크레딧 소진으로 실사용 트래픽이 없어, 집계 대상은
+   `LANGCHAIN_TRACING_V2=true`로 실행한 **로컬 eval/테스트 트레이스**다.
+   "production observability"가 아니라 **"eval 실행 트레이스 기반 실패 모드 분류"**가
+   정확한 표현.
+2. **문자열 매칭 의존.** `graph.py`/`tools.py`의 거부 메시지·feedback 문구가 바뀌면 집계가
+   조용히 어긋난다. 그래서 어디에도 안 걸린 항목을 `unclassified`로 따로 집계해 드러나게
+   했지만, 근본적으로 취약한 결합인 건 그대로다(앱에 구조화된 이벤트를 심는 게 정공법이나
+   "앱 코드 무변경" 원칙과 트레이드오프).
+3. **LangSmith 무료 플랜 한도.** 2026-08-03 기준 한도 소진으로 추가 조회 불가.
+
+### 남은 과제
+
+1. **`--since 2026-07-23`로 재측정** — 신 아키텍처(judge 노드 분리 이후)만 놓고 위 지표
+   전부 재산출. 한도 복구 또는 유료 전환 후 가능. 이때 `similarity_judge`가 안 잡히고
+   `submit_for_review`가 대신 나오는지로 필터가 제대로 걸렸는지 확인할 것.
+2. **`record_score` item_id 혼동 조사** — 재측정에서도 거부율이 높게 유지되면 프롬프트
+   개입 대상(`save_item` 응답이 이미 "다음 턴에 이 item_id로 record_score를 호출하세요"로
+   ID를 명시하는데도 틀린다면 컨텍스트 유지 문제일 수 있음).
