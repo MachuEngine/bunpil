@@ -295,9 +295,11 @@ def main() -> None:
     parser.add_argument(
         "--since", default=None,
         help=(
-            "이 날짜(YYYY-MM-DD, UTC) 이후만 조회 — --days 대신 특정 기준일부터 보고 싶을 때. "
-            "예: --since 2026-07-23 (런타임 self-judge 폐기 이후, 즉 similarity_judge 도구가 "
-            "제거되고 submit_for_review가 도입된 시점부터만 봄 — bunpil_roadmap.md 참고)"
+            "이 날짜(YYYY-MM-DD, **로컬 시간대** 자정) 이후만 조회 — --days 대신 특정 "
+            "기준일부터 보고 싶을 때. 예: --since 2026-07-23 (런타임 self-judge 폐기 이후, "
+            "즉 similarity_judge 도구가 제거되고 submit_for_review가 도입된 시점부터만 봄). "
+            "※ 2026-08-04 수정: 이전에는 UTC 자정으로 해석해, KST(UTC+9) 기준 '오늘' 실행한 "
+            "트레이스가 최대 9시간치 누락됐다(로컬 08-04 02:00 = UTC 08-03 17:00)."
         ),
     )
     parser.add_argument("--limit", type=int, default=2000, help="조회할 최대 run 수(안전장치)")
@@ -309,8 +311,13 @@ def main() -> None:
 
     project = args.project or os.environ.get("LANGCHAIN_PROJECT", "bunpil")
     if args.since:
-        start_time = datetime.strptime(args.since, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-        period_label = f"{args.since} 이후"
+        # 로컬 시간대 자정으로 해석한 뒤 **UTC로 변환**해서 넘긴다(2026-08-04 수정).
+        # ① UTC 자정으로 잡으면 KST(UTC+9)에서 --since <오늘>을 줬을 때 오늘 오전 9시
+        #    이전 트레이스가 통째로 빠진다 — "재측정 0건"으로 오판했던 원인.
+        # ② 오프셋이 붙은 채(+09:00)로 넘기면 API가 그 오프셋을 무시하는 것으로 보여
+        #    역시 조회가 빈다. 반드시 UTC로 정규화할 것.
+        start_time = datetime.strptime(args.since, "%Y-%m-%d").astimezone().astimezone(timezone.utc)
+        period_label = f"{args.since} 이후(로컬 시간)"
     else:
         start_time = datetime.now(timezone.utc) - timedelta(days=args.days)
         period_label = f"최근 {args.days}일"

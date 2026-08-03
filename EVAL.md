@@ -1127,17 +1127,87 @@ Failed to send compressed multipart ingest: LangSmithAuthError:
 **조회(`list_runs`)는 되는데 수집(ingest)만 401**이다 — 무료 플랜 한도 소진의 증상으로 보인다.
 따라서 "한도 복구 전까지 재측정 불가"는 추정이 아니라 **확인된 사실**이다.
 
+> ⚠️ **위 문단의 결론은 틀렸다 — 아래 "11.1 원인 정정" 참고.** 401의 원인은 한도가 아니라
+> `scripts/test_exam.py`에 `load_dotenv()`가 없어 API 키가 아예 로드되지 않았던 것이다.
+
 > 부수 확인: 이 실행에서 그래프는 정상이었으나 `validation_passed=False`였다
 > (`type_ratio_score` 0.5, `difficulty_match` False, `overall_score` 2). 트레이싱과 무관한
 > 별개 관찰이며 n=1이라 해석하지 않는다.
 
+---
+
+## 11.1 원인 정정 + 재측정 완료 (2026-08-04)
+
+**"LangSmith 한도 소진"은 오진이었다.** 실제 원인은 배선 버그 두 개였고, 고친 뒤
+재측정이 정상적으로 끝났다.
+
+### 원인 ① — `scripts/test_exam.py`에 `load_dotenv()`가 없었다
+
+이 스크립트는 `.env`를 전혀 읽지 않는다. 그래서 `LANGCHAIN_TRACING_V2=true`만 셸에서
+주고 실행하면 **`LANGCHAIN_API_KEY`가 세팅되지 않은 채** 트레이싱이 켜져 401이 났다.
+같은 키로 `list_runs`(조회)는 잘 됐던 이유는 `eval_trajectory.py`가 `load_dotenv()`를
+호출하기 때문이다 — "조회는 되는데 수집만 막힌다"는 관찰을 한도 문제로 잘못 읽었다.
+
+직접 확인: 키를 제대로 실은 뒤 ingest 엔드포인트에 최소 run을 POST하니 **202 Accepted
+`{"message":"Run created"}`** 가 돌아왔다. 한도는 애초에 걸려 있지 않았다.
+
+### 원인 ② — `init_langsmith_project()` 미호출 → 프로젝트 오라우팅
+
+`test_exam.py`를 포함해 트레이스를 만드는 스크립트 5개가 이 함수를 호출하지 않아
+`-dev`/`-prod` 자동 분기를 거치지 않았다. `.env`의 `LANGCHAIN_PROJECT=bunpil`이 그대로
+쓰여, 트레이스가 `bunpil-dev`가 아니라 맨 `bunpil`로 샐 수 있었다.
+
+### 원인 ③ — `--since`의 타임존 처리
+
+`--since`를 **UTC 자정**으로 해석하고 있었다. KST(UTC+9)에서 `--since <오늘>`을 주면
+오늘 오전 9시 이전 트레이스가 통째로 빠진다(로컬 08-04 02:00 = UTC 08-03 17:00).
+실제로 트레이스가 올라간 뒤에도 "0건"이 나와 한 번 더 오판할 뻔했다.
+추가로, 오프셋이 붙은 채(`+09:00`) 넘기면 API가 그 오프셋을 무시하는 것으로 보여
+**로컬 자정으로 해석한 뒤 UTC로 정규화**해야 한다.
+
+### 적용
+
+- `scripts/test_exam.py`: `load_dotenv()` + `init_langsmith_project()` 추가
+- `experiments/test_temperature_effect.py`·`test_retry_preservation.py`·
+  `compare_distractor_quality.py`·`eval_example_retrieval.py`: `init_langsmith_project()` 추가
+- `evals/eval_trajectory.py`: `--since`를 로컬 자정 → UTC 정규화로 수정
+
+### 재측정 결과 — 현재 아키텍처 (`--since 2026-08-04`, 세션 1건)
+
+| 항목 | 값 |
+|---|---|
+| 도구 호출 n | 18 |
+| 오류율 / 거부율 / 빈결과율 | **0.000** / 0.278 / 0.000 |
+| `record_score` | ok 2 / **rejected 3** |
+| `save_item` | ok 2 / rejected 2 |
+| `validate_item_format` | ok 3 / rejected 0 |
+| 재시도 원인 (validate n=3) | **judgment 3** (format 0) |
+| malformed tool-call | 0건 |
+| 세션 / agent 재진입 | 1 / 3 |
+| `submit_for_review` 호출 | **2** |
+| validate 통과율 | 0.0 |
+
+**11절의 오염된 수치와 달라진 점**:
+- `similarity_judge`·`search_regulations`가 **사라졌다** — 제거된 도구가 안 잡히므로
+  필터가 정상 동작함이 확인된다.
+- `submit_for_review`가 **처음으로 잡힌다**(11절에서는 0건) — 에이전트가 자발적으로
+  종료하는 경로가 실제로 작동한다.
+- 재시도 원인이 `format`(11절 44건 우세) → **`judgment` 전량**으로 바뀌었다. 개수·형식은
+  통과하고 Judge 점수만 미달한다는 뜻으로, 오답매력도 미달 이슈와 방향이 맞는다.
+- `record_score` 거부는 여전히 존재한다(2 ok / 3 rejected).
+
+> **표본이 세션 1건(n=18)이라 비율은 해석하지 말 것.** 이 측정의 의의는 "재측정 파이프라인이
+> 실제로 동작한다"와 "제거된 도구가 안 잡힌다"를 확인한 것이다.
+
+> **`--since 2026-07-23`은 여전히 오염된다**: 리팩터가 그날 **중에** 배포돼서, 당일 이른
+> 실행분(`similarity_judge` 16건)이 포함된다. 날짜 경계가 하루 단위라 같은 날 배포된
+> 변경은 분리할 수 없다 — 깨끗한 비교가 필요하면 배포 **다음 날**을 기준으로 줄 것.
+
 ### 남은 과제
 
-1. **`--since 2026-07-23`로 재측정** — 위 (1)(2) 때문에 **한도 복구가 선행 조건**이다.
-   복구되면 `scripts/test_exam.py`를 트레이싱 켜고 몇 회 돌려 트레이스를 먼저 쌓은 뒤
-   집계할 것. 이때 `similarity_judge`가 안 잡히고 `submit_for_review`가 대신 나오는지로
-   필터가 제대로 걸렸는지 확인할 것.
-2. **`record_score` item_id 혼동 조사** — 재측정에서도 거부율이 높게 유지되면 프롬프트
+1. **표본 확대** — 위는 세션 1건이다. `scripts/test_exam.py`를 여러 번 돌려 n을 늘린 뒤
+   비율을 해석할 것. 이제 배선이 고쳐졌으므로 그냥 실행만 하면 트레이스가 쌓인다.
+2. **`record_score` item_id 혼동 조사** — 표본을 늘려도 거부율이 높게 유지되면 프롬프트
    개입 대상(`save_item` 응답이 이미 "다음 턴에 이 item_id로 record_score를 호출하세요"로
    ID를 명시하는데도 틀린다면 컨텍스트 유지 문제일 수 있음).
 

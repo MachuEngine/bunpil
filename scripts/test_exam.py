@@ -9,8 +9,18 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# 2026-08-04 추가: 이 스크립트는 .env를 전혀 읽지 않아 LANGCHAIN_API_KEY가 세팅되지
+# 않았고, LANGCHAIN_TRACING_V2=true로 실행하면 트레이스 전송이 401로 거부됐다.
+# 또 init_langsmith_project()를 호출하지 않아 프로젝트 자동 분기(-dev/-prod)도
+# 안 걸려, 트레이스가 bunpil-dev가 아니라 맨 'bunpil'로 샐 수 있었다.
+from dotenv import load_dotenv
+load_dotenv()
+
 os.environ.setdefault("LLM_BACKEND", "local")
 os.environ.setdefault("OLLAMA_MODEL", "qwen2.5:14b")
+
+from app.common.llm.tracing import init_langsmith_project
+init_langsmith_project()
 
 from app.modules.exam import ExamSpec, get_exam_graph
 from app.modules.exam.tools import init_session

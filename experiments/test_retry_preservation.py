@@ -24,6 +24,11 @@ os.environ.setdefault("LLM_BACKEND", "local")
 os.environ.setdefault("OLLAMA_MODEL", "qwen2.5:7b")
 os.environ.setdefault("CHROMA_PERSIST_DIR", "./chroma_db")
 
+# 2026-08-04 추가: init_langsmith_project()를 호출하지 않아 트레이스가 프로젝트
+# 자동 분기(-dev/-prod)를 안 거치고 맨 'bunpil'로 샜다.
+from app.common.llm.tracing import init_langsmith_project
+init_langsmith_project()
+
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 
 from app.modules.exam import ExamSpec, get_exam_graph

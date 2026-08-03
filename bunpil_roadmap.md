@@ -8,7 +8,7 @@
 > 검증할 수도 없어 **출제 단일 모듈로 범위를 좁혔다.** 아래 생기부 관련 항목·열린 이슈는
 > 이력으로 보존하되 **더 이상 진행 대상이 아니다.**
 
-- ✅ 완료: 배포(현재 RunPod는 크레딧 소진으로 일시 비활성 — 아래 "남은 작업" 참고), LangSmith 트레이싱, 골든셋 구축, eval 스크립트 실데이터 전환, 출제 모듈 passage_text 리디자인, GitHub Actions 경량 CI, 생성 모델 7B→14B 승격, Judge 모델 gpt-5.6-luna 채택, 출제 성취기준 사용자 입력 제거(2026-07-21), README/DESIGN/MODEL_SELECTION 문서 갱신(2026-07-22), **런타임 self-judge 폐기 → 별도 judge 노드로 생성·Judge 모델 완전 분리(2026-07-23, 아래 상세)**, Agent Trajectory Eval 신규(2026-08-03, 아래 상세 — 재측정은 LangSmith 한도 소진으로 미완), 하이브리드 검색 도입 + 리랭커 조사(2026-08-03, BM25+dense RRF & `n_candidates` 20→10 — 전체 Recall@5 **1.000** 첫 달성, regulations MRR 0.667→0.753)
+- ✅ 완료: 배포(현재 RunPod는 크레딧 소진으로 일시 비활성 — 아래 "남은 작업" 참고), LangSmith 트레이싱, 골든셋 구축, eval 스크립트 실데이터 전환, 출제 모듈 passage_text 리디자인, GitHub Actions 경량 CI, 생성 모델 7B→14B 승격, Judge 모델 gpt-5.6-luna 채택, 출제 성취기준 사용자 입력 제거(2026-07-21), README/DESIGN/MODEL_SELECTION 문서 갱신(2026-07-22), **런타임 self-judge 폐기 → 별도 judge 노드로 생성·Judge 모델 완전 분리(2026-07-23, 아래 상세)**, Agent Trajectory Eval 신규(2026-08-03) + 재측정 완료(2026-08-04 — "한도 소진"은 오진, 실제로는 배선 버그 3건이었음. EVAL.md 11.1절), 하이브리드 검색 도입 + 리랭커 조사(2026-08-03, BM25+dense RRF & `n_candidates` 20→10 — 전체 Recall@5 **1.000** 첫 달성, regulations MRR 0.667→0.753)
 - 🔄 진행 중: 코드 리뷰(아래 "참고 — 코드 리뷰 대상 파일" 표는 예전 스냅샷 — 신뢰 금지, 진행 상황은 [CODE_REVIEW_CHECKLIST.md](./CODE_REVIEW_CHECKLIST.md)로 추적)
 - ⬜ 남은 작업: 성능 개선 미달 지표 3건 + 포트폴리오 정리 (아래 "남은 작업" 참고)
 
@@ -222,11 +222,11 @@ ablation도 함께 측정해 MODEL_SELECTION.md 4절의 "기여도 미측정" �
 
 ### 📌 현재 열린 항목 (2026-08-04 기준 정리)
 
-생기부 모듈 제거로 "교사 확인 대기" 항목 3건이 사라져, 남은 blocker는 **LangSmith 한도 하나**다.
+생기부 모듈 제거로 "교사 확인 대기" 항목 3건이 사라졌고, 마지막 blocker로 알던 LangSmith 한도도 2026-08-04에 **오진으로 판명**(실제로는 배선 버그)돼 해소됐다. 현재 외부 요인으로 막힌 항목은 RunPod 크레딧뿐이다.
 
 | # | 항목 | 상태 | 막힌 이유 / 다음 행동 |
 |---|---|---|---|
-| 1 | **Agent Trajectory 재측정** | 🔒 blocked | LangSmith 무료 한도 — **조회는 되는데 트레이스 수집(ingest)이 401**로 거부됨(2026-08-03 실측 확인). 한도 복구 후 `LANGCHAIN_TRACING_V2=true`로 `scripts/test_exam.py`를 몇 회 돌려 트레이스를 먼저 쌓고 `python evals/eval_trajectory.py --since 2026-07-23` 실행. 상세는 EVAL.md 11절 |
+| 1 | **Agent Trajectory 재측정** | ✅ 완료(2026-08-04) · ⬜ 표본 확대 남음 | **"LangSmith 한도 소진"은 오진이었다** — 실제 원인은 `test_exam.py`에 `load_dotenv()`가 없어 API 키가 안 실린 것(ingest 직접 호출 시 202 정상). 배선 3건(dotenv·`init_langsmith_project()`·`--since` 타임존)을 고치고 재측정 완료: 제거된 도구(`similarity_judge`)가 안 잡히고 `submit_for_review`가 처음 잡힘, 재시도 원인이 format→**judgment 전량**으로 바뀜. 다만 **세션 1건(n=18)이라 비율 해석 불가** — `scripts/test_exam.py`를 여러 번 돌려 표본만 늘리면 됨. 상세는 EVAL.md 11.1절 |
 | 2 | **오답매력도 2.846 / 목표 4.0** | ⬜ 미착수 | 기존 열린 이슈(아래 1번 항목). `agent_node` few-shot이 텍스트 지시문뿐이라 실효성이 약할 수 있음 — 진짜 멀티턴 tool-call 예시로 강화하거나 `validate_item_format`에 최소 기준 게이트 추가 검토 |
 | 3 | **코드 리뷰 전수 확인** | 🔄 진행 중 | 하단 "참고 — 코드 리뷰 대상 파일" 표는 예전 스냅샷이라 신뢰 금지. 체크리스트는 [CODE_REVIEW_CHECKLIST.md](./CODE_REVIEW_CHECKLIST.md)로 이전(2026-08-04, 경로 오류 6곳 정정 + 신규 파일 5개 반영). 2026-08-03에 `tools.py`·`retriever.py`·`chain.py`(삭제됨)를 실제로 훑으며 도구-코퍼스 불일치를 발견한 것이 부분 진행분 |
 | 4 | **더 어려운 검색 골든셋** | ⬜ 미착수 | `retrieval_golden_final.json` 22건은 Recall@5 **1.000**으로 천장 도달 — 이걸로는 추가 개선을 측정할 수 없다. 2026-08-03 신설한 `regulations_retrieval_candidates.json` 10건은 **0.500**이라 아직 여유가 있으니, 우선 이 10건을 정식 골든셋에 편입하는 것부터 검토 |

@@ -25,6 +25,11 @@ load_dotenv()
 
 os.environ.setdefault("CHROMA_PERSIST_DIR", "./chroma_db")
 
+# 2026-08-04 추가: init_langsmith_project()를 호출하지 않아 트레이스가 프로젝트
+# 자동 분기(-dev/-prod)를 안 거치고 맨 'bunpil'로 샜다.
+from app.common.llm.tracing import init_langsmith_project
+init_langsmith_project()
+
 from eval_lib import _load_retrieval_golden, eval_retrieval
 from app.common.rag import BGEEmbedder, BGEReranker, RAGRetriever, RAGStore
 
