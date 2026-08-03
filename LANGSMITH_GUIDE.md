@@ -3,12 +3,7 @@
 > 이 프로젝트에서 LangSmith를 언제·어떻게 켜고, 웹 UI에서 뭘 봐야 하는지 정리한 실전 가이드.
 > 설계 이유(dev/prod 분리 등)는 코드 주석에 이미 있으므로, 여기서는 "화면 어디를 보면 되는가"에 집중한다.
 
-## 1. 가장 먼저 알아야 할 것 — 모듈별로 트레이싱 여부가 다름
-
-**생기부 모듈은 절대 트레이싱 안 됨.** `record/chain.py`가 쓰는 `OllamaBackend`/`OpenAIBackend`/
-`RunPodBackend`(`app/common/llm/backends/`)는 LangChain `Runnable`이 아닌 순수 Python 클래스라
-`LANGCHAIN_TRACING_V2` 값과 무관하게 애초에 LangSmith 콜백에 안 걸린다 — 구조적으로 안전.
-하드룰 3(사용자 입력 비저장)이 생기부에는 예외 없이 적용된다.
+## 1. 가장 먼저 알아야 할 것 — 트레이싱은 옵트인
 
 **출제 모듈은 2026-07-24부터 프로덕션에서도 트레이싱 가능.** `passage_text`·생성 문항은
 실존 인물 정보가 아니고 PII 마스킹(하드룰 2)도 LLM 호출 전에 이미 거치므로, 관측성 확보를

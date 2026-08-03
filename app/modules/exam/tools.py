@@ -123,8 +123,12 @@ context (dict)
 # 길수록 언어 오염 확률이 오른다는 것은 이 프로젝트에서 이미 정량 확인된 문제다.
 #
 # 교육과정 내용은 `search_standards`(standards 컬렉션 = 사회과 교육과정)가 이미
-# 담당하므로 이 도구는 중복이자 오염원이었다. `regulations` 컬렉션 자체는 생기부
-# 모듈(`record/chain.py`)이 계속 쓰므로 그대로 둔다.
+# 담당하므로 이 도구는 중복이자 오염원이었다.
+#
+# 2026-08-03 생기부 모듈 제거 후: `regulations` 컬렉션은 이제 런타임에서 아무도 쓰지
+# 않고 **검색 eval 전용**으로만 남는다(`retrieval_golden_final.json` 22건 중 10건이
+# regulations 항목이라, 지우면 Recall@5 히스토리가 n=22→12로 끊긴다). 인덱싱 스크립트
+# (`scripts/index_regulations.py`)와 코퍼스도 그 이유로 유지한다.
 
 @tool
 def search_standards(query: str) -> str:

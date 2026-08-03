@@ -10,10 +10,7 @@ logger = logging.getLogger(__name__)
 from dotenv import load_dotenv
 load_dotenv()
 
-# 사용자 입력 비저장 하드룰(CLAUDE.md 3번): 생기부 메모는 예외 없이 트레이싱 차단된다 —
-# record/chain.py가 쓰는 OllamaBackend/OpenAIBackend/RunPodBackend(app/common/llm/backends/)는
-# LangChain Runnable이 아닌 순수 클래스라 LANGCHAIN_TRACING_V2 값과 무관하게 애초에 LangSmith
-# 콜백에 걸리지 않는다 — 구조적으로 안전, 별도 차단 로직 불필요.
+# 사용자 입력 비저장 하드룰(CLAUDE.md 3번):
 # 출제 모듈은 2026-07-24부터 하드룰 3의 예외: passage_text·생성 문항은 실존 인물 정보가
 # 아니고 PII 마스킹(하드룰 2)도 LLM 호출 전에 이미 거치므로, .env의 LANGCHAIN_TRACING_V2를
 # 그대로 존중해 프로덕션에서도 관측성을 확보한다(agent_node의 ChatOllama/ChatRunPod,
@@ -23,12 +20,11 @@ init_langsmith_project()
 
 from fastapi import Depends, FastAPI, Form, Header, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
-from pydantic import BaseModel, Field
+
 
 app = FastAPI(title="분필 API", version="0.1.0")
 
 MAX_REQUEST_BYTES = 64 * 1024
-MAX_MEMO_LENGTH = 4000
 _REQUEST_SLOTS = asyncio.Semaphore(2)
 
 
@@ -277,17 +273,3 @@ async def exam(
         result = await _run_exam(spec)
     return {"truncated": truncated, "pii_found": pii_found, **result}
 
-
-# ── 생기부 윤문 ──────────────────────────────────────────────────────────
-
-class RecordRequest(BaseModel):
-    memo: str = Field(min_length=1, max_length=MAX_MEMO_LENGTH)
-
-
-@app.post("/record")
-async def record(req: RecordRequest, _: None = Depends(verify_api_key)):
-    from app.modules.record import get_record_chain
-    chain = get_record_chain()
-    async with request_slot():
-        result = await chain.run(req.memo)
-    return result

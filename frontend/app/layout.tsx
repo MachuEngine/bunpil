@@ -8,8 +8,8 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "분필 — 사회 교사 AI 어시스턴트",
-  description: "출제 및 생기부 윤문을 돕는 AI 어시스턴트",
+  title: "분필 — 사회 교사 문항 출제 어시스턴트",
+  description: "예시 문제를 붙여넣으면 유사한 구성의 새 문항 세트를 만들어 주는 AI 어시스턴트",
 };
 
 export default function RootLayout({

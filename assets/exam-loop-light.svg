@@ -17,8 +17,7 @@
   <text x="215" y="58" font-size="13" font-weight="700" fill="#78716C">🔁 문항마다 반복</text>
 
   <rect x="215" y="123" width="180" height="54" rx="12" fill="#FFFBEB" stroke="#F1DFA8"/>
-  <text x="305" y="145" text-anchor="middle" font-size="12.5" fill="#3F3411">🔍 search_standards</text>
-  <text x="305" y="163" text-anchor="middle" font-size="12.5" fill="#3F3411">search_regulations</text>
+  <text x="305" y="155" text-anchor="middle" font-size="12.5" fill="#3F3411">🔍 search_standards</text>
   <line x1="395" y1="150" x2="407" y2="150" stroke="#D8CB93" stroke-width="1.5" marker-end="url(#a)"/>
 
   <rect x="410" y="123" width="190" height="54" rx="12" fill="#F7F7F5" stroke="#E4E2DC"/>

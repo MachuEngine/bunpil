@@ -1,6 +1,10 @@
 # 분필(Bunpil) 평가(Eval) 문서
 
-`evals/eval_exam.py`, `evals/eval_record.py`가 측정하는 지표, 골든셋 현황, 실행 방법, 결과 이력을 모아둔 참고 문서.
+`evals/eval_exam.py`가 측정하는 지표, 골든셋 현황, 실행 방법, 결과 이력을 모아둔 참고 문서.
+
+> **2026-08-03 생기부 모듈 제거**: `evals/eval_record.py`와 VIOLATION/HALLUCINATION 골든셋도 함께
+> 삭제됐다(사유는 14절). **아래 4·5절의 과거 회차 기록은 지우지 않고 그대로 둔다** — 그 시점의
+> 의사결정 이력이기 때문. 현재 측정 대상이 아님에 유의.
 모델 교체·프롬프트 튜닝 등 평가에 영향을 주는 변경이 있을 때마다 [결과 이력](#4-결과-이력)에 행을 추가한다.
 
 > **2026-07-12부터**: 문항 품질 Judge·구조 유사도 Judge·RAG 품질(Faithfulness/Answer
@@ -31,15 +35,15 @@
 >
 > **2026-07-09 count_match 개념 폐기**: "생성 개수가 예시 문제 개수와 일치해야 한다"는 전제 자체가 틀렸음이 발견됨 — 실제로는 개수가 예시와 무관하게 `ExamSpec.num_items`(명시 없으면 기본 5)로 별도 지정된다. count_match는 이제 LLM Judge/사람 라벨 대상이 아니라 `validate_node`가 `len(draft_items)==num_items`로 직접 계산한다. `STRUCTURE_GOLDEN`의 `human_label`·`eval_structure_judge()`·`similarity_judge` 도구 시그니처에서 count_match 전면 제거(자세한 내용은 `data/golden/structure_golden.json`의 `_schema.count_match_deprecated`, `bunpil_roadmap.md` 참고).
 
-### 생기부 모듈 (`eval_record.py`)
+### 입력 PII 마스킹 (`tests/test_masker.py`)
 
 | 지표 | 방식 | 기준 |
 |---|---|---|
 | PII 마스킹 FN율 | 함수 | = 0 |
-| 사실 추가율 (키워드) | 함수 | = 0 |
-| 사실 추가율 (NLI Judge) | LLM Judge | = 0 |
-| 규정 위반 Recall | 함수 | ≥ 0.95 |
-| regulations RAG 검색 Recall@5 / MRR | 함수 (2026-07-17 신규) | 참고값 (n=10, 통과 기준 없음) |
+
+생기부 모듈 제거 후에도 `mask_pii()`는 출제 경로가 쓴다(`app/main.py` `_build_spec()` —
+`passage_text`를 모델에 넘기기 전 마스킹, 하드룰 2). `eval_record.py`가 채점하던
+MASKING_GOLDEN 20건을 유닛테스트가 그대로 강제하도록 옮겼다.
 
 ### 출제 모듈 RAG 품질 (`eval_ragas.py`)
 
@@ -68,9 +72,9 @@
 |---|---|---|---|
 | retrieval_golden | `data/golden/retrieval_golden_final.json` | 22개 (reviewed 22개, 2026-07-24 확인 — 이전 문서엔 21개로 기록돼 있었으나 실제 파일은 전량 검수 완료 상태) | 실데이터 기반, 사람 검수. 2026.07 past_exams 참조 8개 제거(30→22) |
 | STRUCTURE_GOLDEN | `data/golden/structure_golden.json` | 14개 (라벨링 대기) | count_match 폐기·num_items 도입으로 Claude 부트스트랩 전량 폐기, 실제 qwen2.5:7b 출력으로 전면 재생성(정확히 일치 5·부족 8·초과 1) — human_label 라벨링 대기 |
-| MASKING_GOLDEN | `data/golden/masking_golden.json` | 20개 | 합성. 2026-07-09 `evals/eval_record.py` 하드코딩에서 외부화 |
-| VIOLATION_GOLDEN | `data/golden/violation_golden.json` | 50개 | 위반 25 + 정상 25. 2026-07-09 `evals/eval_record.py` 하드코딩에서 외부화 |
-| HALLUCINATION_GOLDEN | `data/golden/hallucination_golden.json` | 20개 | 합성. 2026-07-09 `evals/eval_record.py` 하드코딩에서 외부화 |
+| MASKING_GOLDEN | `data/golden/masking_golden.json` | 20개 | 합성. 생기부 모듈 제거 후 `tests/test_masker.py`가 채점(출제 경로가 `mask_pii`를 계속 사용) |
+| ~~VIOLATION_GOLDEN~~ | — | — | **2026-08-03 삭제** (생기부 모듈과 함께, 14절) |
+| ~~HALLUCINATION_GOLDEN~~ | — | — | **2026-08-03 삭제** (생기부 모듈과 함께, 14절) |
 | ITEM_GOLDEN | `data/golden/item_golden.json` | 30개 | human_score 1~5점 분포. 2026-07-09 `evals/eval_exam.py` 하드코딩에서 외부화 |
 | example_question_retrieval_test | `data/golden/example_question_retrieval_test.json` | 8개 (reviewed 0개) | 주제어가 아닌 "실제 문제 문장" 스타일 query — standards 컬렉션과의 문체 격차 검증용, 라벨링 대기 |
 
@@ -79,9 +83,6 @@
 ```bash
 # 출제 모듈 평가
 python evals/eval_exam.py
-
-# 생기부 모듈 평가
-python evals/eval_record.py
 
 # 출제 모듈 Agent Trajectory (LangSmith 트레이스 집계 — 11절)
 python evals/eval_trajectory.py --since 2026-07-23
@@ -1462,3 +1463,35 @@ Recall 0.927에 기여했으므로 "쓸모없다"가 아니라 **"쉬운 사례�
 **착수 조건**: 지인 교사 확인으로 (a) 종교·외모 등이 실제 현장 규범인지, (b) 교과 주제로서의
 언급이 기재 가능한지가 정해지면 → 오탐 14건을 골든셋에 편입 → 키워드 규칙 제거 여부를
 50+17건 합산으로 재측정해 결정.
+
+### 결말 — 생기부 모듈 제거 (2026-08-03, 사용자 결정)
+
+위 "착수 조건"을 기다리는 대신 **모듈 자체를 걷어내기로 했다.**
+
+정리하면 이 모듈의 상태는 이랬다:
+
+1. **검증 규칙 6종 중 규정 근거가 확인된 것은 1개**(`_RULE_BACKGROUND` ← 기재요령 p24).
+   나머지 5종은 인덱싱된 교육부 문서에 조항이 아예 없다.
+2. **그 1개조차 오작동한다** — "가정환경에 따른 교육 격차 보고서"(정상)를 잡고
+   "아버지가 대기업 임원이라…"(위반)를 놓친다.
+3. **판정 정확도**: 적대적 17건에서 키워드 0.000 / LLM 0.82~0.88.
+4. **하드룰 1 때문에 실제 데이터로 검증할 수 없다** — 합성 메모로만 테스트했고 실 현장
+   적용은 한 적이 없다.
+5. **정답을 정해줄 도메인 근거가 없다** — 교사 확인 없이는 골든셋 라벨조차 확정 불가.
+
+검증할 수 없는 기능을 포트폴리오에 남기는 것보다 걷어내는 쪽이 정직하다고 판단해
+출제 단일 모듈로 범위를 좁혔다.
+
+**제거 대상**: `app/modules/record/`, `evals/eval_record.py`, `scripts/test_record.py`,
+`tests/test_record_chain_*.py`, VIOLATION/HALLUCINATION 골든셋(+후보 17건),
+`/record` 엔드포인트, 프론트 `RecordTab`, 생기부 체인 다이어그램.
+
+**유지 대상**:
+- `app/common/privacy.py`(`mask_pii`) — 출제 경로가 쓴다(`_build_spec`이 `passage_text`를
+  모델 호출 전 마스킹). MASKING_GOLDEN 20건은 `tests/test_masker.py`가 이어받아 채점한다.
+- `regulations` 컬렉션·코퍼스·인덱싱 스크립트 — 런타임에서는 더 이상 조회하지 않지만
+  `retrieval_golden_final.json` 22건 중 10건이 이 컬렉션이라, 지우면 Recall@5 히스토리가
+  n=22→12로 끊긴다. **검색 eval 전용**으로 남긴다.
+
+> 위 4·5절과 결과 이력의 생기부 수치(위반 Recall 0.927 등)는 **그대로 보존**한다 — 당시
+> 의사결정 기록이고, 그 수치가 왜 신뢰할 수 없었는지가 이 절의 요지다.

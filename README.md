@@ -2,7 +2,7 @@
 
 # 분필 (bunpil)
 
-**고등학교 사회 교사를 위한 AI 어시스턴트 — 문항 출제 · 생활기록부 윤문**
+**고등학교 사회 교사를 위한 AI 문항 출제 어시스턴트**
 
 ![Skills](https://skillicons.dev/icons?i=python,fastapi,typescript,nextjs,tailwind,docker,react,aws)
 
@@ -23,19 +23,39 @@
 
 ## 한눈에 보기
 
-교사의 반복 업무 중 가장 시간이 많이 드는 두 가지 — **시험 문항 출제**와 **학교생활기록부 문구 작성** — 를 소형 오픈소스 LLM(Qwen2.5-14B)으로 보조하는 서비스입니다. 포트폴리오 프로젝트로, 지인 교사 1인이 검증에 참여했습니다 — 단 모듈별 실사용 범위는 다릅니다: **출제 모듈**은 학생 개인정보가 애초에 개입하지 않는 구조라 실제 수업에 사용 중이지만, **생기부 윤문 모듈**은 실제 학생 정보가 입력될 수 있는 기능이라 하드룰 1(실제 학생 데이터 미사용)에 따라 합성 관찰 메모로만 테스트했고 실 현장 적용은 하지 않았습니다.
+교사의 반복 업무 중 시간이 가장 많이 드는 **시험 문항 출제**를 소형 오픈소스 LLM(Qwen2.5-14B)으로 보조하는 서비스입니다. 예시 문제를 붙여넣으면 유형·난이도 구성이 유사한 새 문항 세트를 만들어 줍니다. 포트폴리오 프로젝트로, 지인 교사 1인이 실제 수업에 사용 중입니다 — 학생 개인정보가 애초에 개입하지 않는 구조라 실사용이 가능했습니다.
+
+<details>
+<summary><b>생기부 윤문 모듈을 왜 걷어냈는가 (2026-08-03, 펼치기)</b></summary>
+
+원래 이 프로젝트는 **출제**와 **생기부 윤문** 두 모듈이었습니다. 생기부 모듈은 관찰 메모를 받아 PII를 마스킹하고 문체를 다듬은 뒤 기재 규정 위반을 검증하는 체인이었고, 규정 위반 Recall 0.927 / F1 0.962라는 수치도 있었습니다.
+
+**그 수치의 근거를 추적하다 걷어냈습니다.** 검증 규칙(종교·정치성향, 외모, 추측 등 키워드 6종)이 어느 조항에서 나왔는지 확인하려고 교육부 기재요령 PDF **원문 262,678자를 전수 검색**했더니 `종교`·`신앙`·`외모`·`용모`·`추측`이 **한 번도 나오지 않았습니다**. 규칙의 실제 출처는 규정이 아니라 합성 골든셋의 라벨이었고, 그 골든셋으로 채점해 0.927이 나온 순환 구조였습니다.
+
+더 결정적인 건 오작동 방향이었습니다 — 사회과가 가르치는 주제어를 그대로 막고 있었습니다:
+
+| 결과 | 문장 |
+|---|---|
+| 🚫 차단 | 사회 수업에서 **정치적** 다원주의 개념을 조사해 발표함 |
+| 🚫 차단 | **가정환경**에 따른 교육 격차를 주제로 보고서를 작성함 |
+| ✅ 통과 | 아버지가 대기업 임원이라 경제에 관심이 많음 ← **기재요령 p24 위반** |
+
+잡아야 할 건 놓치고 놓아줘야 할 건 잡았습니다. 하드룰 1(실제 학생 데이터 미사용) 때문에 합성 데이터로만 검증할 수 있어 실 현장 적용도 못 한 상태였고, 규칙의 옳고 그름을 판정해 줄 도메인 근거도 없었습니다. **검증할 수 없는 기능을 포트폴리오에 남기는 것보다 걷어내는 쪽이 정직하다고 판단**했습니다.
+
+조사·측정 기록은 [EVAL.md](./EVAL.md) 14절에 남아 있고, 코드는 git 이력에 있습니다. PII 마스킹(`app/common/privacy.py`)은 출제 경로가 계속 사용하므로 골든셋 20건과 함께 유지됩니다.
+
+</details>
 <img width="1173" height="562" alt="image" src="https://github.com/user-attachments/assets/e82129c1-e4f2-4e49-8cf9-cb3a8c7aebcd" />
 
-| 모듈 | 입력 | 처리 | 출력 |
-|---|---|---|---|
-| 📝 **문항 출제** | 예시 문제 텍스트 붙여넣기 | LangGraph ReAct 에이전트가 교육과정·규정 RAG를 참조하며 생성 → **별도 Judge**가 구조 유사도 채점 → 코드가 통과 판정 → 미달 시 부족분만 이어서 재시도 | 지정 개수의 새 문항 세트 (예시와 유사한 유형·난이도 구성) |
-| ✍️ **생기부 윤문** | 교사 관찰 메모 | PII 마스킹(모델 호출 **전**) → 생기부 문체 교정 → 규정 위반 검증 | 교정된 문장 + 경고 플래그 + 교사 책임 고지 |
+| 입력 | 처리 | 출력 |
+|---|---|---|
+| 예시 문제 텍스트 붙여넣기 | PII 마스킹(모델 호출 **전**) → LangGraph ReAct 에이전트가 성취기준 RAG를 참조하며 생성 → **별도 Judge**가 구조 유사도 채점 → 코드가 통과 판정 → 미달 시 부족분만 이어서 재시도 | 지정 개수의 새 문항 세트 (예시와 유사한 유형·난이도 구성) |
 
 ### 시스템 구성도
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./assets/architecture-dark.svg">
-  <img src="./assets/architecture-light.svg" alt="분필 시스템 구성도 — 브라우저에서 FastAPI를 거쳐 출제 그래프(LangGraph)와 생기부 체인(수동 루프)으로 분기하고, 두 모듈이 ChromaDB·생성 LLM(Qwen2.5-14B)을 공유하며 judge 노드만 별도 Judge LLM(gpt-5.6-luna)을 사용하는 구조도">
+  <img src="./assets/architecture-light.svg" alt="분필 시스템 구성도 — 브라우저에서 FastAPI를 거쳐 출제 그래프(LangGraph)로 이어지고, ChromaDB·생성 LLM(Qwen2.5-14B)을 사용하며 judge 노드만 별도 Judge LLM(gpt-5.6-luna)을 사용하는 구조도">
 </picture>
 
 > 🎯로 표시한 **Judge LLM은 생성 LLM과 완전히 다른 백엔드**입니다 — 문항을 쓰는 모델이 자기 글을 자기가 채점하지 않도록 의도적으로 분리했습니다(배경은 [아키텍처](#아키텍처) 참고).
@@ -45,21 +65,20 @@
 | 영역 | 상태 |
 |---|---|
 | 출제 모듈 (ReAct Agent, RAG, 자기교정 게이트) | ✅ 완료 |
-| 생기부 모듈 (마스킹 → 윤문 → 검증 체인) | ✅ 완료 |
 | **생성 모델 ↔ Judge 모델 완전 분리** (2026-07-23) | ✅ 완료 |
 | RAG (ChromaDB + BM25 하이브리드 + BGE-M3 + BGE-reranker) | ✅ 완료 |
-| 평가 체계 (사람 라벨 골든셋 6종 + LangSmith Experiments) | ✅ 완료 |
+| 평가 체계 (사람 라벨 골든셋 + LangSmith Experiments) | ✅ 완료 |
 | 궤적 평가 (트레이스 집계 — 도구 실패 분포·재시도 원인) | ✅ 스크립트 완료 · 🔄 신 아키텍처 재측정은 LangSmith 한도 소진으로 미완 |
 | CI (GitHub Actions 경량 파이프라인) | ✅ 완료 |
 | 배포 구성 (EC2 + RunPod 서버리스 + Caddy HTTPS) | ✅ 구성 완료 · ⏸️ RunPod는 현재 크레딧 소진으로 일시 중단 |
-| 오답매력도 목표치(3.40/4.0) | ⬜ 미달(원인 분석 완료, [품질 평가](#품질-평가) 참고) — 2026-07-24 재측정으로 나머지(문항품질 종합·Judge 신뢰도·생기부 규정위반 Recall)는 전부 목표 달성 확인 |
+| 오답매력도 목표치(3.40/4.0) | ⬜ 미달(원인 분석 완료, [품질 평가](#품질-평가) 참고) — 2026-07-24 재측정으로 나머지(문항품질 종합·Judge 신뢰도)는 전부 목표 달성 확인 |
 | 코드 리뷰 전수 확인 | 🔄 진행 중 |
 
 프로젝트의 특징 세 가지:
 
 - **로컬 ↔ 프로덕션 전환 가능한 LLM 추상화** — 개발은 Ollama(로컬), 프로덕션은 RunPod 서버리스(vLLM). 환경변수 하나로 전환
 - **"LLM이 판단하고, 코드가 결정한다"** — 품질·유사도 판단은 LLM에게, 통과/재시도/개수/언어 검증은 결정론적 코드에 ([설계 원칙](#설계-원칙))
-- **평가 기반 개발** — 사람이 라벨링한 골든셋 6종으로 검색·생성·마스킹 품질을 수치로 추적 ([EVAL.md](./EVAL.md), LangSmith Experiments 연동은 [LANGSMITH_GUIDE.md](./LANGSMITH_GUIDE.md)), 삽질은 [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)에 기록
+- **평가 기반 개발** — 사람이 라벨링한 골든셋으로 검색·생성·마스킹 품질을 수치로 추적 ([EVAL.md](./EVAL.md), LangSmith Experiments 연동은 [LANGSMITH_GUIDE.md](./LANGSMITH_GUIDE.md)), 삽질은 [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)에 기록
 
 ---
 
@@ -70,11 +89,10 @@
 | 백엔드 | FastAPI (비동기) |
 | 프론트엔드 | Next.js (`frontend/`) |
 | 에이전트 | LangGraph (ReAct) |
-| 생기부 체인 | LangChain (수동 루프) |
 | RAG | ChromaDB + BGE-M3 임베딩 + **BM25 하이브리드(RRF 융합)** + BGE-reranker (모두 CPU) |
 | 생성 LLM 서빙 | Ollama (개발) / RunPod 서버리스 vLLM (프로덕션) |
 | Judge LLM | OpenAI gpt-5.6-luna(기본) / Ollama(대안) — 생성 백엔드와 독립 |
-| 트레이싱 | LangSmith — 출제 모듈은 2026-07-24부터 PII 마스킹 후 프로덕션 API 서버에도 옵트인 트레이싱 허용(하드룰 3 예외). 생기부 모듈은 LangChain 미사용으로 구조적으로 트레이싱 불가 |
+| 트레이싱 | LangSmith — 2026-07-24부터 PII 마스킹 후 프로덕션 API 서버에도 옵트인 트레이싱 허용(하드룰 3 예외) |
 | 배포 | AWS EC2 t3.medium + EBS + RunPod 서버리스 + Caddy HTTPS |
 
 ### 출제 모듈 — ReAct 에이전트 + 분리된 Judge
@@ -94,7 +112,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./assets/exam-loop-dark.svg">
-  <img src="./assets/exam-loop-light.svg" alt="문항 생성 루프 — search_standards/search_regulations로 검색 후 validate_item_format 통과 시 save_item, record_score까지 반복하고 submit_for_review로 judge 노드에 넘기는 흐름도">
+  <img src="./assets/exam-loop-light.svg" alt="문항 생성 루프 — search_standards로 성취기준을 검색한 뒤 validate_item_format 통과 시 save_item, record_score까지 반복하고 submit_for_review로 judge 노드에 넘기는 흐름도">
 </picture>
 
 세트 전체는 LangGraph 그래프가 관리합니다. `agent`가 `submit_for_review`로 제출하면 `judge` 노드가 **생성 모델과 완전히 분리된 Judge 백엔드**(`get_judge_backend()`)로 구조 유사도를 채점하고, `validate` 노드가 코드로 판정(문항 개수 일치 + Judge 결과 threshold)합니다. 미달 시 최대 5회까지 `agent`로 재시도합니다 — 이때 **이미 만든 문항은 유지하고 부족분만 이어서 작성**합니다(부분 진행 보존).
@@ -115,20 +133,14 @@
 
 </details>
 
-### 생기부 모듈 — 3단계 체인
+### 입력 PII 마스킹
 
-순서가 고정된 파이프라인입니다. **PII 마스킹이 반드시 모델 호출보다 앞**에 있어, 원문 개인정보가 LLM에 도달하지 않습니다.
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./assets/record-chain-dark.svg">
-  <img src="./assets/record-chain-light.svg" alt="생기부 3단계 체인 — 교사 관찰 메모가 mask_pii, polish, validate를 순서대로 거쳐 안전 출력 또는 출력 보류로 끝나는 흐름도">
-</picture>
+교사가 붙여넣은 예시 문제에 학생 이름·연락처가 섞여 들어올 수 있어, **모델 호출보다 먼저** 마스킹합니다(`app/main.py` `_build_spec()`). 마스킹된 텍스트만 에이전트·Judge·LangSmith로 흘러갑니다 — 그래서 프로덕션 트레이싱을 켤 수 있었습니다(하드룰 3 예외).
 
 ### API와 스트리밍
 
 - **`POST /exam/stream`** (SSE) — UI가 사용하는 기본 경로. `graph.stream(stream_mode="updates")`로 LangGraph 노드 완료 시점마다 진행 이벤트를 전송합니다. POST 요청이라 브라우저 네이티브 `EventSource`(GET 전용) 대신 프론트엔드가 `fetch` + `ReadableStream`을 수동 파싱합니다.
 - **`POST /exam`** (JSON 단발) — 동일 로직의 대안 엔드포인트 (curl 등 비-브라우저 클라이언트용)
-- **`POST /record`** (JSON 단발) — 생기부 윤문
 - **`GET /health`** — 헬스체크 (인증 불필요)
 
 ```
@@ -146,7 +158,7 @@ data: {"status": "error",     "msg": "요청을 처리하지 못했습니다."} 
 <summary><b>동시성 설계 (펼치기)</b></summary>
 
 - **요청 간 세션 격리**: 출제 요청별 컨텍스트를 `contextvars.ContextVar`로 분리. `asyncio.to_thread` + `contextvars.copy_context()`로 worker 스레드에 전파.
-- **이벤트 루프 비블로킹**: `/exam`은 `asyncio.to_thread`로 LangGraph 실행. `/exam/stream`은 `graph.stream()`(동기 제너레이터)을 executor 스레드에서 돌리며 `asyncio.Queue`로 이벤트만 이벤트 루프에 전달. `/record`는 Chain 전체가 async이므로 `await chain.run()`으로 직접 호출.
+- **이벤트 루프 비블로킹**: `/exam`은 `asyncio.to_thread`로 LangGraph 실행. `/exam/stream`은 `graph.stream()`(동기 제너레이터)을 executor 스레드에서 돌리며 `asyncio.Queue`로 이벤트만 이벤트 루프에 전달.
 - **동시 요청 제한**: `asyncio.Semaphore(2)`로 전역 동시 처리 슬롯을 2개로 제한(GPU 백엔드 과부하 방지). 슬롯 획득 실패(0.05초 타임아웃) 시 429 반환.
 
 </details>
@@ -187,7 +199,7 @@ LLM의 자기 평가는 "기록"까지만 — 그것으로 무엇을 할지는 �
 ReAct 도구 내부에 LLM 호출이 없습니다. 구조 유사도 채점은 그래프의 별도 `judge` 노드가 담당하며, 여기서만 생성 모델과 다른 LLM 백엔드를 호출합니다(왜 분리했는지는 [아키텍처](#출제-모듈--react-에이전트--분리된-judge) 참고).
 
 **3. 보안 하드룰 (예외 없음).**
-실제 학생 데이터 미사용(전부 합성/익명) · PII 마스킹은 모델 호출 **이전** · 사용자 입력(메모·예시 문제) 비저장(요청 처리 중에만 메모리에 존재) · API 런타임 트레이싱 비활성화 · 로그·캐시에 PII 금지 · Next.js→FastAPI 서버 간 API 키 인증 · 생기부는 메모에 없는 사실 추가 금지("생성"이 아닌 "다듬기") + 안전 검증 실패 시 출력 보류 + 교사 책임 고지.
+실제 학생 데이터 미사용(전부 합성/익명) · PII 마스킹은 모델 호출 **이전** · 사용자 입력(예시 문제) 비저장(요청 처리 중에만 메모리에 존재) · 로그·캐시에 PII 금지 · Next.js→FastAPI 서버 간 API 키 인증.
 
 > **출력 보류는 하드룰에 걸리는 것만**(2026-08-03): PII 생성·잔존, 메모에 없는 사실 추가, 검증 시스템 실패. 규정 위반 판정(종교·정치·외모·가정환경 등 키워드 규칙과 LLM 판정)은 **경고로 강등**해 결과는 그대로 주고 교사가 판단합니다 — 키워드가 "학생 본인의 속성"과 "학생이 탐구한 주제"를 구분하지 못해 *"사회 수업에서 정치적 다원주의 개념을 조사해 발표함"* 같은 사회 교과 문장을 대량 오탐한 반면, 정작 규정이 금지하는 *"아버지가 대기업 임원이라…"* 는 놓쳤기 때문입니다([EVAL.md](./EVAL.md) 14절).
 
@@ -236,18 +248,13 @@ ReAct 도구 내부에 LLM 호출이 없습니다. 구조 유사도 채점은 �
 - 문항 품질·Judge 신뢰도가 이번에 나란히 첫 목표 달성 — Judge를 gpt-5.6-luna로 교체한 효과가 큼. 다만 세부 항목인 **오답매력도는 여전히 3.40**으로 목표(4.0) 미달(종합평균 4.06 안에서 근거성 4.50·정답유일성 4.27이 끌어올린 결과, EVAL.md 6절 참고)
 - 구조 유사도 Judge의 "overall 이진 κ ≥ 0.4" 게이트는 **2026-07-24 폐기 결정** — 몇 달간 0.000~0.178을 벗어나지 못했고, 이미 계산 중인 difficulty_match 일치율·overall MAE로 충분하다고 판단(계산 자체를 코드에서 제거, EVAL.md 1·6절)
 
-### 생기부 모듈 — `evals/eval_record.py`
+### 입력 PII 마스킹 — `tests/test_masker.py`
 
 | 지표 | n | 기준 | 실측 |
 |---|---|---|---|
-| PII 마스킹 FN율 | 20 | = 0 | **0.000** ✅ |
-| 키워드 사실추가율 | 20 | = 0 | **0.000** ✅ |
-| NLI 사실추가율 | 20 | = 0 | **0.000** ✅ |
-| 규정 위반 Recall | 50 | ≥ 0.95 | **1.000** ✅ |
-| 규정 위반 F1 | 50 | 참고값 | 0.962 |
-| regulations RAG Recall@5 / MRR | 10 | 참고값 | 0.900 / 0.667 |
+| PII 마스킹 누락률(FN) | 20 | = 0 | **0.000** ✅ |
 
-- PII 마스킹·키워드 검사는 규칙 기반이라 모델 크기와 무관하게 안정적
+- 규칙 기반이라 모델 크기와 무관하게 안정적. 골든셋 20건(PII 10 + 정상 10)을 유닛테스트가 직접 강제합니다
 - NLI 사실추가율·규정 위반 Recall 둘 다 이번 측정에서 목표 달성. 다만 **이번엔 단일 실행 결과**(과거엔 3회 반복 평균으로 확인 — 규정 위반 Recall 과거 3회 평균은 0.927) — 상한 노이즈일 가능성이 있어 낙관적으로 해석하지 않는 게 안전함(EVAL.md 5절 참고)
 
 ### 궤적 평가 — `evals/eval_trajectory.py` (2026-08-03 신규)
@@ -273,7 +280,7 @@ LangGraph가 자동으로 남기는 노드/도구 run만 읽음).
 | 레이어 | 스크립트 | 목적 | 실행 시점 |
 |---|---|---|---|
 | 기능 검증 | `test_*.py` | 파이프라인이 에러 없이 동작하는가 | 개발 중 수시 |
-| 품질 평가 | `eval_exam.py` / `eval_record.py` / `eval_ragas.py` | 얼마나 잘 하는가 (수치 지표) | 모델·프롬프트 변경 시 |
+| 품질 평가 | `eval_exam.py` / `eval_ragas.py` | 얼마나 잘 하는가 (수치 지표) | 모델·프롬프트 변경 시 |
 | 궤적 평가 | `eval_trajectory.py` | 그 결과에 어떻게 도달했는가 (실패 모드 분포) | 에이전트 구조 변경 시 |
 
 | 테스트 | 항목 | 결과 |
@@ -283,9 +290,6 @@ LangGraph가 자동으로 남기는 노드/도구 run만 읽음).
 | `test_llm.py` | Ollama 응답 수신 | ✅ |
 | `test_llm.py` | local → RunPod 백엔드 전환 | ✅ |
 | `test_exam.py` | passage_text → 에이전트 세트 생성 → judge 노드 채점 흐름 (그래프 무크래시, 도구 오류 자기수정) | ✅ |
-| `test_record.py` | PII 마스킹 4케이스 (전화번호·주민번호·학교명·이메일) | ✅ |
-| `test_record.py` | 관찰 메모 → 생기부 문체 교정 | ✅ |
-| `test_record.py` | 교사 책임 고지 출력 | ✅ |
 
 </details>
 
@@ -374,7 +378,7 @@ ollama pull qwen2.5:14b
 
 ```bash
 # data/ 경로에 PDF를 넣은 뒤 아래 순서대로 실행
-.venv/bin/python scripts/index_regulations.py   # 생기부 기재요령·훈령
+.venv/bin/python scripts/index_regulations.py   # 생기부 기재요령·훈령 (검색 eval 전용)
 .venv/bin/python scripts/index_standards.py     # 사회과 교육과정 성취기준
 ```
 
@@ -504,7 +508,7 @@ bash deploy/billing_alarm.sh   # 월 $10 초과 시 이메일 알람
 
 | 컬렉션 | 경로 | 출처 | 용도 |
 |---|---|---|---|
-| `regulations` | `data/regulations/` | 학교생활기록부 종합지원포털 | 생기부 규정 위반 검증 + 출제 시 교육과정 법령 참조 |
+| `regulations` | `data/regulations/` | 학교생활기록부 종합지원포털 | **검색 eval 전용** — 생기부 모듈 제거(2026-08-03) 후 런타임에서는 조회하지 않으나, `retrieval_golden_final.json` 22건 중 10건이 이 컬렉션이라 Recall@5 히스토리 연속성을 위해 유지 |
 | `standards` | `data/standards/` | 국가교육과정정보센터(NCIC) | 출제 시 성취기준 원문 검색 (`search_standards` 도구) |
 
 > `past_exams` 컬렉션(수능·모평 기출)은 리디자인으로 완전히 제거됨 — `check_duplicate` 폐기, 2028 수능 개편으로 과목별 구조 자체가 무의미해짐.
@@ -519,15 +523,14 @@ bunpil/
 │   │   └── rag/          # PDF 파싱, 임베딩, 리랭킹, ChromaDB
 │   ├── modules/
 │   │   ├── exam/         # 출제 모듈 — graph.py(LangGraph) / tools.py(도구 7개) / judge.py(Judge 채점 함수)
-│   │   └── record/       # 생기부 모듈 (수동 루프 Chain)
-│   └── main.py           # FastAPI (/exam/stream · /exam · /record · /health)
+│   └── main.py           # FastAPI (/exam/stream · /exam · /health)
 ├── frontend/             # Next.js UI
 ├── data/
-│   ├── regulations/      # 생기부 기재요령, 작성·관리지침
+│   ├── regulations/      # 생기부 기재요령·훈령 (검색 eval 전용 — 런타임 미사용)
 │   ├── standards/        # 사회과 교육과정 PDF
 │   └── golden/           # 골든셋 JSON — 정기 평가용 6종 + 실험 아카이브
 │                         # (파일별 용도·라벨 필드는 data/golden/README.md 참고)
-├── evals/                # 정기 품질 평가 — eval_exam.py / eval_record.py / eval_ragas.py (+ 공용 eval_lib.py)
+├── evals/                # 정기 품질 평가 — eval_exam.py / eval_ragas.py (+ 공용 eval_lib.py)
 │                         # eval_trajectory.py는 산출물이 아닌 과정(궤적) 집계 — LangSmith 트레이스만 읽음
 ├── golden_gen/           # 골든셋 생성 도구 — gen_structure_golden.py / gen_golden_retrieval.py
 ├── experiments/          # 일회성 실험·비교 기록 (compare_*.py 등, 결과는 data/golden/_*.json에 아카이브)
@@ -561,6 +564,6 @@ bunpil/
 | `CHROMA_PERSIST_DIR` | ChromaDB 저장 경로 | `/data/chroma_db` (EC2) / `./chroma_db` (로컬) |
 | `BGE_EMBED_MODEL` | 임베딩 모델명 | `BAAI/bge-m3` |
 | `BGE_RERANK_MODEL` | 리랭킹 모델명 | `BAAI/bge-reranker-base` |
-| `LANGCHAIN_TRACING_V2` | LangSmith 트레이싱 (`true` / `false`). 출제 모듈은 2026-07-24부터 프로덕션 API 서버에도 적용됨(PII 마스킹 후, 하드룰 3 예외). 생기부 모듈은 이 값과 무관하게 트레이싱 안 됨(구조적으로 LangChain 미사용) | `false` |
+| `LANGCHAIN_TRACING_V2` | LangSmith 트레이싱 (`true` / `false`). 2026-07-24부터 프로덕션 API 서버에도 적용됨(PII 마스킹 후, 하드룰 3 예외) | `false` |
 | `LANGCHAIN_API_KEY` | LangSmith API 키 | — (선택) |
 | `LANGCHAIN_PROJECT` | LangSmith 프로젝트 베이스명 — 기본값('bunpil') 유지 시 `LLM_BACKEND`에 따라 `-dev`(local, 순수 로컬 개발) 또는 `-prod`(runpod/openai 등 실제 서빙 백엔드) 접미사가 자동으로 붙음(`app/common/llm/tracing.py`). 로컬 개발 노이즈가 프로덕션 통계를 오염시키지 않도록 분리. 'bunpil'이 아닌 값을 직접 설정하면 그대로 override | `bunpil` → `bunpil-dev` / `bunpil-prod` |
