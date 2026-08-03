@@ -138,12 +138,11 @@ def _build_system_prompt(
         f"{action_instruction}\n"
         "1. [가능하면] search_standards — 문항 주제에 맞는 성취기준을 검색해 확인하세요. "
         "관련 자료가 없다고 나오면 성취기준 없이 진행하세요\n"
-        "2. [선택] search_regulations — 교육과정 준수 사항 확인\n"
-        "3. validate_item_format — 직접 구성한 문항의 형식 검증\n"
+        "2. validate_item_format — 직접 구성한 문항의 형식 검증\n"
         "   (오류가 있으면 수정 후 재검증, 통과할 때까지 반복)\n"
-        "4. save_item — 검증 통과한 문항 저장\n"
-        "5. save_item 응답을 받은 다음 턴에 record_score — 반환된 item_id와 품질 점수(0~5점) 기록\n"
-        "6. [교체 시] discard_item — 기존 문항을 폐기한 뒤 새 문항 저장\n\n"
+        "3. save_item — 검증 통과한 문항 저장\n"
+        "4. save_item 응답을 받은 다음 턴에 record_score — 반환된 item_id와 품질 점수(0~5점) 기록\n"
+        "5. [교체 시] discard_item — 기존 문항을 폐기한 뒤 새 문항 저장\n\n"
         "문항 세트 작성이 모두 끝나면 submit_for_review 도구를 호출해 제출하세요. "
         "(구조 유사도 평가·문항 개수 검증은 이 도구가 아니라 시스템이 자동으로 수행합니다.)\n\n"
         "문항은 당신이 직접 작성합니다. "
@@ -184,7 +183,6 @@ def agent_node(state: ExamState) -> dict:
     # @tool 데코레이션이 붙은 함수는 그냥 함수가 아닌 tool 객체임.
     # tool 객체는 .name 등의 속성을 가지고 있음
     # tool_map = {
-    #   "search_regulations": search_regulations,
     #   "search_standards": search_standards,
     #   "validate_item_format": validate_item_format,
     #   "save_item": save_item,

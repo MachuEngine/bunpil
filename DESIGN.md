@@ -44,7 +44,6 @@
 | 도구 | 역할 | 구현 |
 |---|---|---|
 | 성취기준 검색 | `search_standards` — 성취기준 원문 검색 | ChromaDB + Rerank |
-| 법령 검색 | `search_regulations` — 교육과정 준수 사항 검색 | ChromaDB + Rerank |
 | 형식 검증 | `validate_item_format` — 문항 형식 자기교정 | 함수 |
 | 저장 | `save_item` — 검증 통과 문항 저장 | 함수 |
 | 폐기 | `discard_item` — 승인 불가 문항을 ID로 제거 | 함수 |

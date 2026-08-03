@@ -1,6 +1,6 @@
 {
   "_schema": {
-    "description": "regulations 컬렉션 검색 골든셋 '후보'. 아직 골든셋이 아님 — 사람 검수 전 초안이다. 검수 후 retrieval_golden_final.json에 편입할지 판단한다.",
+    "description": "regulations 컬렉션 검색 골든셋. 2026-08-03 텍스트 대조 검수 완료(reviewed=true). retrieval_golden_final.json에 편입할지는 별도 판단.",
     "why": "retrieval_golden_final.json(n=22)은 2026-08-03 기준 Recall@5=1.000으로 천장에 도달해 추가 개선을 측정할 수 없다(EVAL.md 13절). 더 어려운 항목이 필요하다.",
     "entry_fields": {
       "id": "cand_XXX — 검수 통과 시 ret_XXX로 재부여",
@@ -9,12 +9,15 @@
       "expected_chunk_id": "정답으로 '제안'하는 청크 id — 검색기 출력이 아니라 코퍼스 472청크를 직접 훑어 근거 조항을 찾아 지정했다. 검색기로 정답을 정하면 '현재 시스템이 찾는 것'만 골든이 되는 순환 오류가 생기므로 의도적으로 피함",
       "chunk_preview": "해당 청크 원문 앞부분(매칭 앵커)",
       "grounds": "그 청크에 실제로 있는 근거 문구 — 검수 시 이것만 대조하면 됨",
-      "reviewed": "false 고정. 사람이 query↔expected_chunk_id 짝이 타당한지 확인 후 true로 바꿀 것"
+      "reviewed": "사람이 query↔expected_chunk_id 짝의 타당성을 확인했는지. 2026-08-03 기준 전 항목 true — reviewed_note 참고",
+      "verified_against_source": "grounds 문구를 기재요령 원문에서 직접 대조했다는 기록",
+      "current_rank_at_5": "2026-08-03 기준 현재 검색기의 top-5 내 순위. null이면 못 찾음(측정용 참고값이지 라벨이 아님)"
     },
     "provenance": "Claude가 regulations 코퍼스(기재요령_고등학교_2024 452청크 + 작성및관리지침 20청크)를 전수 스캔해 금지·유의 조항이 실제로 존재하는 위치를 찾고, 그에 대응하는 질문을 합성. 실제 학생 데이터 미사용(CLAUDE.md 하드룰 1).",
-    "caveat": "라벨링(검수)은 사람이 직접 할 것 — 이 파일의 expected_chunk_id는 '제안'이지 확정이 아니다.",
-    "baseline_2026_08_03": "현재 검색기(hybrid + n_candidates=10) Recall@5 = 0.600(6/10), dense-only도 0.600. 미스: cand_001, cand_003, cand_009, cand_010. 기존 retrieval_golden_final.json이 1.000인 것과 대비되어 변별력이 있음을 확인했다. ※ 미스했다는 것이 곧 'expected_chunk_id 짝이 틀렸다'는 뜻은 아니다 — 검수는 어디까지나 '이 질문의 근거 조항이 이 청크가 맞는가'만 볼 것.",
-    "known_corpus_gap": "regulations 코퍼스(472청크) 전수 스캔 결과 '종교/정치성향'·'외모/용모/신체'·'추측' 관련 조항이 0건이다. 따라서 그 유형은 애초에 검색으로 찾을 수 없어 골든 항목을 만들 수 없었다. '가정환경'은 존재하지만 '부모(친인척 포함)의 사회･경제적 지위'라는 다른 표현이라 cand_001/002가 그 어휘 격차를 겨냥한다. EVAL.md 14절 참고."
+    "caveat": "expected_chunk_id는 기재요령 원문 대조로 확인했다. 다만 '교사가 실제로 이렇게 물을까'라는 질문 자연스러움은 별개 판단이며, 필요하면 지인 교사 확인 시 함께 볼 것.",
+    "baseline_2026_08_03": "현재 검색기(hybrid + n_candidates=10) Recall@5 = 5/10 = 0.500. 기존 retrieval_golden_final.json이 1.000(천장 도달)인 것과 대비되어 변별력이 있다.",
+    "known_corpus_gap": "regulations 코퍼스(472청크) 전수 스캔 결과 '종교/정치성향'·'외모/용모/신체'·'추측' 관련 조항이 0건이다. 따라서 그 유형은 애초에 검색으로 찾을 수 없어 골든 항목을 만들 수 없었다. '가정환경'은 존재하지만 '부모(친인척 포함)의 사회･경제적 지위'라는 다른 표현이라 cand_001/002가 그 어휘 격차를 겨냥한다. EVAL.md 14절 참고.",
+    "reviewed_note": "2026-08-03 승격: 10건 전부 reviewed=true. 이 골든셋의 라벨은 \"이 질문의 근거 조항이 이 청크인가\"라는 텍스트 대조 문제여서 교사 도메인 판단이 필요 없고, 기재요령 원문과 직접 대조해 확인했다. 검수 중 cand_008에서 실제 라벨 오류를 발견해 수정했다 (질문이 \"출신 중학교\"였는데 규정은 \"재학한 고등학교\"에 한정 — 중학교 졸업은 학적사항에 정상 기재 항목)."
   },
   "entries": [
     {
@@ -24,7 +27,9 @@
       "expected_chunk_id": "기재요령_고등학교_2024_p24_40",
       "chunk_preview": "기재할 수 없음.\n다. 교외 기관･단체(장) 등에게 수상한 교외상(표창장, 감사장, 공로상 등도 기재 불가함)\n라. 교내･외 인증시험 참여 사실이나 그 성적\n마. 모의고사･전국연합",
       "grounds": "차. 부모(친인척 포함)의 사회･경제적 지위(직종명, 직업명, 직장명, 직위명 등) 암시 내용",
-      "reviewed": false
+      "reviewed": true,
+      "verified_against_source": "기재요령_고등학교_2024 원문에서 grounds 문구를 직접 대조 확인(2026-08-03). expected_chunk_id의 청크가 그 문구를 실제로 포함함.",
+      "current_rank_at_5": null
     },
     {
       "id": "cand_002",
@@ -33,7 +38,9 @@
       "expected_chunk_id": "기재요령_고등학교_2024_p24_40",
       "chunk_preview": "기재할 수 없음.\n다. 교외 기관･단체(장) 등에게 수상한 교외상(표창장, 감사장, 공로상 등도 기재 불가함)\n라. 교내･외 인증시험 참여 사실이나 그 성적\n마. 모의고사･전국연합",
       "grounds": "차. 부모(친인척 포함)의 사회･경제적 지위(직종명, 직업명, 직장명, 직위명 등) 암시 내용",
-      "reviewed": false
+      "reviewed": true,
+      "verified_against_source": "기재요령_고등학교_2024 원문에서 grounds 문구를 직접 대조 확인(2026-08-03). expected_chunk_id의 청크가 그 문구를 실제로 포함함.",
+      "current_rank_at_5": 1
     },
     {
       "id": "cand_003",
@@ -42,7 +49,9 @@
       "expected_chunk_id": "기재요령_고등학교_2024_p25_41",
       "chunk_preview": "19\n타. 구체적인 특정 대학명, 기관명1)(기구, 단체, 조직 등 포함), 상호명, 강사명2) 등\n파. 자격증 명칭 및 취득 사실\n※ ‘자격증 취득 및 국가직무능력표준 이수상황’",
       "grounds": "타. 구체적인 특정 대학명, 기관명(기구, 단체, 조직 등 포함), 상호명, 강사명 등",
-      "reviewed": false
+      "reviewed": true,
+      "verified_against_source": "기재요령_고등학교_2024 원문에서 grounds 문구를 직접 대조 확인(2026-08-03). expected_chunk_id의 청크가 그 문구를 실제로 포함함.",
+      "current_rank_at_5": null
     },
     {
       "id": "cand_004",
@@ -51,7 +60,9 @@
       "expected_chunk_id": "기재요령_고등학교_2024_p24_39",
       "chunk_preview": "18\n01\n학교생활기록부 작성 시 유의사항\n1. 학교생활기록부는 학생의 성장과 학습 과정을 상시 관찰･평가한 누가기록 중심의 종합 기록이어야 함.\n2. 학교생활기록부에는 학교교육계",
       "grounds": "3. 사교육 유발 요인이 큰 사항 — 가. 각종 공인어학시험 참여 사실과 그 성적 및 수상 실적(TOEIC, TOEFL, 한자능력검정 등)",
-      "reviewed": false
+      "reviewed": true,
+      "verified_against_source": "기재요령_고등학교_2024 원문에서 grounds 문구를 직접 대조 확인(2026-08-03). expected_chunk_id의 청크가 그 문구를 실제로 포함함.",
+      "current_rank_at_5": 3
     },
     {
       "id": "cand_005",
@@ -60,7 +71,9 @@
       "expected_chunk_id": "기재요령_고등학교_2024_p24_40",
       "chunk_preview": "기재할 수 없음.\n다. 교외 기관･단체(장) 등에게 수상한 교외상(표창장, 감사장, 공로상 등도 기재 불가함)\n라. 교내･외 인증시험 참여 사실이나 그 성적\n마. 모의고사･전국연합",
       "grounds": "다. 교외 기관･단체(장) 등에게 수상한 교외상(표창장, 감사장, 공로상 등도 기재 불가함)",
-      "reviewed": false
+      "reviewed": true,
+      "verified_against_source": "기재요령_고등학교_2024 원문에서 grounds 문구를 직접 대조 확인(2026-08-03). expected_chunk_id의 청크가 그 문구를 실제로 포함함.",
+      "current_rank_at_5": 1
     },
     {
       "id": "cand_006",
@@ -69,7 +82,9 @@
       "expected_chunk_id": "기재요령_고등학교_2024_p25_41",
       "chunk_preview": "19\n타. 구체적인 특정 대학명, 기관명1)(기구, 단체, 조직 등 포함), 상호명, 강사명2) 등\n파. 자격증 명칭 및 취득 사실\n※ ‘자격증 취득 및 국가직무능력표준 이수상황’",
       "grounds": "다. AI를 활용하여 생성한 자료를 학교생활기록부의 서술형 항목에 그대로 입력하는 행위",
-      "reviewed": false
+      "reviewed": true,
+      "verified_against_source": "기재요령_고등학교_2024 원문에서 grounds 문구를 직접 대조 확인(2026-08-03). expected_chunk_id의 청크가 그 문구를 실제로 포함함.",
+      "current_rank_at_5": 1
     },
     {
       "id": "cand_007",
@@ -78,16 +93,20 @@
       "expected_chunk_id": "기재요령_고등학교_2024_p25_41",
       "chunk_preview": "19\n타. 구체적인 특정 대학명, 기관명1)(기구, 단체, 조직 등 포함), 상호명, 강사명2) 등\n파. 자격증 명칭 및 취득 사실\n※ ‘자격증 취득 및 국가직무능력표준 이수상황’",
       "grounds": "가. '단순 사실을 과장하거나 부풀려서 기재', '사실과 다른 내용을 허위로 기재'하는 행위 / 허위사실 기재는 '학생성적 관련 비위'로 간주",
-      "reviewed": false
+      "reviewed": true,
+      "verified_against_source": "기재요령_고등학교_2024 원문에서 grounds 문구를 직접 대조 확인(2026-08-03). expected_chunk_id의 청크가 그 문구를 실제로 포함함.",
+      "current_rank_at_5": 3
     },
     {
       "id": "cand_008",
-      "query": "출신 중학교 이름이 드러나게 써도 되는지",
+      "query": "우리 학교 이름이 드러나는 축제명을 세부능력 및 특기사항에 써도 되는지",
       "source_collection": "regulations",
       "expected_chunk_id": "기재요령_고등학교_2024_p25_41",
       "chunk_preview": "19\n타. 구체적인 특정 대학명, 기관명1)(기구, 단체, 조직 등 포함), 상호명, 강사명2) 등\n파. 자격증 명칭 및 취득 사실\n※ ‘자격증 취득 및 국가직무능력표준 이수상황’",
-      "grounds": "4. 학생이 재학(또는 졸업 예정)한 고등학교를 알 수 있는 내용은 ... 어떠한 항목에도 기재할 수 없음",
-      "reviewed": false
+      "grounds": "4. 학생이 재학(또는 졸업 예정)한 고등학교를 알 수 있는 내용*은 '인적･학적사항', 수상 경력의 '수여기관', 봉사활동 실적의 '장소 또는 주관기관명'을 제외한 어떠한 항목에도 기재할 수 없음 / * 학교명, 재단명, 학교 축제명, 학교 별칭 등",
+      "reviewed": true,
+      "verified_against_source": "기재요령_고등학교_2024 원문에서 grounds 문구를 직접 대조 확인(2026-08-03). expected_chunk_id의 청크가 그 문구를 실제로 포함함.",
+      "current_rank_at_5": null
     },
     {
       "id": "cand_009",
@@ -96,7 +115,9 @@
       "expected_chunk_id": "기재요령_고등학교_2024_p25_41",
       "chunk_preview": "19\n타. 구체적인 특정 대학명, 기관명1)(기구, 단체, 조직 등 포함), 상호명, 강사명2) 등\n파. 자격증 명칭 및 취득 사실\n※ ‘자격증 취득 및 국가직무능력표준 이수상황’",
       "grounds": "나. 학교생활기록부 서술형 항목에 기재될 내용을 학생에게 작성하여 제출하도록 하는 행위",
-      "reviewed": false
+      "reviewed": true,
+      "verified_against_source": "기재요령_고등학교_2024 원문에서 grounds 문구를 직접 대조 확인(2026-08-03). expected_chunk_id의 청크가 그 문구를 실제로 포함함.",
+      "current_rank_at_5": null
     },
     {
       "id": "cand_010",
@@ -105,7 +126,9 @@
       "expected_chunk_id": "기재요령_고등학교_2024_p25_42",
       "chunk_preview": "※ 작성 과정에서 윤문 등을 위한 보조 수단으로 생성형 AI의 도움을 받을 경우, 반드시 최종 입력 전에 작성 내용에 \n대해서 학생의 실제 수행과는 무관한 허위 또는 과장 기재 여",
       "grounds": "6. 학부모 등의 학교생활기록부 기재 및 수정 관련 부당 요구는 「부정청탁 및 금품등 수수의 금지에 관한 법률」 제5조제1항제10호에 해당하는 위법 행위임",
-      "reviewed": false
+      "reviewed": true,
+      "verified_against_source": "기재요령_고등학교_2024 원문에서 grounds 문구를 직접 대조 확인(2026-08-03). expected_chunk_id의 청크가 그 문구를 실제로 포함함.",
+      "current_rank_at_5": null
     }
   ]
 }

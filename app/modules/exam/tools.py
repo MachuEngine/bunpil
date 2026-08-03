@@ -105,25 +105,26 @@ context (dict)
 # 모든 도구는 LLM 호출 없이 순수 계산/검색/저장만 수행한다.
 # 추론과 생성은 에이전트(LLM)가 직접 담당한다.
 
-@tool
-def search_regulations(query: str) -> str:
-    """교육과정 법령·지침에서 관련 내용을 검색합니다. query: 검색 키워드"""
-    count = get_store().count("regulations") # regulations 컬렉션의 청크 개수를 반환 
-    if count == 0:
-        logger.warning("regulations 컬렉션이 비어있습니다.")
-        return "교육과정 자료 없음"
-    results = get_retriever().retrieve(query, "regulations", top_k=3)
-    if not results:
-        return "관련 규정 없음"
-    return "\n\n".join(f"[{i+1}] {r['text'][:300]}" for i, r in enumerate(results))
-"""
-(return 되는 f-string 포맷 예시)
-    "[1] 2022 개정 교육과정 총론에 따르면 사회과 평가는...
-     [2] 성취기준 서술 시 유의사항은 다음과 같다...
-     [3] 문항 출제 시 특정 종교·정치적 견해를...
-     ..."
-위와 같은 문자열 전체가 LLM에게 도구 실행 결과로 전달 됨.
-"""
+# 2026-08-03: `search_regulations` 도구 제거.
+#
+# 이 도구는 "교육과정 법령·지침에서 검색합니다"라고 선언하고 `regulations` 컬렉션을
+# 조회했는데, 그 컬렉션에 실제로 들어있는 것은 **생기부 문서 둘뿐**이다
+# (`기재요령_고등학교_2024` 452청크 + `학교생활기록_작성_및_관리지침` 20청크).
+# 즉 선언과 내용물이 어긋나 있었다. 실측하면 이런 것이 돌아왔다:
+#
+#   질의 "사회 문항 출제 시 유의사항"
+#     → "기재할 수 없음. 다. 교외 기관･단체(장) 등에게 수상한 교외상(표창장…)"
+#   질의 "민주주의 문항 교육과정 준수"
+#     → "「공직선거법」에 따라 투표에 참가하는 경우 출석 인정 범위는…"
+#
+# 문항 출제에 쓸모없는 생기부 수상경력·출결 규정이다. `retrieve()`는 결과가 있으면
+# 무조건 반환하므로 "관련 없음"이 아니라 **무관한 텍스트가 컨텍스트에 주입**됐다
+# (궤적 eval에서 이 도구 호출 28건이 전부 ok로 집계됨 — EVAL.md 11절). 컨텍스트가
+# 길수록 언어 오염 확률이 오른다는 것은 이 프로젝트에서 이미 정량 확인된 문제다.
+#
+# 교육과정 내용은 `search_standards`(standards 컬렉션 = 사회과 교육과정)가 이미
+# 담당하므로 이 도구는 중복이자 오염원이었다. `regulations` 컬렉션 자체는 생기부
+# 모듈(`record/chain.py`)이 계속 쓰므로 그대로 둔다.
 
 @tool
 def search_standards(query: str) -> str:
@@ -310,7 +311,6 @@ def submit_for_review() -> str:
 
 
 TOOLS = [
-    search_regulations,
     search_standards,
     validate_item_format,
     save_item,
