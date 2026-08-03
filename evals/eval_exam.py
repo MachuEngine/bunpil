@@ -44,9 +44,8 @@ from eval_lib import (
     eval_judge_reliability,
     eval_retrieval,
     eval_structure_judge,
-    judge_one,
-    judge_structure_one,
     score_items,
+    score_structure,
 )
 
 
@@ -99,9 +98,19 @@ def print_report(retrieval: dict, quality: dict, structure: dict, reliability: d
 
 # ── LangSmith Experiments 연동 ────────────────────────────────────────
 
-def run_langsmith_experiments(judge_llm) -> None:
+def run_langsmith_experiments(scored_items: list[dict], scored_structure: list[dict]) -> None:
     """문항 품질·구조 유사도 Judge 신뢰도를 LangSmith Experiments에 기록한다.
-    LANGCHAIN_TRACING_V2가 꺼져 있으면 조용히 건너뜀(선택 기능)."""
+    LANGCHAIN_TRACING_V2가 꺼져 있으면 조용히 건너뜀(선택 기능).
+
+    2026-08-04: **이미 채점된 결과를 받아 조회만 한다**(judge_llm 인자 제거).
+    이전에는 evaluator 안에서 judge_one()/judge_structure_one()을 다시 호출해,
+    main()이 리포트용으로 이미 채점한 것과 정확히 같은 골든셋·같은 judge를 두 번씩
+    돌렸다(ITEM_GOLDEN 30 + STRUCTURE_GOLDEN 45 = 실행당 75회 중복 LLM 호출 +
+    그만큼의 불필요한 trace). 골든셋은 고정된 입력이므로 재채점할 이유가 없다.
+
+    참고: eval_ragas.py의 동명 함수는 재호출이 **의도된 것**이다 — 거기서는 고정
+    골든을 채점하는 게 아니라 매 실행마다 문항을 새로 생성하기 때문(그 파일 docstring 참고).
+    """
     from langsmith_experiments import experiments_enabled, identity_target, sync_dataset
     if not experiments_enabled():
         return
@@ -126,8 +135,11 @@ def run_langsmith_experiments(judge_llm) -> None:
         description="문항 품질(정답유일성·오답매력도·근거성) LLM Judge 신뢰도 — item_golden.json과 동기화됨",
     )
 
+    # question은 ITEM_GOLDEN 안에서 유일(30/30 확인) — 재채점 없이 조회 키로 쓴다.
+    scores_by_question = {s["item"]["question"]: s["scores"] for s in scored_items}
+
     def item_quality_evaluator(inputs: dict, reference_outputs: dict) -> list[dict]:
-        scores = judge_one(inputs, judge_llm)
+        scores = scores_by_question[inputs["question"]]
         human = reference_outputs.get("human_score", 0)
         llm_score = round(scores["overall"])
         return [
@@ -143,22 +155,27 @@ def run_langsmith_experiments(judge_llm) -> None:
     )
     print("  - item-quality-judge 실험 기록 완료")
 
-    structure_golden = _load_structure_golden()
-    if structure_golden:
+    if scored_structure:
         structure_examples = [
             {
-                "inputs": {"passage_text": e["passage_text"], "generated_items": e["generated_items"]},
-                "outputs": {"human_label": e["human_label"]},
+                "inputs": {
+                    "passage_text": s["entry"]["passage_text"],
+                    "generated_items": s["entry"]["generated_items"],
+                },
+                "outputs": {"human_label": s["entry"]["human_label"]},
             }
-            for e in structure_golden
+            for s in scored_structure
         ]
         sync_dataset(
             client, "bunpil-structure-judge", structure_examples,
             description="구조 유사도 LLM Judge 신뢰도 — structure_golden.json(human_label 채워진 항목만)과 동기화됨",
         )
 
+        # passage_text는 STRUCTURE_GOLDEN 안에서 유일(45/45 확인) — 조회 키로 사용.
+        judge_by_passage = {s["entry"]["passage_text"]: s["judge"] for s in scored_structure}
+
         def structure_judge_evaluator(inputs: dict, reference_outputs: dict) -> list[dict]:
-            judge = judge_structure_one(inputs, judge_llm)
+            judge = judge_by_passage[inputs["passage_text"]]
             human = reference_outputs.get("human_label", {})
             return [
                 {"key": "overall_score_diff", "score": abs(judge["overall_score"] - human.get("overall_score", 0))},
@@ -219,15 +236,17 @@ def main():
     #    런타임 judge_node와 동일한 코드(app/modules/exam/judge.py)를 공유하므로, 이 수치가
     #    곧 실제 배포된 judge의 신뢰도다(검증-배포 불일치 해소).
     structure_golden = _load_structure_golden()
-    print(f"\n3. 구조 유사도 Judge 신뢰도 검증 (STRUCTURE_GOLDEN {len(structure_golden)}개)...")
-    structure_result = eval_structure_judge(structure_golden, judge_llm, limit=len(structure_golden) or 1)
+    print(f"\n3. 구조 유사도 Judge 신뢰도 검증 (STRUCTURE_GOLDEN {len(structure_golden)}개, judge_structure_one 1회만 호출)...")
+    scored_structure = score_structure(structure_golden, judge_llm)
+    structure_result = eval_structure_judge(scored_structure)
     print(f"   n={structure_result['n']}")
 
     # 리포트
     print_report(retrieval_result, quality_result, structure_result, reliability_result)
 
     # 4. LangSmith Experiments 기록 (선택 — LANGCHAIN_TRACING_V2=true일 때만)
-    run_langsmith_experiments(judge_llm)
+    #    이미 채점한 결과를 넘긴다 — evaluator가 재채점하면 LLM 호출·trace가 2배가 된다.
+    run_langsmith_experiments(scored_items, scored_structure)
 
 
 if __name__ == "__main__":

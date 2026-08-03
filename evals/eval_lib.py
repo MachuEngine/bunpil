@@ -226,32 +226,44 @@ def judge_structure_one(entry: dict, llm) -> dict:
     return judge_structure(entry["passage_text"], entry["generated_items"], llm)
 
 
-@traceable(name="eval_structure_judge", run_type="chain", metadata=_TRACE_META)
-def eval_structure_judge(golden: list, llm, limit: int = 8) -> dict:
-    """STRUCTURE_GOLDEN의 고정된 (passage_text, generated_items) 쌍에 대해 LLM에게
-    구조 유사도 판단만 다시 시켜 사람 라벨(human_label)과 대조한다.
-    골든셋이 비어 있으면(라벨링 전) 빈 결과를 반환한다.
+@traceable(name="score_structure", run_type="chain", metadata=_TRACE_META)
+def score_structure(golden: list, llm, limit: int | None = None) -> list[dict]:
+    """golden 각 항목을 judge_structure_one()으로 정확히 1회만 채점.
+
+    score_items()와 같은 이유로 분리했다(2026-08-04). 이전에는 리포트용
+    eval_structure_judge()와 LangSmith Experiments의 evaluator가 같은 골든셋을
+    각자 채점해 LLM 호출이 2배였다(STRUCTURE_GOLDEN 45개 기준 실질 90회).
+    이 함수로 한 번만 채점한 결과를 두 소비자가 공유한다.
+    """
+    subset = golden[:limit] if limit is not None else golden
+    return [{"entry": entry, "judge": judge_structure_one(entry, llm)} for entry in subset]
+
+
+def eval_structure_judge(scored: list[dict]) -> dict:
+    """score_structure() 결과와 human_label을 대조해 일치율·MAE 계산 (LLM 재호출 없음).
+
+    STRUCTURE_GOLDEN의 고정된 (passage_text, generated_items) 쌍에 대한 LLM 판단을
+    사람 라벨(human_label)과 비교한다. 골든셋이 비어 있으면(라벨링 전) 빈 결과를 반환한다.
     count_match(문항 개수 일치)는 2026-07-09부로 이 비교에서 제외됨 — 개수는 예시
     문제와 무관하게 spec["num_items"]로 별도 지정되고, len(draft_items)==num_items로
     코드가 직접 검증하므로 LLM Judge/사람 라벨 대조 대상이 아님(structure_golden.json
     _schema.count_match_deprecated 참고)."""
-    subset = golden[:limit]
-    if not subset:
+    if not scored:
         return {"n": 0, "note": "STRUCTURE_GOLDEN이 비어 있습니다 — 라벨링 후 재실행하세요."}
 
     difficulty_match_hits = []
     overall_diffs = []
     count_match_code_hits = []  # LLM/사람 대조 대상 아님 — 골든셋 엔트리 자체의 데이터 정합성 확인용
 
-    for entry in subset:
-        judge = judge_structure_one(entry, llm)
+    for s in scored:
+        entry, judge = s["entry"], s["judge"]
         human = entry["human_label"]
 
         difficulty_match_hits.append(judge["difficulty_match"] == human["difficulty_match"])
         overall_diffs.append(abs(judge["overall_score"] - human["overall_score"]))
         count_match_code_hits.append(len(entry.get("generated_items", [])) == entry.get("num_items"))
 
-    n = len(subset)
+    n = len(scored)
     return {
         "n": n,
         "count_match_code_rate": round(sum(count_match_code_hits) / n, 3),

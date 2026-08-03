@@ -832,9 +832,42 @@ Experiments URL이 발급되는 것을 직접 실행해 확인:
   즉시 정상 속도로 복구됐고 `ollama /api/tags`도 정상 응답 — 코드 버그가 아니라
   환경적 요인으로 판단, 참고용으로만 기록.
 
-**main() 연동**: `eval_exam.py`/`eval_ragas.py`를 그냥 `python scripts/eval_*.py`로
+**main() 연동**: `eval_exam.py`/`eval_ragas.py`를 그냥 `python evals/eval_*.py`로
 실행하면 기존 로컬 골든셋 채점 흐름이 끝난 뒤 자동으로 이 Experiments 기록이 이어서
 실행됨(별도 커맨드 불필요).
+
+### 9.1 Judge 중복 호출 제거 (2026-08-04)
+
+**문제**: `eval_exam.py`의 `run_langsmith_experiments()`가 evaluator 안에서
+`judge_one()`/`judge_structure_one()`을 **다시 호출**했다. `main()`이 리포트용으로
+이미 채점한 것과 **정확히 같은 골든셋·같은 judge**인데도 재채점한 것:
+
+| 골든셋 | 리포트용 | Experiments용 | 실행당 낭비 |
+|---|---|---|---|
+| ITEM_GOLDEN | 30회 | 30회 | 30회 |
+| STRUCTURE_GOLDEN | 45회 | 45회 | 45회 |
+| | | | **총 75회** |
+
+trace 75개가 불필요하게 쌓였을 뿐 아니라, Judge가 gpt-5.6-luna(OpenAI)라
+**API 비용도 그대로 두 배**였다. LangSmith 무료 한도 소진에도 기여했을 가능성이 있다.
+
+**같은 버그의 재발이었다.** `eval_lib.py`에는 이미 동일 패턴을 고친 기록이 있다 —
+"이전에는 `eval_item_quality`/`eval_judge_reliability`가 같은 골든셋을 각자 다시
+채점해 60회 중복 호출됐다"(그래서 `score_items()`가 생김). 그 수정은 `main()` 내부
+경계만 봤고, `run_langsmith_experiments()`라는 **다른 경계**에서 같은 패턴이 남아 있었다.
+
+**적용**:
+- `score_structure()` 신설 — `score_items()`와 같은 역할(채점 1회 → 결과 공유).
+  `eval_structure_judge()`는 이제 채점된 결과를 받아 집계만 한다(LLM 호출 없음).
+- `run_langsmith_experiments(scored_items, scored_structure)` — `judge_llm` 인자 제거.
+  evaluator는 재채점 대신 `question`/`passage_text`를 키로 **조회만** 한다
+  (두 키 모두 골든셋 내 유일함을 확인: 30/30, 45/45).
+
+**검증**: 가짜 LLM으로 호출 수를 세어 `score_*` 단계에서 정확히 n회, Experiments
+기록 단계에서 **추가 0회**임을 확인. 집계 값과 빈 골든셋 처리도 기존과 동일.
+
+> **`eval_ragas.py`는 해당 없음** — 거기서는 고정 골든을 채점하는 게 아니라 매 실행마다
+> 문항을 새로 생성하므로 재호출이 의도된 설계다(해당 파일 docstring에 명시돼 있음).
 
 ## 10. 청킹 재설계 후 Recall@5 재측정 (2026-07-14)
 

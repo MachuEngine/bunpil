@@ -42,6 +42,7 @@ from eval_lib import (  # noqa: E402
     eval_judge_reliability,
     eval_structure_judge,
     score_items,
+    score_structure,
 )
 
 # 후보 judge마다 필요한 환경변수 조합 — get_judge_backend()(factory.py)가 이 값으로 분기한다.
@@ -79,9 +80,7 @@ def run_judge(judge_key: str, structure_golden: list) -> dict:
         judge_llm = get_judge_backend()
         scored = score_items(ITEM_GOLDEN, judge_llm)
         item_result = eval_judge_reliability(scored)
-        structure_result = eval_structure_judge(
-            structure_golden, judge_llm, limit=len(structure_golden) or 1
-        )
+        structure_result = eval_structure_judge(score_structure(structure_golden, judge_llm))
         return {
             "item_quality_reliability": item_result,
             "structure_judge_reliability": structure_result,
