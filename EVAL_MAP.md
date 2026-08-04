@@ -140,6 +140,7 @@ A/B 몇 회) 실행되고 끝난 스크립트들. 결과는 `data/golden/_*.json
 | `test_temperature_effect.py` | temperature 0.7 vs 0.2가 tool-calling 성공률에 미치는 영향 | `_temperature_ab_compare.json` |
 | `test_retry_preservation.py` | 재시도 시 부분 진행 보존 개선 전/후 비교 | (`_retry_preservation_compare.json`, 미생성) |
 | `test_topk_recall.py` | top_k 3→2 축소 시 Recall 저하 폭 | `_topk_recall_compare.json` |
+| `measure_validate_gate.py` | **(신규 2026-08-04)** validate 게이트 임계값이 Judge 실제 점수 분포 대비 적절한가 — 옛 기준 통과율 6.7%로 도달 불가 확인 | `_validate_gate_calibration.json` |
 | `eval_example_retrieval.py` | "실제 문제 문장" 스타일 쿼리가 standards 검색과 잘 맞는지 | `data/golden/example_question_retrieval_test.json` (라벨링 미완료, 판정 보류 상태) |
 
 ### ⚠️ 재실행 시 주의 — judge 분리로 stale해진 부분

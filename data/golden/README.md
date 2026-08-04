@@ -38,6 +38,7 @@
 | _model_comparison_results_budget5_partial_backup.json | compare_models.py (수동 백업) | 모델 비교 실험 budget=5 재검증 중 부분 실행분 백업(EVAL.md 참고) |
 | _ragas_eval_results.json | eval_ragas.py | Faithfulness/Answer Relevancy(Ragas 알고리즘 자체 구현) 측정 raw 결과, 재실행 시 덮어씀 |
 | _judge_comparison_results.json | compare_judge_models.py | Judge 모델 비교 실험(qwen2.5:7b/14b vs gpt-5.6-luna/sol) raw 결과, 재실행 시 누적 저장(EVAL.md 참고) |
+| _validate_gate_calibration.json | measure_validate_gate.py | **(신규 2026-08-04)** validate 게이트 임계값 재보정 실측 — 프로덕션 Judge(gpt-5.6-luna)의 실제 점수 분포·임계값별 통과율. 옛 기준 통과율이 6.7%로 사실상 도달 불가였음을 보인 근거 데이터(EVAL.md 15절), 재실행 시 덮어씀 |
 
 ## 명명 규칙
 

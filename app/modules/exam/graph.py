@@ -273,6 +273,34 @@ def judge_node(state: ExamState) -> dict:
     return {"similarity_judge_result": result}
 
 
+# validate 게이트 임계값 — 2026-08-04 실측 재보정.
+#
+# 이전 값(overall>=4, type_ratio>=0.7)은 2026-07-06 도입 후 한 번도 재검토된 적이
+# 없었고 근거 기록도 없었다(그 사이 Judge 프롬프트는 4회 이상 재보정됨). 실제로
+# 프로덕션 Judge(gpt-5.6-luna)로 STRUCTURE_GOLDEN 45건을 채점해 분포를 측정한 결과
+# (`experiments/measure_validate_gate.py`, raw: `data/golden/_validate_gate_calibration.json`):
+#
+#   - overall_score 분포가 3점 이하에 몰린다(2회 측정: {1:10,2:12,3:18,4:5,5:0} /
+#     {1:12,2:13,3:17,4:2,5:1}, 평균 2.27~2.40). Judge가 4~5점을 거의 주지 않아
+#     `>=4`의 실측 통과율은 6.7~8.9%로 사실상 도달 불가였다.
+#   - type_ratio_score는 0.5에 큰 덩어리가 몰리는데(45건 중 15~18건), 임계값 0.7이
+#     0.5와 0.67~0.75 사이를 갈라 이 구간을 통째로 탈락시켰다.
+#   - 결정적으로, Judge 프롬프트가 "정답"으로 가르치는 few-shot 6개 중 옛 게이트를
+#     통과하는 건 1개뿐이었다. 특히 "이런 건 감점하지 말라"고 가르치려고 넣은 균형
+#     예시(overall 4, type_ratio 0.5)가 게이트에서 탈락 — 프롬프트와 게이트가 모순.
+#     (그 1개도 overall=5를 요구하는데, Judge는 5점을 거의 주지 않는다.)
+#
+# 새 값의 실측 통과율은 42.2~48.9%로, 재시도가 "항상 예산을 소진하는 형식"이 아니라
+# 실제로 좋고 나쁨을 가르는 게이트로 작동한다. Judge temperature가 0.7이라 회차 변동이
+# 있으나 옛/새 기준의 격차(약 7% vs 약 45%)는 2회 측정에서 동일하게 재현됐다.
+# type_ratio 0.5를 허용하는 것은
+# num_items가 예시 문제의 문항 수와 무관하게 지정된다는 설계(2026-07-09 결정)의
+# 당연한 귀결이기도 하다 — 예시가 객관식 1문항이어도 2문항을 요청하면 유형 구성이
+# 정확히 같을 수 없다.
+_MIN_OVERALL_SCORE = 3
+_MIN_TYPE_RATIO_SCORE = 0.5
+
+
 def validate_node(state: ExamState) -> dict:
     """judge_node가 채점한 similarity_judge_result를 threshold로 판정한다.
     count_match는 LLM 판단이 아니라 spec["num_items"] 기준으로 코드가 직접 계산한다
@@ -287,9 +315,9 @@ def validate_node(state: ExamState) -> dict:
     passed = (
         count_match
         and all_approved
-        and judge.get("type_ratio_score", 0) >= 0.7
+        and judge.get("type_ratio_score", 0) >= _MIN_TYPE_RATIO_SCORE
         and judge.get("difficulty_match", False)
-        and judge.get("overall_score", 0) >= 4
+        and judge.get("overall_score", 0) >= _MIN_OVERALL_SCORE
     )
     feedback = []
     if not count_match:
@@ -301,11 +329,11 @@ def validate_node(state: ExamState) -> dict:
     if not judge:
         feedback.append("구조 유사도 미채점")
     else:
-        if judge.get("type_ratio_score", 0) < 0.7:
+        if judge.get("type_ratio_score", 0) < _MIN_TYPE_RATIO_SCORE:
             feedback.append("유형 비율 유사도 미달")
         if not judge.get("difficulty_match", False):
             feedback.append("난이도 구성 불일치")
-        if judge.get("overall_score", 0) < 4:
+        if judge.get("overall_score", 0) < _MIN_OVERALL_SCORE:
             feedback.append("종합 구조 유사도 점수 미달")
     return {
         "draft_items": draft_items,

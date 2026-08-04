@@ -1,0 +1,712 @@
+{
+  "_schema": {
+    "description": "validate_node 게이트 임계값 재보정 실측 (2026-08-04). STRUCTURE_GOLDEN 45건을 프로덕션 Judge(gpt-5.6-luna)로 재채점해 점수 분포·임계값별 통과율을 측정. 골든셋 아님 — 재실행 시 덮어씀. 생성 스크립트: experiments/measure_validate_gate.py"
+  },
+  "n": 45,
+  "judge_model": "gpt-5.6-luna",
+  "judge_overall_distribution": {
+    "1": 12,
+    "2": 13,
+    "3": 17,
+    "4": 2,
+    "5": 1
+  },
+  "human_overall_distribution": {
+    "1": 14,
+    "2": 19,
+    "3": 9,
+    "4": 2,
+    "5": 1
+  },
+  "judge_overall_mean": 2.267,
+  "human_overall_mean": 2.044,
+  "bias": 0.222,
+  "mae": 0.756,
+  "pass_rate_by_threshold": {
+    "overall>=2,type>=0.5": 0.578,
+    "overall>=2,type>=0.7": 0.289,
+    "overall>=3,type>=0.5": 0.422,
+    "overall>=3,type>=0.7": 0.267,
+    "overall>=4,type>=0.5": 0.067,
+    "overall>=4,type>=0.7": 0.067,
+    "overall>=5,type>=0.5": 0.022,
+    "overall>=5,type>=0.7": 0.022
+  },
+  "per_item": [
+    {
+      "id": "str_001",
+      "num_items": 3,
+      "n_generated": 3,
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": false,
+        "overall_score": 2
+      },
+      "human": {
+        "overall_score": 2,
+        "type_ratio_score": 1.0,
+        "difficulty_match": false
+      }
+    },
+    {
+      "id": "str_004",
+      "num_items": 3,
+      "n_generated": 3,
+      "judge": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": false,
+        "overall_score": 2
+      },
+      "human": {
+        "overall_score": 3,
+        "type_ratio_score": 0.5,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_010",
+      "num_items": 5,
+      "n_generated": 4,
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 3
+      },
+      "human": {
+        "overall_score": 1,
+        "type_ratio_score": 1.0,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_011",
+      "num_items": 5,
+      "n_generated": 2,
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 3
+      },
+      "human": {
+        "overall_score": 4,
+        "type_ratio_score": 1.0,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_012",
+      "num_items": 3,
+      "n_generated": 3,
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
+      "human": {
+        "overall_score": 3,
+        "type_ratio_score": 1.0,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_014",
+      "num_items": 3,
+      "n_generated": 3,
+      "judge": {
+        "type_ratio_score": 0.33,
+        "difficulty_match": true,
+        "overall_score": 3
+      },
+      "human": {
+        "overall_score": 3,
+        "type_ratio_score": 0.5,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_019",
+      "num_items": 7,
+      "n_generated": 3,
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 4
+      },
+      "human": {
+        "overall_score": 3,
+        "type_ratio_score": 1.0,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_024",
+      "num_items": 3,
+      "n_generated": 3,
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 3
+      },
+      "human": {
+        "overall_score": 3,
+        "type_ratio_score": 1.0,
+        "difficulty_match": false
+      }
+    },
+    {
+      "id": "str_029",
+      "num_items": 5,
+      "n_generated": 4,
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
+      "human": {
+        "overall_score": 3,
+        "type_ratio_score": 1.0,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_035",
+      "num_items": 5,
+      "n_generated": 1,
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 5
+      },
+      "human": {
+        "overall_score": 4,
+        "type_ratio_score": 1.0,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_036",
+      "num_items": 5,
+      "n_generated": 1,
+      "judge": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 3
+      },
+      "human": {
+        "overall_score": 2,
+        "type_ratio_score": 0.5,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_037",
+      "num_items": 3,
+      "n_generated": 3,
+      "judge": {
+        "type_ratio_score": 0.33,
+        "difficulty_match": false,
+        "overall_score": 2
+      },
+      "human": {
+        "overall_score": 2,
+        "type_ratio_score": 0.5,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_039",
+      "num_items": 3,
+      "n_generated": 1,
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
+      "human": {
+        "overall_score": 5,
+        "type_ratio_score": 1.0,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_041",
+      "num_items": 5,
+      "n_generated": 4,
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 3
+      },
+      "human": {
+        "overall_score": 3,
+        "type_ratio_score": 1.0,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_042",
+      "num_items": 7,
+      "n_generated": 1,
+      "judge": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      },
+      "human": {
+        "overall_score": 2,
+        "type_ratio_score": 0.5,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_043",
+      "num_items": 3,
+      "n_generated": 3,
+      "judge": {
+        "type_ratio_score": 0.67,
+        "difficulty_match": false,
+        "overall_score": 2
+      },
+      "human": {
+        "overall_score": 1,
+        "type_ratio_score": 0.5,
+        "difficulty_match": false
+      }
+    },
+    {
+      "id": "str_047",
+      "num_items": 5,
+      "n_generated": 4,
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 3
+      },
+      "human": {
+        "overall_score": 1,
+        "type_ratio_score": 1.0,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_048",
+      "num_items": 3,
+      "n_generated": 3,
+      "judge": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      },
+      "human": {
+        "overall_score": 1,
+        "type_ratio_score": 0.5,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_050",
+      "num_items": 5,
+      "n_generated": 3,
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 3
+      },
+      "human": {
+        "overall_score": 3,
+        "type_ratio_score": 1.0,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_051",
+      "num_items": 7,
+      "n_generated": 5,
+      "judge": {
+        "type_ratio_score": 0.2,
+        "difficulty_match": false,
+        "overall_score": 2
+      },
+      "human": {
+        "overall_score": 2,
+        "type_ratio_score": 0.5,
+        "difficulty_match": false
+      }
+    },
+    {
+      "id": "str_052",
+      "num_items": 5,
+      "n_generated": 2,
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
+      "human": {
+        "overall_score": 1,
+        "type_ratio_score": 1.0,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_053",
+      "num_items": 5,
+      "n_generated": 2,
+      "judge": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 3
+      },
+      "human": {
+        "overall_score": 2,
+        "type_ratio_score": 0.5,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_054",
+      "num_items": 3,
+      "n_generated": 1,
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
+      "human": {
+        "overall_score": 1,
+        "type_ratio_score": 1.0,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_055",
+      "num_items": 3,
+      "n_generated": 2,
+      "judge": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 3
+      },
+      "human": {
+        "overall_score": 2,
+        "type_ratio_score": 0.5,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_056",
+      "num_items": 7,
+      "n_generated": 1,
+      "judge": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 3
+      },
+      "human": {
+        "overall_score": 2,
+        "type_ratio_score": 0.5,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_057",
+      "num_items": 3,
+      "n_generated": 2,
+      "judge": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      },
+      "human": {
+        "overall_score": 2,
+        "type_ratio_score": 0.5,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_058",
+      "num_items": 5,
+      "n_generated": 1,
+      "judge": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      },
+      "human": {
+        "overall_score": 2,
+        "type_ratio_score": 0.5,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_059",
+      "num_items": 3,
+      "n_generated": 4,
+      "judge": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 3
+      },
+      "human": {
+        "overall_score": 2,
+        "type_ratio_score": 0.5,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_060",
+      "num_items": 3,
+      "n_generated": 1,
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
+      "human": {
+        "overall_score": 1,
+        "type_ratio_score": 1.0,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_061",
+      "num_items": 5,
+      "n_generated": 2,
+      "judge": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      },
+      "human": {
+        "overall_score": 2,
+        "type_ratio_score": 0.5,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_062",
+      "num_items": 5,
+      "n_generated": 1,
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
+      "human": {
+        "overall_score": 1,
+        "type_ratio_score": 1.0,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_063",
+      "num_items": 5,
+      "n_generated": 1,
+      "judge": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 3
+      },
+      "human": {
+        "overall_score": 2,
+        "type_ratio_score": 0.5,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_064",
+      "num_items": 3,
+      "n_generated": 1,
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
+      "human": {
+        "overall_score": 1,
+        "type_ratio_score": 1.0,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_065",
+      "num_items": 7,
+      "n_generated": 2,
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 3
+      },
+      "human": {
+        "overall_score": 2,
+        "type_ratio_score": 1.0,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_066",
+      "num_items": 3,
+      "n_generated": 1,
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 4
+      },
+      "human": {
+        "overall_score": 3,
+        "type_ratio_score": 1.0,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_067",
+      "num_items": 5,
+      "n_generated": 5,
+      "judge": {
+        "type_ratio_score": 0.8,
+        "difficulty_match": true,
+        "overall_score": 2
+      },
+      "human": {
+        "overall_score": 1,
+        "type_ratio_score": 1.0,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_068",
+      "num_items": 5,
+      "n_generated": 4,
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
+      "human": {
+        "overall_score": 1,
+        "type_ratio_score": 1.0,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_069",
+      "num_items": 7,
+      "n_generated": 6,
+      "judge": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 3
+      },
+      "human": {
+        "overall_score": 2,
+        "type_ratio_score": 0.5,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_070",
+      "num_items": 3,
+      "n_generated": 1,
+      "judge": {
+        "type_ratio_score": 0.0,
+        "difficulty_match": true,
+        "overall_score": 2
+      },
+      "human": {
+        "overall_score": 1,
+        "type_ratio_score": 0.0,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_071",
+      "num_items": 5,
+      "n_generated": 2,
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
+      "human": {
+        "overall_score": 2,
+        "type_ratio_score": 1.0,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_072",
+      "num_items": 3,
+      "n_generated": 1,
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 3
+      },
+      "human": {
+        "overall_score": 1,
+        "type_ratio_score": 1.0,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_073",
+      "num_items": 5,
+      "n_generated": 2,
+      "judge": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
+      "human": {
+        "overall_score": 1,
+        "type_ratio_score": 0.5,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_074",
+      "num_items": 5,
+      "n_generated": 2,
+      "judge": {
+        "type_ratio_score": 0.5,
+        "difficulty_match": true,
+        "overall_score": 2
+      },
+      "human": {
+        "overall_score": 2,
+        "type_ratio_score": 0.5,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_075",
+      "num_items": 3,
+      "n_generated": 1,
+      "judge": {
+        "type_ratio_score": 1.0,
+        "difficulty_match": true,
+        "overall_score": 1
+      },
+      "human": {
+        "overall_score": 2,
+        "type_ratio_score": 1.0,
+        "difficulty_match": true
+      }
+    },
+    {
+      "id": "str_076",
+      "num_items": 5,
+      "n_generated": 5,
+      "judge": {
+        "type_ratio_score": 0.8,
+        "difficulty_match": true,
+        "overall_score": 3
+      },
+      "human": {
+        "overall_score": 2,
+        "type_ratio_score": 1.0,
+        "difficulty_match": true
+      }
+    }
+  ]
+}
