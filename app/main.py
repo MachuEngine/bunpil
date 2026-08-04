@@ -218,9 +218,15 @@ async def exam_stream(
 ):
     """예시 문제 텍스트를 받아 SSE로 진행 상황과 결과를 스트리밍한다."""
 
-    spec, truncated, pii_found = await _build_spec(passage_text)
-
+    # 2026-08-04: 동시요청 제한이 그래프 실행뿐 아니라 _build_spec()의 num_items
+    # 추출 LLM 호출까지 커버하도록 슬롯을 먼저 확보한다(이전엔 그래프 실행만 커버해
+    # LLM 호출 총량이 세마포어(2)를 우회할 수 있었다).
     await _acquire_request_slot()
+    try:
+        spec, truncated, pii_found = await _build_spec(passage_text)
+    except Exception:
+        _REQUEST_SLOTS.release()
+        raise
 
     async def generate():
         def evt(data: dict) -> str:
@@ -268,8 +274,18 @@ async def exam(
     passage_text: str = Form(...),
     _: None = Depends(verify_api_key),
 ):
-    spec, truncated, pii_found = await _build_spec(passage_text)
+    # 2026-08-04: /exam/stream과 동일하게 (1) 슬롯을 num_items 추출 LLM 호출까지
+    # 커버하도록 _build_spec()도 감싸고 (2) 예외를 잡아 로깅 후 graceful하게
+    # 응답한다(이전엔 이 엔드포인트만 예외가 처리 안 된 500으로 그대로 새어나갔다).
     async with request_slot():
-        result = await _run_exam(spec)
+        try:
+            spec, truncated, pii_found = await _build_spec(passage_text)
+            result = await _run_exam(spec)
+        except Exception:
+            logger.exception("/exam 오류")
+            return JSONResponse(
+                {"status": "error", "msg": "문항 생성 중 오류가 발생했습니다."},
+                status_code=500,
+            )
     return {"truncated": truncated, "pii_found": pii_found, **result}
 
