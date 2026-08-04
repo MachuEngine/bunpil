@@ -1,0 +1,32 @@
+# Docker 빌드 컨텍스트에서 제외 — Dockerfile은 app/, scripts/, data/만 COPY하지만
+# .dockerignore가 없으면 `docker build .`가 이 디렉토리 전체(.venv 수 GB 포함)를
+# 매번 데몬으로 전송한다(2026-08-04 추가).
+
+.venv/
+venv/
+env/
+node_modules/
+frontend/node_modules/
+frontend/.next/
+
+.git/
+.github/
+
+chroma_db/
+*.sqlite3
+
+.env
+*.env
+*.pem
+
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+.DS_Store
+.vscode/
+.idea/
+
+*.log
+logs/

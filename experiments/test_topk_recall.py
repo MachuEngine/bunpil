@@ -1,6 +1,7 @@
 #!/usr/bin/env python
-"""tools.py의 search_standards/search_regulations가 쓰는 top_k(현재 3)를 2로
+"""tools.py의 search_standards가 쓰는 top_k(현재 3)를 2로
 낮췄을 때 검색 품질(Recall)이 얼마나 나빠지는지 측정.
+(search_regulations는 2026-08-03 제거됨 — 측정 당시엔 존재했음)
 
 BGE 임베딩/리랭킹만 쓰고 LLM(Ollama)과 무관 — eval_exam.py의 Recall@5(top_k=5)와는
 다른 값으로, 실제 에이전트가 도구 호출 시 받는 top_k(2 또는 3) 기준으로 직접

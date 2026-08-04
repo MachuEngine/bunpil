@@ -2,9 +2,10 @@
 # your-domain.com → EC2 내부 Next.js(3000) 포트로 전달
 # TLS: Let's Encrypt 자동 발급 (도메인 DNS가 이 서버 IP를 가리켜야 함)
 #
-# frontend(Next.js, 3000)만 프록시하면 됨 — /api/* 라우트(exam, exam/stream,
-# record)는 frontend/app/api/*/route.ts가 컨테이너 내부에서 BACKEND_URL(=
-# http://app:8765)로 다시 프록시하므로, Caddy가 FastAPI(8765)를 직접 볼 필요 없음.
+# frontend(Next.js, 3000)만 프록시하면 됨 — /api/* 라우트(exam, exam/stream)는
+# frontend/app/api/*/route.ts가 컨테이너 내부에서 BACKEND_URL(=http://app:8765)로
+# 다시 프록시하므로, Caddy가 FastAPI(8765)를 직접 볼 필요 없음.
+# (record 라우트는 생기부 모듈과 함께 2026-08-03 제거됨)
 # docker-compose.yml의 frontend 서비스가 3000:3000으로 호스트에 포트를 열어둠.
 
 your-domain.com {

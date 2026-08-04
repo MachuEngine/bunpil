@@ -11,7 +11,6 @@ python-multipart==0.0.20
 pymupdf==1.24.14
 chromadb==0.5.23
 FlagEmbedding==1.2.11
-peft==0.19.1
 torch==2.12.1
 numpy==1.26.4
 
