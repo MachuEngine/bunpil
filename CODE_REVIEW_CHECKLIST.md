@@ -40,6 +40,7 @@
 - [ ] `app/common/rag/reranker.py` — BGE 리랭커 래퍼 (흐름만)
 - [ ] `app/common/rag/singleton.py` — exam 모듈이 쓰는 lazy-singleton 패턴 (생기부 삭제로 현재 사용처는 exam뿐)
 - [ ] `app/common/rag/parser.py` — 문서 파싱/청킹 로직
+- [ ] `app/common/rag/telemetry.py` — ChromaDB 익명 텔레메트리 비활성화 override (10줄, 흐름만 파악)
 
 ## 3단계 — 출제(exam) 모듈
 

@@ -20,7 +20,7 @@
 ### 모듈 ② 출제 도우미 — ReAct Agent (LangGraph)
 
 과제 정의: *"교사가 붙여넣은 예시 문제의 구성(개수·유형·난이도)을 그대로 반영한 새 문항 세트 작성"*.
-(2026.07 리디자인, `FEEDBACK_DRIVEN_REDESIGN_v2.md` — 실사용 교사 피드백: PDF 업로드+유형/난이도/개수
+(2026.07 리디자인, `docs/history/FEEDBACK_DRIVEN_REDESIGN_v2.md` — 실사용 교사 피드백: PDF 업로드+유형/난이도/개수
 드롭다운 대신 ChatGPT처럼 예시 문제를 붙여넣는 사용 패턴이 실제와 더 맞았음. 2028 수능 개편으로 과목별
 구조가 곧 무의미해질 `past_exams`/`check_duplicate`도 이때 완전히 제거)
 
@@ -109,7 +109,7 @@ PII 마스킹(`app/common/privacy.py`)은 출제 경로가 계속 쓰므로 유�
 | 항목 | 출처 | 방법 | 비고 |
 |---|---|---|---|
 | 생기부 기재요령 | 학교생활기록부 종합지원포털(star.moe.go.kr) 자료실 | PDF 다운로드 | **검색 eval 전용** — 생기부 모듈 제거 후 런타임 미사용, 검색 골든셋 22건 중 10건이 이 코퍼스라 유지 |
-| 학생부 작성·관리 지침(훈령) | 동 포털 | PDF | 규정 RAG |
+| 학생부 작성·관리 지침(훈령) | 동 포털 | PDF | **검색 eval 전용** — 위 기재요령과 함께 `regulations` 컬렉션에 적재되나 생기부 모듈 제거 후 런타임 미사용(`search_regulations` 도구도 2026-08-03 제거됨) |
 | 사회과 성취기준 | 국가교육과정정보센터(NCIC) | 문서 조회 | `search_standards` RAG |
 | 교사가 붙여넣은 예시 문제 | 교사 런타임 입력(`passage_text`) | 0 | ChromaDB 미적재, 프롬프트에만 사용 후 폐기 |
 | 윤문 Few-shot 예시 | 직접 합성 | 가상 시나리오 | 실데이터 금지 |
@@ -135,7 +135,7 @@ PII 마스킹(`app/common/privacy.py`)은 출제 경로가 계속 쓰므로 유�
 | 과정 | 평균 반복수·미충족 실패율·latency | 함수 | 예산 내 수렴 |
 | 종단 | 수정 없는 교사 채택률 | 사람 | 북극성 |
 
-검색 골든셋(`data/golden/retrieval_golden_final.json`): `standards` / `regulations` 실제 컬렉션에서 샘플링한 22개 청크(reviewed 21개). `golden_gen/gen_golden_retrieval.py`로 초안 생성 후 검수. (2026.07 리디자인으로 `past_exams` 참조 8개 제거, 30→22)
+검색 골든셋(`data/golden/retrieval_golden_final.json`): `standards` / `regulations` 실제 컬렉션에서 샘플링한 22개 청크(전량 reviewed 완료, 2026-07-14). `golden_gen/gen_golden_retrieval.py`로 초안 생성 후 검수. (2026.07 리디자인으로 `past_exams` 참조 8개 제거, 30→22)
 
 ### 입력 PII 마스킹 (안전 지표)
 
@@ -146,7 +146,7 @@ PII 마스킹(`app/common/privacy.py`)은 출제 경로가 계속 쓰므로 유�
 `tests/test_masker.py`가 골든셋 20건(PII 10 + 정상 10)으로 직접 강제한다.
 
 
-**골든셋 현황**: 출제 검색 22개(21개 검수 완료) + 신규 regulations 검색 10개(2026-08-03 검수 완료) + STRUCTURE_GOLDEN 45개(사람 라벨링 전량 완료) + ITEM_GOLDEN 30개 + 마스킹 20개. 모든 골든셋은 `data/golden/*.json`으로 외부화(하드코딩 금지).
+**골든셋 현황**: 출제 검색 22개(standards 12 + regulations 10, 전량 검수 완료) + STRUCTURE_GOLDEN 45개(사람 라벨링 전량 완료) + ITEM_GOLDEN 30개 + 마스킹 20개. 모든 골든셋은 `data/golden/*.json`으로 외부화(하드코딩 금지).
 
 > **2026-07-09 num_ctx 발견**: STRUCTURE_GOLDEN 재생성 중 로컬 Ollama가 기본 `num_ctx=4096`으로 돌고 있어(모델은 32K 네이티브 지원) 멀티턴 ReAct 루프의 검색 결과 누적이 몇 턴 만에 컨텍스트를 초과시키고, 컨텍스트가 잘리며 모델이 시스템 프롬프트를 잃고 응답이 깨지는 문제를 확인함 → `app/modules/exam/llm.py`의 `ChatOllama`에 `num_ctx=16384` 명시로 수정. 동일 passage 재현 테스트로 확인(4096: 0/5문항 → 16384: 5/5문항). RunPod(vLLM)는 `max_model_len` 미지정 시 모델 네이티브 값을 쓰므로 로컬 개발 환경에만 있던 격차로 추정.
 
@@ -154,13 +154,11 @@ PII 마스킹(`app/common/privacy.py`)은 출제 경로가 계속 쓰므로 유�
 
 ## 6. 보안 · 개인정보 (Claude Code는 반드시 준수)
 
-- 개인정보 **마스킹은 입력 단계**에서, 외부/모델 호출 전에 수행
-- 사용자 입력(교사가 붙여넣은 예시 문제)은 **비저장 처리** — 영구 저장은 공개 코퍼스뿐
-- **로그·캐시에 PII 금지**
-- LangSmith 트레이싱: 2026-07-24부터 PII 마스킹 후 프로덕션에도 적용 가능(`LANGCHAIN_TRACING_V2=true` 옵트인, 기본값은 false). 합성 데이터 평가 스크립트(`evals/`)는 선택적 사용. 자세한 내용은 LANGSMITH_GUIDE.md 1절
+> 하드룰 본문(마스킹 순서·비저장·로그 PII 금지·실데이터 미사용)은 **CLAUDE.md** 참고 — 여기서 반복하지 않음. 아래는 이 설계의 구현 세부만 적는다.
+
 - 브라우저 요청은 Next.js 서버가 프록시하며, FastAPI는 `BUNPIL_API_KEY` 서버 간 인증을 요구
-- 실데이터 미사용, 전부 합성
 - ChromaDB **영구 컬렉션은 공개 자료(규정·성취기준)만**. 교사가 붙여넣은 예시 문제(`passage_text`)는 ChromaDB에 전혀 적재되지 않고 요청 처리 중 프롬프트에만 사용된 후 폐기. 학생 개인정보는 어디에도 미적재
+- LangSmith 트레이싱: 2026-07-24부터 PII 마스킹 후 프로덕션에도 적용 가능(`LANGCHAIN_TRACING_V2=true` 옵트인, 기본값은 false). 합성 데이터 평가 스크립트(`evals/`)는 선택적 사용. 자세한 내용은 LANGSMITH_GUIDE.md 1절
 - **⚠️ 2026-07-23부터**: `JUDGE_BACKEND=openai`(기본값)에서는 문항 세트 생성마다 `passage_text`가
   구조 유사도 채점을 위해 OpenAI(gpt-5.6-luna)로 전송된다. PII 마스킹은 이 호출 이전에 이미
   적용돼 있으나(`_build_spec`이 그래프 진입 전에 마스킹), **저작권 있는 교사 지문 자체는 마스킹
@@ -206,7 +204,7 @@ PII 마스킹(`app/common/privacy.py`)은 출제 경로가 계속 쓰므로 유�
 ## 8. 빌드 순서 (MVP)
 
 1. **출제 모듈** — 데이터 부담 0(교사가 예시 문제 붙여넣기), RAG·Judge·Recall@5 바로 적용 → 가장 빠른 데모
-3. **배포** — AWS EC2(앱) + RunPod 서버리스(GPU)
+2. **배포** — AWS EC2(앱) + RunPod 서버리스(GPU)
 
 **Claude Code 활용 가이드**: 보일러플레이트(스캐폴딩·Docker·UI·글루)는 위임, 배포 단계(EC2·보안그룹·SSH·Caddy HTTPS·RunPod 서버리스 설정)는 학습 목적상 단계 설명 들으며 진행. 본 스펙을 컨텍스트로 제공할 것.
 

@@ -4,8 +4,14 @@
 > 근거로 출제 모듈 입력 방식을 전면 재설계. Claude Code 구현 핸드오프용 문서.
 >
 > **✅ 구현 완료 (2026-07-06~07)**: 아래 6절 체크리스트 전부 반영. STRUCTURE_GOLDEN은 Claude 합성
-> 부트스트랩 3개만 있고 실제 모델 라벨 보강은 아직 미완료 — 최신 현황은 `DESIGN.md`/`README.md`/`EVAL.md`/
+> 부트스트랩 3개만 있고 실제 모델 라벨 보강은 아직 미완료(이후 완료됨, 45개 전량 라벨링 —
+> `bunpil_roadmap.md` 참고) — 최신 현황은 `DESIGN.md`/`README.md`/`EVAL.md`/
 > `bunpil_roadmap.md` 참고.
+>
+> **2026-08-04**: 저장소 루트에서 `docs/history/`로 이동(순수 아카이브, 더 갱신 안 함).
+> 이 문서가 도입한 `similarity_judge` self-judge 방식은 2026-07-23 별도 judge 노드로
+> 대체됐고(MODEL_SELECTION.md 2절), 여기 언급된 `search_regulations`도 2026-08-03 제거됨.
+> "v2"는 저자의 내부 버전 표기일 뿐 병합된 v1 파일은 존재하지 않는다.
 
 ---
 

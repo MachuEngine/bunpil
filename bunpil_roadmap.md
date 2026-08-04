@@ -49,7 +49,7 @@
 ### 코드 리뷰
 - `chat_runpod.py`
 
-### 출제 모듈 입력 방식 리디자인 (2026.07, FEEDBACK_DRIVEN_REDESIGN_v2.md)
+### 출제 모듈 입력 방식 리디자인 (2026.07, docs/history/FEEDBACK_DRIVEN_REDESIGN_v2.md)
 - PDF 업로드 + 유형/난이도/개수 드롭다운 → `passage_text` 붙여넣기 단일 입력으로 전면 교체
 - `check_duplicate`/`past_exams` 컬렉션 완전 제거 (2028 수능 개편으로 과목별 구조 무의미해짐), `similarity_judge`(구조 유사도 LLM Judge)로 대체
 - retrieval_golden: past_exams 참조 8개(`ret_023`~`ret_030`) 제거 → 30개 → 22개(standards 12 + regulations 10), Recall@5/MRR 재측정 완료(0.905/0.659, n=21 — 이전 0.679/0.494보다 상승, past_exams가 상대적으로 검색 난도 높았던 것으로 추정)
@@ -347,7 +347,7 @@ ablation도 함께 측정해 MODEL_SELECTION.md 4절의 "기여도 미측정" �
 | `app/modules/exam/graph.py` | LangGraph 노드 구조, 각 노드의 역할과 연결 (리디자인 이후 구조로 재검토 완료) | ✅ |
 | `app/modules/exam/tools.py` | `@tool` 데코레이터, `_ctx` 공유 상태 문제, RAG 싱글턴 통합 | ✅ |
 | `app/common/rag/store.py` + `retriever.py` | ChromaDB 컬렉션 구조, 2단계 검색 흐름, 죽은 임시 컬렉션 코드 제거 | ✅ |
-| `app/modules/record/chain.py` | 수동 루프 구조(LCEL 파이프 아님 — `run()`이 `_step_mask/_step_polish/_step_validate`를 for 루프로 직접 호출), 하이브리드 위반 탐지 순서, RAG 싱글턴 통합 | ✅ |
+| `app/modules/record/chain.py` (**2026-08-03 삭제됨** — 모듈 자체가 제거되어 리뷰 대상에서 소멸, 코드는 git 이력에만 존재) | 수동 루프 구조(LCEL 파이프 아님 — `run()`이 `_step_mask/_step_polish/_step_validate`를 for 루프로 직접 호출), 하이브리드 위반 탐지 순서, RAG 싱글턴 통합 | ✅(당시 기록, 현재 무관) |
 | `app/main.py` | `/exam`·`/exam/stream` 중복 제거, 실제 SSE 노드 단위 스트리밍 | ✅ |
 | `evals/eval_ragas.py` | (2026-07-12 리뷰 완료) `build_sample()`이 실제 그래프 호출+RAG 검색으로 (question, context, answer) 구성 → `faithfulness_one()`(주장 분해 후 컨텍스트 대조) / `answer_relevancy_one()`(역질문 생성 후 임베딩 코사인 유사도) → `run_langsmith_experiments()`가 Dataset 동기화 후 `evaluate()`로 두 함수를 evaluator로 래핑. 버그는 없었고, 사소한 죽은 코드(도달 불가능한 `else 0.0` 폴백) 1건과 의도된 중복 방어 로직 1건만 확인(둘 다 동작에 영향 없어 수정 안 함) | ✅ |
 

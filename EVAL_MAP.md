@@ -2,7 +2,10 @@
 
 > `EVAL.md`가 "지표·기준·결과 이력"을 다룬다면, 이 문서는 **"이 프로젝트에 평가가
 > 몇 층으로 나뉘어 있고, 각 층이 어떤 스크립트·데이터로 무엇을 확인하는지"**를
-> 빠르게 찾기 위한 색인이다. 2026-07-23 조사 시점 기준.
+> 빠르게 찾기 위한 색인이다. 2026-07-23 조사 시점 기준(이후 2026-08-03/08-04 변경사항은
+> 각 절에 갱신 표시로 반영).
+>
+> 결과·개선 스토리 요약은 [EVAL_SUMMARY.md](./EVAL_SUMMARY.md) 참고.
 >
 > **2026-07-23 디렉토리 재구성**: 원래 20개 스크립트가 전부 `scripts/` 하나에
 > 섞여 있었는데, 아래 4계층 분류를 그대로 디렉토리로 옮겼다 —
@@ -29,8 +32,10 @@
 
 ```bash
 python evals/eval_exam.py      # 출제 모듈
-python evals/eval_record.py    # 생기부 모듈
 ```
+
+> `evals/eval_record.py`는 2026-08-03 생기부 모듈 제거와 함께 삭제됨(아래 "생기부 모듈" 절은
+> 삭제 당시 기록으로만 보존).
 
 ### 출제 모듈 — `evals/eval_exam.py` (+ 공용 로직 `evals/eval_lib.py`)
 
@@ -46,7 +51,7 @@ python evals/eval_record.py    # 생기부 모듈
 > 호출하는 **바로 그 함수**다(이전엔 서로 다른 코드 경로였음 — 이 문서 하단 §7 참고).
 > 즉 이 표의 "구조 유사도 Judge 신뢰도" 수치가 곧 배포된 judge의 신뢰도.
 
-### 생기부 모듈 — `evals/eval_record.py`
+### ~~생기부 모듈 — `evals/eval_record.py`~~ — **2026-08-03 삭제됨** (아래는 삭제 전 기록)
 
 | 지표 | 방식 | 골든셋 | 기준 |
 |---|---|---|---|
@@ -93,8 +98,9 @@ LangSmith 탭이 더 정확한 소스 — EVAL.md는 "왜 이렇게 바꿨는지
 |---|---|
 | `test_llm.py` | LLM 백엔드 연결(응답이 오는지)만 확인. 내용 정확도는 범위 밖 |
 | `test_rag.py` | 인덱싱→검색→rerank 배선 확인 |
-| `test_record.py` | 생기부 마스킹+윤문+위반 플래그 흐름 확인 |
-| `test_exam.py` | 출제 그래프(`plan→agent→judge→validate`) 전체 흐름을 실제 로컬 모델로 1회 실행해 확인. 2026-07-23 judge 분리 반영해 docstring 갱신됨 |
+| `test_exam.py` | 출제 그래프(`plan→agent→judge→validate`) 전체 흐름을 실제 로컬 모델로 1회 실행해 확인. 2026-07-23 judge 분리 반영해 docstring 갱신됨, 2026-08-04 `load_dotenv()`/`init_langsmith_project()` 호출 추가(LANGSMITH_GUIDE.md 3.3.1절) |
+
+> `test_record.py`는 2026-08-03 생기부 모듈 제거와 함께 삭제됨.
 
 이름이 `tests/`의 pytest 파일들과 비슷해서 헷갈리기 쉬운데, 이쪽은 **실제 로컬
 Ollama를 호출하는 수동 스모크 확인**이고 `tests/`는 **FakeLLM/결정론적 로직만
@@ -107,15 +113,16 @@ Ollama를 호출하는 수동 스모크 확인**이고 `tests/`는 **FakeLLM/결
 
 | 파일 | 검증 대상 |
 |---|---|
-| `test_masker.py` | PII 마스킹 순수 로직 |
+| `test_masker.py` | PII 마스킹 순수 로직. **2026-08-03 변경**: `eval_record.py` 삭제로 고아가 된 MASKING_GOLDEN 20건을 파라미터화 테스트로 흡수 |
 | `test_exam_tool_gates.py` | save_item/record_score/discard_item 결정론적 게이트 |
 | `test_exam_validation.py` | validate_node 재시도 피드백 생성 (judge 분리 반영해 similarity_judge 참조 제거됨) |
 | `test_exam_input_privacy.py` | 출제 입력이 LLM 호출보다 먼저 마스킹되는지 |
-| `test_record_chain_rules.py` | 규칙 기반 위반 탐지 |
-| `test_record_chain_safety.py` | 생기부 사실보존/fail-closed |
+| `test_bm25.py` | **(신규, 2026-08-03)** BM25 순수 로직 유닛테스트 |
 | `test_rag_store.py` | Chroma 익명 텔레메트리 비활성화 확인 |
 | `test_runpod_backend.py` | RunPod 작업 중복 제출 방지 |
 | `test_api_security.py` | 인증/요청 크기 경계 |
+
+> `test_record_chain_rules.py`/`test_record_chain_safety.py`는 2026-08-03 생기부 모듈 제거와 함께 삭제됨.
 
 ---
 

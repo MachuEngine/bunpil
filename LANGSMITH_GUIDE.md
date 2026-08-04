@@ -166,7 +166,7 @@ print(r.status_code, r.text[:120])"
   `bunpil-dev`에 남는다 — Judge 백엔드 교체가 dev/prod 분류에 영향을 주지 않는다.
 - **아무 프로젝트에도 안 보임**: `LANGCHAIN_TRACING_V2=true`를 셸에 안 넣고 실행했을 가능성이
   제일 흔하다. 스크립트 콘솔에 `"LangSmith 트레이싱: 활성화됨"`이 찍혔는지 먼저 확인
-  (`eval_exam.py:184`).
+  (`eval_exam.py:201`).
 
 ## 5. 관련 코드 위치
 

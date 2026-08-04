@@ -81,7 +81,7 @@
 
 - **로컬 ↔ 프로덕션 전환 가능한 LLM 추상화** — 개발은 Ollama(로컬), 프로덕션은 RunPod 서버리스(vLLM). 환경변수 하나로 전환
 - **"LLM이 판단하고, 코드가 결정한다"** — 품질·유사도 판단은 LLM에게, 통과/재시도/개수/언어 검증은 결정론적 코드에 ([설계 원칙](#설계-원칙))
-- **평가 기반 개발** — 사람이 라벨링한 골든셋으로 검색·생성·마스킹 품질을 수치로 추적 ([EVAL.md](./EVAL.md), LangSmith Experiments 연동은 [LANGSMITH_GUIDE.md](./LANGSMITH_GUIDE.md)), 삽질은 [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)에 기록
+- **평가 기반 개발** — 사람이 라벨링한 골든셋으로 검색·생성·마스킹 품질을 수치로 추적. 평가 체계 요약은 [EVAL_SUMMARY.md](./EVAL_SUMMARY.md), 회차별 raw 기록은 [EVAL.md](./EVAL.md), LangSmith Experiments 연동은 [LANGSMITH_GUIDE.md](./LANGSMITH_GUIDE.md), 삽질은 [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)에 기록
 
 ---
 
