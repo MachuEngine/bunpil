@@ -108,8 +108,11 @@ def run_langsmith_experiments(scored_items: list[dict], scored_structure: list[d
     돌렸다(ITEM_GOLDEN 30 + STRUCTURE_GOLDEN 45 = 실행당 75회 중복 LLM 호출 +
     그만큼의 불필요한 trace). 골든셋은 고정된 입력이므로 재채점할 이유가 없다.
 
-    참고: eval_ragas.py의 동명 함수는 재호출이 **의도된 것**이다 — 거기서는 고정
-    골든을 채점하는 게 아니라 매 실행마다 문항을 새로 생성하기 때문(그 파일 docstring 참고).
+    참고: eval_ragas.py는 고정 골든이 아니라 매 실행마다 문항을 새로 생성하지만,
+    그렇다고 **생성을 두 번 해도 된다는 뜻은 아니었다** — 원래 거기도 이 함수와 같은
+    중복 호출 버그가 있었고(콘솔 리포트용 생성과 LangSmith 기록용 생성이 따로 돌아
+    같은 실행에서 문항이 두 번 생성됨), 2026-08-04에 같은 방식(재조회, 재생성 없음)으로
+    고쳤다(그 파일 docstring 참고).
     """
     from langsmith_experiments import experiments_enabled, identity_target, sync_dataset
     if not experiments_enabled():

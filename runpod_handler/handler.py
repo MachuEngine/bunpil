@@ -73,7 +73,14 @@ def _build_prompt(messages: list) -> str:
 
 
 def _parse_tool_calls(text: str):
-    """Qwen tool call 태그 파싱 → OpenAI 호환 구조체 반환."""
+    """Qwen tool call 태그 파싱 → OpenAI 호환 구조체 반환.
+
+    2026-08-04: 파싱 실패를 조용히 삼키지 않고 로그로 남긴다 — 이전엔 `<tool_call>`
+    태그가 있는데도 내부 JSON이 깨지면 그냥 건너뛰었고, 전부 실패하면 원문 태그가
+    섞인 텍스트가 그대로 "일반 응답"으로 상위(에이전트 루프)에 전달돼 "모델이 자발적으로
+    텍스트를 택함"과 구분이 안 됐다(bunpil_roadmap.md의 malformed tool-call 18.4%
+    관측과 같은 계열 현상으로 추정 — 원인 파악용 로그).
+    """
     matches = re.findall(r'<tool_call>\s*(.*?)\s*</tool_call>', text, re.DOTALL)
     if not matches:
         return None
@@ -92,8 +99,11 @@ def _parse_tool_calls(text: str):
                     "arguments": arguments_str,
                 },
             })
-        except Exception:
-            pass
+        except Exception as e:
+            # 하드룰 4(로그에 사용자 입력 원문·생성 문항 출력 금지) — 원문(m)은 절대
+            # 로그에 남기지 않는다. 길이·예외 종류만 남겨도 malformed tool-call 재현
+            # 여부 추적에는 충분하다.
+            print(f"tool_call 파싱 실패: {type(e).__name__}: {e} (원문 길이 {len(m)}자)", flush=True)
     return result or None
 
 
@@ -117,7 +127,14 @@ def handler(job: dict) -> dict:
                 add_generation_prompt=True,
             )
         except Exception as e:
-            print(f"apply_chat_template 실패, 폴백: {e}", flush=True)
+            # _build_prompt는 tools 정보를 전혀 담지 않는다 — 이 폴백을 타면 모델은
+            # 도구가 존재하는지조차 모른 채 일반 텍스트만 생성하게 되고, 상위(에이전트
+            # 루프)에서는 "모델이 자발적으로 텍스트 응답을 택함"과 구분이 안 된다.
+            # 흔한 응답 로그 사이에 묻히지 않도록 눈에 띄게 표시.
+            print(
+                f"### apply_chat_template 실패 — tools 정보 유실된 채 폴백: {e}",
+                flush=True,
+            )
             prompt = _build_prompt(messages)
     else:
         prompt = _build_prompt(messages)

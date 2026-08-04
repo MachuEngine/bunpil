@@ -106,7 +106,15 @@ export default function ExamTab() {
 
       const res = await fetch("/api/exam/stream", { method: "POST", body: fd });
       if (!res.ok || !res.body) {
-        setError("문항 생성에 실패했습니다.");
+        let msg = "문항 생성에 실패했습니다.";
+        try {
+          const errBody = await res.clone().json();
+          if (typeof errBody?.detail === "string") msg = errBody.detail;
+          else if (typeof errBody?.error === "string") msg = errBody.error;
+        } catch {
+          // 본문이 JSON이 아니면(예: 스트림이 이미 일부 소비됨) 기본 메시지 유지
+        }
+        setError(msg);
         return;
       }
 
@@ -126,7 +134,13 @@ export default function ExamTab() {
 
           const line = frame.split("\n").find((l) => l.startsWith("data: "));
           if (!line) continue;
-          const data = JSON.parse(line.slice("data: ".length));
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          let data: any;
+          try {
+            data = JSON.parse(line.slice("data: ".length));
+          } catch {
+            continue; // 프레임 하나가 깨져도 이미 표시된 진행 상황은 유지
+          }
 
           if (data.status === "progress") {
             setStepMsg(data.msg ?? "");

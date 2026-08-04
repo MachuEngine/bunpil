@@ -305,12 +305,17 @@ def eval_ragas(sample_ids: list[str]) -> dict:
 
 # ── LangSmith Experiments 연동 ────────────────────────────────────────
 
-def run_langsmith_experiments() -> None:
+def run_langsmith_experiments(results: list[dict]) -> None:
     """RAG Faithfulness/Answer Relevancy를 LangSmith Experiments에 기록한다.
-    문항 품질·구조 유사도 Judge(langsmith_experiments.py 공유)와 달리, 여기서는 fixed
-    golden 항목을 채점하는 게 아니라 매 실행마다 실제로 문항을 새로 생성하므로
-    target 함수가 identity가 아니라 build_sample()을 직접 호출한다."""
-    from langsmith_experiments import experiments_enabled, sync_dataset
+
+    2026-08-04: **이미 eval_ragas()가 생성·채점한 결과를 받아 조회만 한다**(재생성
+    안 함). 이전에는 target 함수가 build_sample()을 직접 호출해, 콘솔 리포트용으로
+    eval_ragas()가 이미 생성한 8개 샘플을 **여기서 다시 생성**했다 — temperature 0.7의
+    확률적 생성이라 두 번째 생성은 리포트에 찍힌 것과 다른 문항이 나올 수 있었고,
+    ReAct 에이전트 전체 루프(가장 비싼 부분)가 실행당 2배로 돌았다. 문항 품질·구조
+    Judge(eval_exam.py, 2026-08-04에 먼저 고쳤음)와 같은 종류의 중복 호출 문제였다.
+    """
+    from langsmith_experiments import experiments_enabled, identity_target, sync_dataset
     if not experiments_enabled():
         return
 
@@ -330,26 +335,23 @@ def run_langsmith_experiments() -> None:
         description="RAG Faithfulness/Answer Relevancy(Ragas 알고리즘 자체 구현) — gen_structure_golden.PASSAGE_SAMPLES 기준 실제 생성",
     )
 
-    llm = get_llm_backend()
-    embedder = get_embedder()
-
-    def rag_target(inputs: dict) -> dict:
-        return build_sample(inputs)
+    # id는 PASSAGE_SAMPLES 안에서 유일 — 재생성 없이 조회 키로 쓴다.
+    results_by_id = {r["id"]: r for r in results}
 
     def faithfulness_evaluator(outputs: dict) -> dict:
-        if outputs.get("n_items", 0) == 0:
+        r = results_by_id.get(outputs.get("id"))
+        if r is None:
             return {"key": "faithfulness", "score": None, "comment": "문항 0개 생성"}
-        result = faithfulness_one(outputs, llm)
-        return {"key": "faithfulness", "score": result["score"]}
+        return {"key": "faithfulness", "score": r["faithfulness"]["score"]}
 
     def answer_relevancy_evaluator(outputs: dict) -> dict:
-        if outputs.get("n_items", 0) == 0:
+        r = results_by_id.get(outputs.get("id"))
+        if r is None:
             return {"key": "answer_relevancy", "score": None, "comment": "문항 0개 생성"}
-        result = answer_relevancy_one(outputs, llm, embedder)
-        return {"key": "answer_relevancy", "score": result["score"]}
+        return {"key": "answer_relevancy", "score": r["answer_relevancy"]["score"]}
 
     evaluate(
-        rag_target, data="bunpil-rag-quality",
+        identity_target, data="bunpil-rag-quality",
         evaluators=[faithfulness_evaluator, answer_relevancy_evaluator],
         experiment_prefix="rag-quality", metadata=_TRACE_META,
     )
@@ -381,4 +383,4 @@ if __name__ == "__main__":
         json.dump(result, f, ensure_ascii=False, indent=2)
     print(f"\n결과 저장: {_out_path}")
 
-    run_langsmith_experiments()
+    run_langsmith_experiments(result.get("results", []))
