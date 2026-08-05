@@ -16,11 +16,20 @@ interface ExamItem {
   difficulty: "상" | "중" | "하";
   standard: string;
   judge_score: number;
-  status: "approved" | "rejected";
+  // 에이전트 자체 평가 기반. "unscored"는 record_score 호출이 실패해 채점 자체가 없는 경우로,
+  // 품질이 낮다는 뜻이 아니다(2026-08-05 분리).
+  status: "approved" | "rejected" | "unscored";
 }
+
+const _STATUS_LABEL: Record<ExamItem["status"], string> = {
+  approved: "✓ 자체평가 통과",
+  rejected: "✗ 자체평가 미달",
+  unscored: "− 자체평가 없음",
+};
 
 function ItemCard({ item }: { item: ExamItem }) {
   const [expanded, setExpanded] = useState(false);
+  const scored = item.status !== "unscored";
   const scorePercent = (item.judge_score / 5) * 100;
 
   return (
@@ -36,7 +45,7 @@ function ItemCard({ item }: { item: ExamItem }) {
           난이도 {item.difficulty}
         </Badge>
         <Badge variant={item.status === "approved" ? "approved" : "rejected"}>
-          {item.status === "approved" ? "✓ 승인" : "✗ 반려"}
+          {_STATUS_LABEL[item.status]}
         </Badge>
       </div>
 
@@ -44,11 +53,13 @@ function ItemCard({ item }: { item: ExamItem }) {
         {item.question || "—"}
       </p>
 
+      {/* 이 점수는 문항을 생성한 AI가 스스로 매긴 자체 평가다 — 객관적 검증 결과로
+          읽히지 않도록 라벨을 명시한다(2026-08-05). */}
       <div className="flex items-center gap-2">
-        <span className="text-[13px] text-[#6E7469] w-16 shrink-0">
-          품질 {item.judge_score.toFixed(1)}/5
+        <span className="text-[13px] text-[#6E7469] w-28 shrink-0">
+          {scored ? `AI 자체평가 ${item.judge_score.toFixed(1)}/5` : "AI 자체평가 없음"}
         </span>
-        <Progress value={scorePercent} className="flex-1" />
+        {scored && <Progress value={scorePercent} className="flex-1" />}
       </div>
 
       {expanded && (
@@ -248,7 +259,7 @@ export default function ExamTab() {
                 생성된 문항 ({items.length}개)
               </h2>
               <span className="text-[13px] text-[#6E7469]">
-                승인 {approved} / 반려 {items.length - approved}
+                AI 자체평가 통과 {approved} / {items.length}
               </span>
             </div>
             <div className="space-y-3">

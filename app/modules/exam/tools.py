@@ -76,16 +76,29 @@ eg.
 """
 
 def get_draft_items() -> list:
-    ctx = _get_ctx() # _request_ctx.get : _request_ctx가 가리키는 컨텍스트 (dict)을 가져옴 
+    """저장된 문항에 자체 평가 점수(record_score)와 상태를 붙여 반환한다.
+
+    2026-08-05: `unscored`(미채점)를 `rejected`(저품질)와 분리했다. 이전엔 점수가 없으면
+    0.0을 기본값으로 주고 곧바로 `rejected`로 찍었는데, `record_score` 호출 실패율이
+    실측 0.500(주로 존재하지 않는 item_id로 호출, EVAL.md 11.1절)이라 **정상 저장된
+    문항이 채점만 실패해도 저품질과 구분 없이 반려**됐다. 둘은 원인도 대응도 다르다.
+
+    참고: 이 점수는 문항을 생성한 에이전트 자신이 매긴 자체 평가다(record_score).
+    사람 라벨과 대조된 적이 없어 2026-08-05부터 validate 게이트에서 제외됐고
+    표시·참고용으로만 남는다(EVAL.md 15절).
+    """
+    ctx = _get_ctx() # _request_ctx.get : _request_ctx가 가리키는 컨텍스트 (dict)을 가져옴
     result = []
     for item in ctx["items"]:
         iid = item.get("item_id", "")
+        scored = iid in ctx["scores"]
         score = ctx["scores"].get(iid, 0.0)
+        status = "approved" if score >= 3 else "rejected"
         result.append(
             {
                 **item,
                 "judge_score": score,
-                "status": "approved" if score >= 3 else "rejected",
+                "status": status if scored else "unscored",
             }
         )
     return result

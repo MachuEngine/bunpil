@@ -15,7 +15,8 @@ class DraftItem(TypedDict):
     difficulty: str          # "상" | "중" | "하"
     standard: str
     judge_score: float       # 0–5, LLM Judge
-    status: str              # "approved" | "rejected"
+    status: str              # "approved" | "rejected" | "unscored"(record_score 미호출)
+                             # 에이전트 자체 평가 기반 참고값 — 2026-08-05부터 validate 게이트에서 제외
 
 # 그래프 전체 상태
 class ExamState(TypedDict):

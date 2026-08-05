@@ -308,13 +308,15 @@ def validate_node(state: ExamState) -> dict:
     judge = state.get("similarity_judge_result", {})
     draft_items = get_draft_items()
     count_match = len(draft_items) == state["spec"].get("num_items", 2)
-    rejected_ids = [
-        item.get("item_id", "") for item in draft_items if item.get("status") != "approved"
-    ]
-    all_approved = not rejected_ids
+    # 2026-08-05: `all_approved`(모든 문항의 record_score >= 3)를 게이트에서 제외했다.
+    # 그 점수는 문항을 생성한 에이전트 자신이 매긴 자체 평가인데(tools.py record_score),
+    # 사람 라벨과 대조된 적이 한 번도 없다 — 검증되지 않은 지표가 프로덕션 통과 여부를
+    # 결정하고 있었다. 2026-07-23에 구조 유사도에서 self-judge를 걷어낸 것과 같은 이유다.
+    # 세트 품질은 이미 judge_node(별도 Judge)의 overall_score가 본다 — 그 루브릭에
+    # 환각·중복·주제 이탈·언어 오염이 감점 요소로 들어 있어 이중 방어였다.
+    # 점수 자체는 draft_items에 그대로 남아 UI·트레이스에서 참고값으로 쓰인다.
     passed = (
         count_match
-        and all_approved
         and judge.get("type_ratio_score", 0) >= _MIN_TYPE_RATIO_SCORE
         and judge.get("difficulty_match", False)
         and judge.get("overall_score", 0) >= _MIN_OVERALL_SCORE
@@ -324,8 +326,6 @@ def validate_node(state: ExamState) -> dict:
         feedback.append(
             f"문항 개수 불일치(목표 {state['spec'].get('num_items', 2)}개, 현재 {len(draft_items)}개)"
         )
-    if rejected_ids:
-        feedback.append(f"품질 점수 미달 또는 미채점 문항: {', '.join(rejected_ids)}")
     if not judge:
         feedback.append("구조 유사도 미채점")
     else:

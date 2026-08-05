@@ -74,6 +74,9 @@ _MALFORMED_RETRY_MARKERS = (
 # validate_node의 feedback 문구(graph.py:296-311) — 형식·절차 실패 vs Judge 판단 불일치
 _FORMAT_FEEDBACK_MARKERS = (
     "문항 개수 불일치",
+    # 2026-08-05부터 validate가 더 이상 내보내지 않는 문구(자체 평가 점수를 게이트에서
+    # 제외). 그 이전 트레이스를 조회할 때 계속 분류되도록 남겨둔다 — 지우면 과거
+    # 트레이스가 통째로 unclassified로 떨어진다.
     "품질 점수 미달 또는 미채점 문항",
 )
 _JUDGMENT_FEEDBACK_MARKERS = (
