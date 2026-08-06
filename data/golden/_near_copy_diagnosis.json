@@ -1,0 +1,69 @@
+{
+  "_schema": {
+    "description": "overall_score=1(근접 복사) 실패가 어휘적인지 의미적인지 진단 (2026-08-07). containment는 save_item 게이트와 동일 계산, embed_cosine은 BGE-M3 기준. 골든셋 아님 — 재실행 시 덮어씀. 생성: experiments/diagnose_near_copy.py"
+  },
+  "n_items": 6,
+  "gate_threshold": 0.9,
+  "normal_variant_ceiling": 0.73,
+  "avg_containment_low": null,
+  "avg_containment_high": 0.371,
+  "avg_cosine_low": null,
+  "avg_cosine_high": 0.578,
+  "verdict": "판정 불가 — overall<=1 표본 없음",
+  "items": [
+    {
+      "run": 1,
+      "question": "시장 실패의 한 가지 사례로 공공재가 무임승차하는 현상을 설명할 때, 이를 논리적으로 연결시키는 개념은?",
+      "overall_score": 3,
+      "type_ratio_score": 1.0,
+      "difficulty_match": true,
+      "containment": 0.262,
+      "embed_cosine": 0.53
+    },
+    {
+      "run": 2,
+      "question": "다음 중 사회주의 경제 체제의 특징으로 맞지 않는 것은?",
+      "overall_score": 2,
+      "type_ratio_score": 1.0,
+      "difficulty_match": true,
+      "containment": 0.286,
+      "embed_cosine": 0.519
+    },
+    {
+      "run": 3,
+      "question": "시장 실패의 사례 중 하나는?",
+      "overall_score": 2,
+      "type_ratio_score": 1.0,
+      "difficulty_match": true,
+      "containment": 0.6,
+      "embed_cosine": 0.546
+    },
+    {
+      "run": 4,
+      "question": "대한민국 정치 체제의 주요 특징으로 옳지 않은 것은?",
+      "overall_score": 2,
+      "type_ratio_score": 1.0,
+      "difficulty_match": true,
+      "containment": 0.45,
+      "embed_cosine": 0.613
+    },
+    {
+      "run": 5,
+      "question": "대한민국 헌법이 규정하는 민주주의 원리 중 하나는 무엇인가?",
+      "overall_score": 3,
+      "type_ratio_score": 1.0,
+      "difficulty_match": true,
+      "containment": 0.583,
+      "embed_cosine": 0.682
+    },
+    {
+      "run": 6,
+      "question": "대한민국의 정치 체제는 어떤 형태인가?",
+      "overall_score": 3,
+      "type_ratio_score": 1.0,
+      "difficulty_match": true,
+      "containment": 0.267,
+      "embed_cosine": 0.522
+    }
+  ]
+}

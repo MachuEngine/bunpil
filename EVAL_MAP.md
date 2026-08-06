@@ -141,6 +141,7 @@ A/B 몇 회) 실행되고 끝난 스크립트들. 결과는 `data/golden/_*.json
 | `test_retry_preservation.py` | 재시도 시 부분 진행 보존 개선 전/후 비교 | (`_retry_preservation_compare.json`, 미생성) |
 | `test_topk_recall.py` | top_k 3→2 축소 시 Recall 저하 폭 | `_topk_recall_compare.json` |
 | `measure_validate_gate.py` | **(신규 2026-08-04)** validate 게이트 임계값이 Judge 실제 점수 분포 대비 적절한가 — 옛 기준 통과율 6.7%로 도달 불가 확인 | `_validate_gate_calibration.json` |
+| `diagnose_near_copy.py` | **(신규 2026-08-07)** 게이트 실패가 어휘적 근접 복사인가 의미적인가 — **두 가설 모두 반증**(containment 최대 0.600으로 임계값 조정 무의미, 코사인은 통과/실패 구간이 겹침). EVAL.md 20절 | `_near_copy_diagnosis.json` |
 | `eval_example_retrieval.py` | "실제 문제 문장" 스타일 쿼리가 standards 검색과 잘 맞는지 | `data/golden/example_question_retrieval_test.json` (라벨링 미완료, 판정 보류 상태) |
 
 ### ⚠️ 재실행 시 주의 — judge 분리로 stale해진 부분
