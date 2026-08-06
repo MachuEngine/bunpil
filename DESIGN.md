@@ -47,7 +47,6 @@
 | 형식 검증 | `validate_item_format` — 문항 형식 자기교정 | 함수 |
 | 저장 | `save_item` — 검증 통과 문항 저장 | 함수 |
 | 폐기 | `discard_item` — 승인 불가 문항을 ID로 제거 | 함수 |
-| 자체 채점 | `record_score` — 품질 자체 평가 기록 | 함수 |
 | 제출 신호 | `submit_for_review` — 작성 완료 신호(인자 없음) | 함수 |
 
 **노드**: `plan → agent → judge → validate → (재시도: agent | 종료)`. `judge` 노드는 도구가
@@ -58,7 +57,7 @@
 
 ```
 spec:                    { passage_text(예시 문제 원문), num_items(생성 개수, 기본 2) }
-draft_items:             [ { 문항, 유형, 난이도, judge_score, 상태 } ]
+draft_items:             [ { 문항, 유형, 난이도, 성취기준 } ]  # judge_score·상태는 2026-08-06 제거(EVAL.md 17절)
 similarity_judge_result: { type_ratio_score, difficulty_match, overall_score } — judge_node가 기록
 budget:                  남은 재시도 횟수 (세트 전체 단위, 무한루프 방지)
 ```

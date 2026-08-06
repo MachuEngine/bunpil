@@ -143,6 +143,7 @@ A/B 몇 회) 실행되고 끝난 스크립트들. 결과는 `data/golden/_*.json
 | `measure_validate_gate.py` | **(신규 2026-08-04)** validate 게이트 임계값이 Judge 실제 점수 분포 대비 적절한가 — 옛 기준 통과율 6.7%로 도달 불가 확인 | `_validate_gate_calibration.json` |
 | `diagnose_near_copy.py` | **(신규 2026-08-07)** 게이트 실패가 어휘적 근접 복사인가 의미적인가 — **두 가설 모두 반증**(containment 최대 0.600으로 임계값 조정 무의미, 코사인은 통과/실패 구간이 겹침). EVAL.md 20절 | `_near_copy_diagnosis.json` |
 | `measure_budget_effect.py` | **(신규 2026-08-07)** 프로덕션 조건(budget=5)에서 게이트 통과율과 재시도 소모량 — 통과율 0.833, 통과 5건 중 3건이 재시도로 회복. EVAL.md 21절 | `_budget_effect.json` |
+| `diagnose_distractor.py` | **(신규 2026-08-07)** 오답매력도 미달의 원인 — 현재 스택 생성물을 현재 Judge로 3기준 분해. **추적값 2.846이 구스택 값이라 무효**였고 실측 3.75, 진짜 병목은 정답유일성 3.375. EVAL.md 22절 | `_distractor_diagnosis.json` |
 | `eval_example_retrieval.py` | "실제 문제 문장" 스타일 쿼리가 standards 검색과 잘 맞는지 | `data/golden/example_question_retrieval_test.json` (라벨링 미완료, 판정 보류 상태) |
 
 ### ⚠️ 재실행 시 주의 — judge 분리로 stale해진 부분
