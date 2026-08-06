@@ -40,6 +40,7 @@
 | _judge_comparison_results.json | compare_judge_models.py | Judge 모델 비교 실험(qwen2.5:7b/14b vs gpt-5.6-luna/sol) raw 결과, 재실행 시 누적 저장(EVAL.md 참고) |
 | _validate_gate_calibration.json | measure_validate_gate.py | **(신규 2026-08-04)** validate 게이트 임계값 재보정 실측 — 프로덕션 Judge(gpt-5.6-luna)의 실제 점수 분포·임계값별 통과율. 옛 기준 통과율이 6.7%로 사실상 도달 불가였음을 보인 근거 데이터(EVAL.md 15절), 재실행 시 덮어씀 |
 | _near_copy_diagnosis.json | diagnose_near_copy.py | **(신규 2026-08-07)** 게이트 실패의 성격 진단 — 생성 문항별 containment·임베딩 코사인과 Judge 점수 대조. 어휘·의미 가설이 모두 반증된 근거 데이터(EVAL.md 20절), 재실행 시 덮어씀 |
+| _budget_effect.json | measure_budget_effect.py | **(신규 2026-08-07)** budget=5(프로덕션 조건) 통과율·재시도 소모량 측정. 개선 작업 없이 0.833 달성을 보인 근거 데이터(EVAL.md 21절), 재실행 시 덮어씀 |
 
 ## 명명 규칙
 

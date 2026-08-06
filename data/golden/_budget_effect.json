@@ -1,0 +1,90 @@
+{
+  "_schema": {
+    "description": "budget=5에서 게이트 통과율·재시도 소모량 측정 (2026-08-07). 19·20절의 budget=2 측정과 동일 입력·동일 num_items. 골든셋 아님 — 재실행 시 덮어씀. 생성: experiments/measure_budget_effect.py"
+  },
+  "budget": 5,
+  "n": 6,
+  "pass_rate": 0.833,
+  "count_match_rate": 1.0,
+  "zero_item_rate": 0.0,
+  "avg_elapsed_sec": 111.2,
+  "baseline_budget2": {
+    "budget": 2,
+    "n": 12,
+    "pass_rate": 0.5
+  },
+  "gate": {
+    "min_overall": 3,
+    "min_type_ratio": 0.5
+  },
+  "recovered_by_retry": 3,
+  "verdict": "재시도가 실제로 값을 했다(3건이 2회차 이상에서 통과) — budget이 큰 프로덕션은 스모크 조건보다 유리하다",
+  "runs": [
+    {
+      "run": 1,
+      "n_items": 1,
+      "count_match": true,
+      "validation_passed": false,
+      "agent_runs": 5,
+      "overall_score": 1,
+      "type_ratio_score": 1.0,
+      "difficulty_match": true,
+      "elapsed_sec": 166.4
+    },
+    {
+      "run": 2,
+      "n_items": 1,
+      "count_match": true,
+      "validation_passed": true,
+      "agent_runs": 1,
+      "overall_score": 3,
+      "type_ratio_score": 1.0,
+      "difficulty_match": true,
+      "elapsed_sec": 96.2
+    },
+    {
+      "run": 3,
+      "n_items": 1,
+      "count_match": true,
+      "validation_passed": true,
+      "agent_runs": 2,
+      "overall_score": 3,
+      "type_ratio_score": 1.0,
+      "difficulty_match": true,
+      "elapsed_sec": 101.5
+    },
+    {
+      "run": 4,
+      "n_items": 1,
+      "count_match": true,
+      "validation_passed": true,
+      "agent_runs": 4,
+      "overall_score": 3,
+      "type_ratio_score": 1.0,
+      "difficulty_match": true,
+      "elapsed_sec": 207.8
+    },
+    {
+      "run": 5,
+      "n_items": 1,
+      "count_match": true,
+      "validation_passed": true,
+      "agent_runs": 3,
+      "overall_score": 3,
+      "type_ratio_score": 1.0,
+      "difficulty_match": true,
+      "elapsed_sec": 71.7
+    },
+    {
+      "run": 6,
+      "n_items": 1,
+      "count_match": true,
+      "validation_passed": true,
+      "agent_runs": 1,
+      "overall_score": 3,
+      "type_ratio_score": 1.0,
+      "difficulty_match": true,
+      "elapsed_sec": 23.6
+    }
+  ]
+}
