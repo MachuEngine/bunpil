@@ -114,7 +114,7 @@ Ollama를 호출하는 수동 스모크 확인**이고 `tests/`는 **FakeLLM/결
 | 파일 | 검증 대상 |
 |---|---|
 | `test_masker.py` | PII 마스킹 순수 로직. **2026-08-03 변경**: `eval_record.py` 삭제로 고아가 된 MASKING_GOLDEN 20건을 파라미터화 테스트로 흡수 |
-| `test_exam_tool_gates.py` | save_item/record_score/discard_item 결정론적 게이트 |
+| `test_exam_tool_gates.py` | save_item/discard_item 결정론적 게이트 + Judge payload 정규화 (record_score는 2026-08-06 제거) |
 | `test_exam_validation.py` | validate_node 재시도 피드백 생성 (judge 분리 반영해 similarity_judge 참조 제거됨) |
 | `test_exam_input_privacy.py` | 출제 입력이 LLM 호출보다 먼저 마스킹되는지 |
 | `test_bm25.py` | **(신규, 2026-08-03)** BM25 순수 로직 유닛테스트 |
@@ -155,6 +155,12 @@ A/B 몇 회) 실행되고 끝난 스크립트들. 결과는 `data/golden/_*.json
 결과(`get_draft_items()`)는 여전히 유효하지만, 이 스크립트들을 **다시 실행할
 계획이 있다면** 프롬프트 지시를 `submit_for_review`(무인자 종료 신호)로 갱신부터
 해야 한다. 이미 끝난 실험이라 당장 조치 불필요 — 재실행 직전에만 손보면 됨.
+
+**2026-08-06 추가**: 같은 세 스크립트의 프롬프트에 남아 있는 `record_score` 지시도
+동일하게 stale해졌다(그날 도구 제거, EVAL.md 17절). 역시 무시될 뿐 결과를 깨뜨리지는
+않으나, 재실행 시 함께 걷어낼 것. `get_draft_items()`에서 `judge_score`·`status`
+필드도 사라졌는데, `experiments/`·`evals/`·`golden_gen/` 전체를 확인한 결과 이 필드를
+읽는 코드는 없어 추가 조치는 불필요하다(2026-08-06 확인).
 
 ---
 

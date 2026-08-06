@@ -64,27 +64,20 @@ def main() -> None:
 
     print("\n결과 확인")
     items = state.get("draft_items", [])
-    approved = [it for it in items if it.get("status") == "approved"]
 
-    print(f"  생성 문항: {len(items)}개 | 승인: {len(approved)}개")
+    print(f"  생성 문항: {len(items)}개 (목표 {num_items}개)")
     print(f"  검증 통과: {state.get('validation_passed', False)}")
     print(f"  similarity_judge_result: {state.get('similarity_judge_result')}")
 
     for i, it in enumerate(items, 1):
         print(
-            f"\n  [{i}] {it.get('status', '?').upper()} | "
-            f"{it.get('item_type','?')} | 난이도:{it.get('difficulty','?')} | "
-            f"judge:{it.get('judge_score', 0)}/5"
+            f"\n  [{i}] {it.get('item_type','?')} | 난이도:{it.get('difficulty','?')}"
         )
         print(f"       Q: {str(it.get('question',''))[:80]}")
 
-    passed = (
-        len(items) == num_items
-        and state.get("validation_passed", False)
-        and len(approved) == num_items
-    )
+    passed = len(items) == num_items and state.get("validation_passed", False)
     if not passed:
-        print("\n[실패] 목표 문항 수·승인 상태·구조 검증을 충족하지 못했습니다.")
+        print("\n[실패] 목표 문항 수·구조 검증을 충족하지 못했습니다.")
         raise SystemExit(1)
     print("\n[완료] 출제 모듈 통합 테스트 통과")
 

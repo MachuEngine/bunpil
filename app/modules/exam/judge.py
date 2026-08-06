@@ -95,14 +95,38 @@ def _run_async(coro):
         return pool.submit(asyncio.run, coro).result(timeout=300)
 
 
+# Judge에게 보여줄 문항 필드 — 런타임(get_draft_items)과 오프라인 eval(골든셋
+# generated_items)이 **반드시 같은 모양**이어야 해서 여기서 한 번에 정규화한다.
+#
+# 2026-08-06: 이전엔 런타임이 get_draft_items()를 그대로 넘겨 `item_id`(랜덤 hex)·
+# `standard`·`judge_score`·`status`까지 함께 전달됐고, 오프라인 eval은 아래 5개만
+# 넘겼다. 즉 EVAL.md에 쌓아온 구조 Judge 신뢰도 수치가 **프로덕션이 실제로 보내지 않는
+# 입력**으로 측정된 값이었다(검증-배포 불일치가 입력 형태로 재발). 특히 `judge_score`는
+# 에이전트 자기채점이라, 독립 채점해야 할 Judge에게 앵커를 흘리는 문제도 있었다.
+# 정규화를 judge_node가 아니라 이 공유 함수에 둔 것은 의도적이다 — 호출부가 늘어도
+# 다시 어긋날 수 없다.
+_JUDGE_ITEM_FIELDS = ("question", "options", "answer", "item_type", "difficulty")
+
+
+def _to_judge_payload(items: list) -> list:
+    return [
+        {k: item.get(k) for k in _JUDGE_ITEM_FIELDS if k in item}
+        for item in items
+    ]
+
+
 def judge_structure(passage_text: str, items: list, llm) -> dict:
     """passage_text·items(문항 세트, get_draft_items() 또는 골든셋 generated_items 형태)를
     llm(LLMBackend — get_judge_backend() 또는 get_llm_backend())으로 채점한다.
+
+    items는 `_JUDGE_ITEM_FIELDS`로 정규화해서 넘긴다 — 호출부가 어떤 부가 필드를
+    들고 있든 Judge가 보는 입력은 항상 동일하다(위 주석 참고).
+
     llm.generate()는 비동기 인터페이스라 동기 호출부(graph.py judge_node 등)를 위해
     _run_async()로 감싼다. 호출 실패는 그대로 예외로 전파된다(fail-fast) — 조용히
     폴백하면 신뢰도가 검증되지 않은 채로 프로덕션 게이트를 통과시키는 문제가 재발한다."""
     content = json.dumps(
-        {"예시_문제": passage_text, "생성된_세트": items},
+        {"예시_문제": passage_text, "생성된_세트": _to_judge_payload(items)},
         ensure_ascii=False,
     )
     messages = STRUCTURE_JUDGE_TPL.build(content)

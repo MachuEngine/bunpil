@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 
 const MAX_PASSAGE_LENGTH = 8000;
 
@@ -15,22 +14,12 @@ interface ExamItem {
   item_type: "객관식" | "서술형";
   difficulty: "상" | "중" | "하";
   standard: string;
-  judge_score: number;
-  // 에이전트 자체 평가 기반. "unscored"는 record_score 호출이 실패해 채점 자체가 없는 경우로,
-  // 품질이 낮다는 뜻이 아니다(2026-08-05 분리).
-  status: "approved" | "rejected" | "unscored";
+  // 2026-08-06: `judge_score`·`status` 제거 — AI가 자기 문항에 스스로 매기던 점수라
+  // 검증된 적이 없었고, 교사 화면에 "품질"로 보이는 것이 오해를 유발했다(EVAL.md 17절).
 }
-
-const _STATUS_LABEL: Record<ExamItem["status"], string> = {
-  approved: "✓ 자체평가 통과",
-  rejected: "✗ 자체평가 미달",
-  unscored: "− 자체평가 없음",
-};
 
 function ItemCard({ item }: { item: ExamItem }) {
   const [expanded, setExpanded] = useState(false);
-  const scored = item.status !== "unscored";
-  const scorePercent = (item.judge_score / 5) * 100;
 
   return (
     <div
@@ -44,23 +33,11 @@ function ItemCard({ item }: { item: ExamItem }) {
         <Badge variant={item.difficulty === "상" ? "hard" : item.difficulty === "중" ? "med" : "easy"}>
           난이도 {item.difficulty}
         </Badge>
-        <Badge variant={item.status === "approved" ? "approved" : "rejected"}>
-          {_STATUS_LABEL[item.status]}
-        </Badge>
       </div>
 
-      <p className="text-[14px] text-[#1C2620] line-clamp-2 mb-3">
+      <p className="text-[14px] text-[#1C2620] line-clamp-2">
         {item.question || "—"}
       </p>
-
-      {/* 이 점수는 문항을 생성한 AI가 스스로 매긴 자체 평가다 — 객관적 검증 결과로
-          읽히지 않도록 라벨을 명시한다(2026-08-05). */}
-      <div className="flex items-center gap-2">
-        <span className="text-[13px] text-[#6E7469] w-28 shrink-0">
-          {scored ? `AI 자체평가 ${item.judge_score.toFixed(1)}/5` : "AI 자체평가 없음"}
-        </span>
-        {scored && <Progress value={scorePercent} className="flex-1" />}
-      </div>
 
       {expanded && (
         <div className="mt-3 pt-3 border-t border-[#DBDCD2]">
@@ -175,7 +152,6 @@ export default function ExamTab() {
     }
   };
 
-  const approved = items.filter((i) => i.status === "approved").length;
   const overLimit = passageText.length > MAX_PASSAGE_LENGTH;
 
   return (
@@ -258,9 +234,6 @@ export default function ExamTab() {
               <h2 className="text-[14px] font-semibold text-[#1C2620]">
                 생성된 문항 ({items.length}개)
               </h2>
-              <span className="text-[13px] text-[#6E7469]">
-                AI 자체평가 통과 {approved} / {items.length}
-              </span>
             </div>
             <div className="space-y-3">
               {items.map((item) => (

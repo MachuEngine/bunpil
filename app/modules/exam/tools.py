@@ -32,82 +32,31 @@ def init_session(passage_text: str = "", target_num: int = 0) -> None:
     try:
         ctx = _request_ctx.get()
         ctx["items"] = []
-        ctx["scores"] = {}
         ctx["passage_text"] = passage_text
         ctx["target_num"] = target_num
     except LookupError:
         _request_ctx.set({
             "items": [],
-            "scores": {},
             "passage_text": passage_text,
             "target_num": target_num,
         })
 
-"""
-**item : dict 언패킹. 
-item은 save_item이 저장해둔 문항 하나. 
-
-item = {
-    "item_id": "a1b2c3",
-    "question": "...",
-    "options": [...],
-    "answer": "①",
-    "item_type": "객관식",
-    "difficulty": "중",
-    "standard": "",
-}
-
-{**item, ...} 은 item 안에 든 모든 키-값 쌍을 새 dict에 그대로 펼쳐 넣어라 라는 의미
-
-eg. 
-{**item, "judge_score": score, "status": "..."} 를 풀어 쓰면 아래와 같은 의미.
-
-{
-    "item_id": item["item_id"],
-    "question": item["question"],
-    "options": item["options"],
-    "answer": item["answer"],
-    "item_type": item["item_type"],
-    "difficulty": item["difficulty"],
-    "standard": item["standard"],
-    "judge_score": score,        # ← item에는 없던 새 필드 추가
-    "status": "approved" or "rejected",  # ← 역시 새 필드 추가
-}
-"""
-
 def get_draft_items() -> list:
-    """저장된 문항에 자체 평가 점수(record_score)와 상태를 붙여 반환한다.
+    """지금까지 저장된 문항들을 반환한다(각 dict는 호출부가 만져도 안전하도록 얕은 복사).
 
-    2026-08-05: `unscored`(미채점)를 `rejected`(저품질)와 분리했다. 이전엔 점수가 없으면
-    0.0을 기본값으로 주고 곧바로 `rejected`로 찍었는데, `record_score` 호출 실패율이
-    실측 0.500(주로 존재하지 않는 item_id로 호출, EVAL.md 11.1절)이라 **정상 저장된
-    문항이 채점만 실패해도 저품질과 구분 없이 반려**됐다. 둘은 원인도 대응도 다르다.
+    item = {item_id, question, options, answer, item_type, difficulty, standard}
 
-    참고: 이 점수는 문항을 생성한 에이전트 자신이 매긴 자체 평가다(record_score).
-    사람 라벨과 대조된 적이 없어 2026-08-05부터 validate 게이트에서 제외됐고
-    표시·참고용으로만 남는다(EVAL.md 15절).
+    2026-08-06: 이전엔 여기서 `judge_score`·`status` 두 필드를 덧붙였다. 그 값의 출처인
+    `record_score`(에이전트 자기채점)를 제거하면서 함께 걷어냈다 — 자세한 배경은
+    EVAL.md 17절.
     """
     ctx = _get_ctx() # _request_ctx.get : _request_ctx가 가리키는 컨텍스트 (dict)을 가져옴
-    result = []
-    for item in ctx["items"]:
-        iid = item.get("item_id", "")
-        scored = iid in ctx["scores"]
-        score = ctx["scores"].get(iid, 0.0)
-        status = "approved" if score >= 3 else "rejected"
-        result.append(
-            {
-                **item,
-                "judge_score": score,
-                "status": status if scored else "unscored",
-            }
-        )
-    return result
+    return [dict(item) for item in ctx["items"]]
 
 """
 context (dict)
     {
         "items": list,          # 문항 dict들의 리스트
-        "scores": dict,         # item_id(str) → score(float) 매핑
         "passage_text": str,    # 교사가 입력한 예시 문제 원문
         "target_num": int,      # 목표 문항 개수 (예: 5)
     }
@@ -286,20 +235,7 @@ def save_item(question: str, options: list, answer: str, item_type: str, difficu
         "standard": standard,
     }
     ctx["items"].append(item)
-    return f"저장 완료 (item_id={item_id}). 다음 턴에 이 item_id로 record_score를 호출하세요."
-
-
-@tool
-def record_score(item_id: str, score: int) -> str:
-    """문항 품질 점수를 기록합니다. 에이전트가 직접 평가한 점수를 입력합니다.
-    item_id: save_item이 반환한 문항 ID
-    score: 0~5 (5=매우 우수, 4=우수, 3=보통, 2=미흡, 1=불량, 0=생성 실패)
-    """
-    ctx = _get_ctx()
-    if not any(item.get("item_id") == item_id for item in ctx["items"]):
-        return f"점수 기록 거부 — 존재하지 않는 item_id: {item_id}"
-    ctx["scores"][item_id] = float(max(0, min(5, int(score))))
-    return f"품질 점수 {score}/5 기록됨"
+    return f"저장 완료 (item_id={item_id})."
 
 
 @tool
@@ -309,16 +245,15 @@ def discard_item(item_id: str) -> str:
     for index, item in enumerate(ctx["items"]):
         if item.get("item_id") == item_id:
             ctx["items"].pop(index)
-            ctx["scores"].pop(item_id, None)
             return f"문항 폐기 완료 (item_id={item_id})"
     return f"문항 폐기 거부 — 존재하지 않는 item_id: {item_id}"
 
 
 @tool
 def submit_for_review() -> str:
-    """문항 세트 작성을 모두 마쳤다는 신호입니다. 문항 저장(save_item)과 채점
-    (record_score)이 끝난 뒤 이 도구를 호출하세요. 구조 유사도 평가·문항 개수
-    검증은 이 도구가 아니라 시스템이 자동으로 수행합니다.
+    """문항 세트 작성을 모두 마쳤다는 신호입니다. 문항 저장(save_item)이 끝난 뒤
+    이 도구를 호출하세요. 구조 유사도 평가·문항 개수 검증은 이 도구가 아니라
+    시스템이 자동으로 수행합니다.
 
     2026-07-23: 이전엔 생성 에이전트가 similarity_judge 도구로 자기 출력을 스스로
     채점했으나(self-judge), 사람 라벨 대비 신뢰도가 검증된 적이 없어 별도 Judge
@@ -327,11 +262,15 @@ def submit_for_review() -> str:
     return "제출 완료 — 구조 유사도 평가를 진행합니다."
 
 
+# 2026-08-06: `record_score` 제거(7→6→5개). 문항 품질을 에이전트가 자기 자신에게
+# 매기던 도구인데, 2026-08-05에 validate 게이트에서 빠지면서 표시값 외엔 쓰임이
+# 없어졌다. 반면 시스템 프롬프트가 이를 "save_item 다음 턴에" 부르도록 강제해
+# 문항당 4턴 중 1턴(25%)을 쓰고 있었고, 실측 거부율도 0.500이라 실패 시 턴을 더
+# 낭비했다. 14턴 한도가 실제 병목(문항 수가 늘수록 개수 미달)이라 걷어냈다 — EVAL.md 17절.
 TOOLS = [
     search_standards,
     validate_item_format,
     save_item,
-    record_score,
     discard_item,
     submit_for_review,
 ]

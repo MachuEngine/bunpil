@@ -14,9 +14,8 @@ class DraftItem(TypedDict):
     item_type: str           # "객관식" | "서술형"
     difficulty: str          # "상" | "중" | "하"
     standard: str
-    judge_score: float       # 0–5, LLM Judge
-    status: str              # "approved" | "rejected" | "unscored"(record_score 미호출)
-                             # 에이전트 자체 평가 기반 참고값 — 2026-08-05부터 validate 게이트에서 제외
+    # 2026-08-06: `judge_score`·`status` 제거 — 출처였던 record_score(에이전트 자기채점)를
+    # 도구에서 걷어냈다(EVAL.md 17절). 문항 품질 판정은 judge_node의 구조 유사도 채점이 담당.
 
 # 그래프 전체 상태
 class ExamState(TypedDict):

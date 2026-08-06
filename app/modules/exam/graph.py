@@ -76,13 +76,13 @@ def _build_system_prompt(
 
     def _summary(items):
         """
-        기존 문항들을 사람이 읽을 만한 요약 목록으로 변환하는 내부 헬퍼. 
-        item_id, 유형/난이도, 점수, 질문 앞 40자만 보여줌 — 전체 문항 텍스트를
+        기존 문항들을 사람이 읽을 만한 요약 목록으로 변환하는 내부 헬퍼.
+        item_id, 유형/난이도, 질문 앞 40자만 보여줌 — 전체 문항 텍스트를
         다 넣으면 프롬프트가 불필요하게 길어지니 식별에 필요한 만큼만.
         """
         return "\n".join(
-            f"  {i+1}. [id={it.get('item_id','?')}, {it.get('item_type','?')}/{it.get('difficulty','?')}, "
-            f"score={it.get('judge_score', 0)}] {str(it.get('question',''))[:40]}"
+            f"  {i+1}. [id={it.get('item_id','?')}, {it.get('item_type','?')}/{it.get('difficulty','?')}] "
+            f"{str(it.get('question',''))[:40]}"
             for i, it in enumerate(items)
         )
 
@@ -121,7 +121,7 @@ def _build_system_prompt(
             count_instruction = (
                 f"이전 검증 실패 사유: {validation_feedback}\n"
                 "단순 재제출만 하지 마세요. 실패 사유에 해당하는 문항을 discard_item으로 폐기하고, "
-                "유형·난이도·품질을 교정한 새 문항을 저장·채점한 뒤 submit_for_review를 다시 호출하세요."
+                "유형·난이도·품질을 교정한 새 문항을 저장한 뒤 submit_for_review를 다시 호출하세요."
             )
             action_instruction = "문항을 실제로 교체한 뒤 submit_for_review를 호출하세요:"
         else:
@@ -141,8 +141,7 @@ def _build_system_prompt(
         "2. validate_item_format — 직접 구성한 문항의 형식 검증\n"
         "   (오류가 있으면 수정 후 재검증, 통과할 때까지 반복)\n"
         "3. save_item — 검증 통과한 문항 저장\n"
-        "4. save_item 응답을 받은 다음 턴에 record_score — 반환된 item_id와 품질 점수(0~5점) 기록\n"
-        "5. [교체 시] discard_item — 기존 문항을 폐기한 뒤 새 문항 저장\n\n"
+        "4. [교체 시] discard_item — 기존 문항을 폐기한 뒤 새 문항 저장\n\n"
         "문항 세트 작성이 모두 끝나면 submit_for_review 도구를 호출해 제출하세요. "
         "(구조 유사도 평가·문항 개수 검증은 이 도구가 아니라 시스템이 자동으로 수행합니다.)\n\n"
         "문항은 당신이 직접 작성합니다. "
@@ -163,8 +162,11 @@ def agent_node(state: ExamState) -> dict:
     동적으로 구성한다.
 
     2026-07-23: 구조 유사도 자기채점(similarity_judge)을 제거했다 — 이제 에이전트는
-    문항 작성·저장·채점 후 submit_for_review로 "끝났다"는 신호만 보내고, 실제
+    문항 작성·저장 후 submit_for_review로 "끝났다"는 신호만 보내고, 실제
     구조 유사도 채점은 별도 judge_node(get_judge_backend())가 담당한다.
+
+    2026-08-06: 문항 품질 자기채점(record_score)도 제거했다 — 문항당 1턴을 쓰면서
+    게이트하는 것은 없어진 상태였다(EVAL.md 17절).
     """
     spec = state["spec"]
     passage_text = spec.get("passage_text", "")
@@ -186,7 +188,6 @@ def agent_node(state: ExamState) -> dict:
     #   "search_standards": search_standards,
     #   "validate_item_format": validate_item_format,
     #   "save_item": save_item,
-    #   "record_score": record_score,
     #   "discard_item": discard_item,
     #   "submit_for_review": submit_for_review,
     # }
@@ -309,12 +310,13 @@ def validate_node(state: ExamState) -> dict:
     draft_items = get_draft_items()
     count_match = len(draft_items) == state["spec"].get("num_items", 2)
     # 2026-08-05: `all_approved`(모든 문항의 record_score >= 3)를 게이트에서 제외했다.
-    # 그 점수는 문항을 생성한 에이전트 자신이 매긴 자체 평가인데(tools.py record_score),
-    # 사람 라벨과 대조된 적이 한 번도 없다 — 검증되지 않은 지표가 프로덕션 통과 여부를
-    # 결정하고 있었다. 2026-07-23에 구조 유사도에서 self-judge를 걷어낸 것과 같은 이유다.
-    # 세트 품질은 이미 judge_node(별도 Judge)의 overall_score가 본다 — 그 루브릭에
-    # 환각·중복·주제 이탈·언어 오염이 감점 요소로 들어 있어 이중 방어였다.
-    # 점수 자체는 draft_items에 그대로 남아 UI·트레이스에서 참고값으로 쓰인다.
+    # 그 점수는 문항을 생성한 에이전트 자신이 매긴 자체 평가인데 사람 라벨과 대조된 적이
+    # 한 번도 없다 — 검증되지 않은 지표가 프로덕션 통과 여부를 결정하고 있었다.
+    # 2026-07-23에 구조 유사도에서 self-judge를 걷어낸 것과 같은 이유다. 세트 품질은
+    # 이미 judge_node(별도 Judge)의 overall_score가 본다 — 그 루브릭에 환각·중복·주제
+    # 이탈·언어 오염이 감점 요소로 들어 있어 이중 방어였다.
+    # 2026-08-06: 게이트에서 빠진 뒤에도 문항당 1턴을 쓰고 있어 record_score 도구 자체를
+    # 제거했다(EVAL.md 17절) — 이제 자기채점 점수는 존재하지 않는다.
     passed = (
         count_match
         and judge.get("type_ratio_score", 0) >= _MIN_TYPE_RATIO_SCORE
