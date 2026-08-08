@@ -181,19 +181,36 @@ def score_items(items: list, llm, limit: int | None = None) -> list[dict]:
 
 
 def eval_item_quality(scored: list[dict]) -> dict:
-    """score_items() 결과로 문항 품질 평균/합격률 계산 (LLM 재호출 없음)."""
+    """score_items() 결과로 문항 품질 평균/합격률/저품질 비율 계산 (LLM 재호출 없음).
+
+    2026-08-08: 기준별 **저품질 비율**(≤3점)을 함께 낸다. 평균만 보면 실제로 무엇을
+    고쳐야 하는지가 가려지기 때문이다 — 실측 n=62에서 오답매력도 분포가
+    {2:4, 3:5, 4:51, 5:2}로 **82%가 4점**에 뭉쳐 있었고, 평균 3.823을 목표 4.0으로
+    끌어올리는 경로는 "보통 문항을 더 좋게"가 아니라 **"하위 14.5%를 없애기"** 하나뿐이었다
+    (그 9건을 4점으로 만들면 평균 4.032). Judge가 5점을 거의 안 주므로(62건 중 2건)
+    평균의 실질 상한도 4.03이라 해상도가 낮다 — 비율 지표가 더 잘 움직이고 조치도 명확하다.
+    정답유일성에서 "치명적 실패율"을 따로 보는 것과 같은 이유(EVAL.md 26절).
+    """
     results = [s["scores"] for s in scored]
+    n = len(results)
 
     def avg(key):
-        return round(sum(r[key] for r in results) / len(results), 2)
+        return round(sum(r[key] for r in results) / n, 2)
+
+    def low_rate(key):
+        """해당 기준이 3점 이하인 비율 — 평균을 끌어내리는 실제 원인."""
+        return round(sum(1 for r in results if r[key] <= 3) / n, 3)
 
     return {
-        "n": len(results),
+        "n": n,
         "avg_정답유일성": avg("정답유일성"),
         "avg_오답매력도": avg("오답매력도"),
         "avg_근거성": avg("근거성"),
         "avg_overall": avg("overall"),
-        "pass_rate": round(sum(1 for r in results if r["overall"] >= 4.0) / len(results), 2),
+        "low_rate_정답유일성": low_rate("정답유일성"),
+        "low_rate_오답매력도": low_rate("오답매력도"),
+        "low_rate_근거성": low_rate("근거성"),
+        "pass_rate": round(sum(1 for r in results if r["overall"] >= 4.0) / n, 2),
     }
 
 

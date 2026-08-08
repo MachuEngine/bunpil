@@ -66,10 +66,12 @@ def print_report(retrieval: dict, quality: dict, structure: dict, reliability: d
     print(f"  Recall@5 : {r5:.3f}  {check(r5 >= 0.8)} (기준 ≥ 0.8)")
     print(f"  MRR      : {mrr:.3f}  {check(mrr >= 0.6)} (참고값)")
 
+    # 평균 옆에 저품질 비율(≤3점)을 나란히 찍는다 — 평균만 보면 "무엇을 고쳐야 하는지"가
+    # 가려진다. 실측상 오답매력도는 82%가 4점이라 평균이 거의 하위 꼬리로만 결정된다(EVAL.md 26절).
     print(f"\n[2] 문항 품질 LLM Judge (n={quality['n']}, 5점 척도)")
-    print(f"  정답유일성  : {quality['avg_정답유일성']:.2f}")
-    print(f"  오답매력도  : {quality['avg_오답매력도']:.2f}")
-    print(f"  근거성      : {quality['avg_근거성']:.2f}")
+    print(f"  {'기준':<12}{'평균':<8}{'저품질(≤3) 비율'}")
+    for name in ("정답유일성", "오답매력도", "근거성"):
+        print(f"  {name:<12}{quality[f'avg_{name}']:<8.2f}{quality[f'low_rate_{name}']*100:.0f}%")
     print(f"  종합평균    : {quality['avg_overall']:.2f}  {check(quality['avg_overall'] >= 4.0)} (기준 ≥ 4.0)")
     print(f"  합격률(≥4.0): {quality['pass_rate']*100:.0f}%")
 
