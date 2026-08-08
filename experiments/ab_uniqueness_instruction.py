@@ -56,19 +56,23 @@ from scripts.test_exam import PASSAGE_TEXT  # noqa: E402
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT_PATH = os.path.join(_ROOT, "data", "golden", "_ab_uniqueness_instruction.json")
 
-# 23절에서 추가한 블록의 시작·끝 마커. 대조군에서 이 구간만 들어낸다.
-_BLOCK_START = "**선지를 다 쓴 뒤"
-_BLOCK_END = "오답(정답이 아닌 선지)"
+# 대조군에서 들어낼 블록의 시작·끝 마커(--block-start/--block-end로 교체 가능).
+# 프롬프트 A/B를 반복하게 돼 마커를 파라미터화했다 — 2026-08-07 few-shot 실험부터 재사용.
+_BLOCK_START = "[예시로 배우기]"
+_BLOCK_END = "**매우 중요한 규칙**"
 
 _ORIGINAL_BUILD = graph_mod._build_system_prompt
 
 
 def _build_without_uniqueness(*args, **kwargs) -> str:
-    """유일성 지시 블록을 제거한 프롬프트(= 23절 변경 전 상태)."""
+    """지정한 블록을 제거한 대조군 프롬프트."""
     p = _ORIGINAL_BUILD(*args, **kwargs)
-    i, j = p.find(_BLOCK_START), p.find(_BLOCK_END)
-    if i == -1 or j == -1 or j <= i:
-        raise RuntimeError("유일성 블록을 찾지 못했습니다 — 프롬프트가 바뀐 듯하니 마커를 갱신할 것")
+    i = p.find(_BLOCK_START)
+    # 끝 마커는 **블록 시작 이후부터** 찾는다 — no_text_rule처럼 프롬프트에 두 번
+    # 등장하는 문자열을 끝 마커로 쓰면 앞쪽 것을 잡아 과도하게 잘려나간다(실제로 겪음).
+    j = p.find(_BLOCK_END, i + len(_BLOCK_START)) if i != -1 else -1
+    if i == -1 or j == -1:
+        raise RuntimeError(f"블록을 찾지 못했습니다({_BLOCK_START!r}…{_BLOCK_END!r}) — 마커를 갱신할 것")
     return p[:i] + p[j:]
 
 
@@ -171,10 +175,14 @@ def report(rows: list[dict], per_arm: int) -> dict:
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--per-arm", type=int, default=12, help="각 팔당 실행 횟수")
+    ap.add_argument("--block-start", default=_BLOCK_START, help="대조군에서 제거할 블록 시작 문자열")
+    ap.add_argument("--block-end", default=_BLOCK_END, help="제거 구간의 끝(이 문자열 직전까지 제거)")
     args = ap.parse_args()
 
+    _BLOCK_START, _BLOCK_END = args.block_start, args.block_end
     judge_llm = get_judge_backend()
-    print(f"교차 실행 A/B — 팔당 {args.per_arm}회 (총 {args.per_arm * 2}회)\n")
+    print(f"교차 실행 A/B — 팔당 {args.per_arm}회 (총 {args.per_arm * 2}회)")
+    print(f"대조군에서 제거할 블록: {_BLOCK_START!r} … {_BLOCK_END!r}\n")
 
     rows = []
     try:
