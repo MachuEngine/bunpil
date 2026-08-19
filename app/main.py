@@ -18,22 +18,27 @@ load_dotenv()
 from app.common.llm.tracing import init_langsmith_project
 init_langsmith_project()
 
-from fastapi import Depends, FastAPI, Form, Header, HTTPException, Request
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
 
 
 app = FastAPI(title="분필 API", version="0.1.0")
 
 MAX_REQUEST_BYTES = 64 * 1024
+# 2026-08-19: 이미지 업로드(/exam/extract)만 별도 한도. 스크린샷은 보통 300KB~2MB —
+# 텍스트 경로(MAX_REQUEST_BYTES)는 그대로 두고 이 경로만 완화한다.
+MAX_IMAGE_BYTES = 5 * 1024 * 1024
+_IMAGE_UPLOAD_PATHS = {"/exam/extract"}
 _REQUEST_SLOTS = asyncio.Semaphore(2)
 
 
 @app.middleware("http")
 async def limit_request_size(request: Request, call_next):
+    limit = MAX_IMAGE_BYTES if request.url.path in _IMAGE_UPLOAD_PATHS else MAX_REQUEST_BYTES
     content_length = request.headers.get("content-length")
     if content_length:
         try:
-            too_large = int(content_length) > MAX_REQUEST_BYTES
+            too_large = int(content_length) > limit
         except ValueError:
             return JSONResponse({"detail": "Content-Length 형식이 올바르지 않습니다."}, status_code=400)
         if too_large:
@@ -265,6 +270,58 @@ async def exam_stream(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+# ── 이미지 → 텍스트 추출 (예시 문제 캡처 붙여넣기) ──────────────────────────
+# 2026-08-19: passage_text를 텍스트로 직접 입력하는 대신 화면 캡처를 붙여넣을 수
+# 있도록 추가. 추출된 텍스트는 기존 /exam/stream으로 그대로 흘러간다 — 그래프는
+# 이미지를 모른다(app/modules/exam/graph.py 미수정).
+#
+# PII 마스킹 순서 예외(하드룰 2): 다른 모든 LLM 호출은 mask_pii() 이후에 이뤄지지만,
+# 이 경로는 원본 이미지가 마스킹 전에 VLM으로 먼저 전달된다 — 이미지 자체를 마스킹할
+# 방법이 없어 텍스트로 변환된 뒤에야 마스킹이 가능하기 때문이다(DESIGN.md 6절에
+# 동일하게 문서화). 추출된 텍스트는 반환 전 반드시 mask_pii()를 거친다.
+#
+# 이 순서 예외가 LangSmith 트레이싱(하드룰 3의 승인된 예외, "마스킹 후"만 전제)까지
+# 어기지 않도록, get_vlm_backend()(OpenAIVLMBackend)는 langchain_openai를 쓰지 않고
+# openai SDK를 직접 호출한다 — LangChain Runnable이 아니므로 LANGCHAIN_TRACING_V2가
+# 켜져 있어도 이 호출은 트레이싱되지 않는다(이유는 backends/openai_vlm.py 참고).
+#
+# 이미지 원본은 애플리케이션 코드가 디스크에 명시적으로 쓰지 않는다 — UploadFile.read()로
+# 읽어 VLM 호출에만 쓰고 즉시 버린다(하드룰 3: 사용자 입력 비저장). 단, Starlette의
+# multipart 파서가 1MB 초과 업로드를 내부적으로 SpooledTemporaryFile로 OS temp에
+# 일시 스풀할 수 있다(starlette/formparsers.py, max_file_size=1MB) — 요청 종료 시
+# 자동 삭제되는 임시 파일이며 애플리케이션이 관리하는 영구 경로에는 쓰이지 않는다.
+_ALLOWED_IMAGE_MIME_TYPES = {"image/png", "image/jpeg", "image/webp"}
+
+
+@app.post("/exam/extract")
+async def exam_extract(
+    image: UploadFile = File(...),
+    _: None = Depends(verify_api_key),
+):
+    """시험 문제 캡처 이미지에서 텍스트를 추출해 마스킹 후 반환한다."""
+    if image.content_type not in _ALLOWED_IMAGE_MIME_TYPES:
+        raise HTTPException(
+            status_code=400, detail="지원하지 않는 이미지 형식입니다 (png/jpeg/webp만 허용)."
+        )
+
+    image_bytes = await image.read()
+
+    # VLM 호출도 LLM 호출이므로 세마포어(2) 밖에 두지 않는다
+    # (_build_spec의 num_items 추출을 슬롯 안으로 넣은 2026-08-04 변경과 같은 이유).
+    async with request_slot():
+        try:
+            from app.common.llm import get_vlm_backend
+            from app.common.privacy import mask_pii
+
+            raw_text = await get_vlm_backend().extract_text(image_bytes, image.content_type)
+            masked_text, pii_found = mask_pii(raw_text)
+        except Exception:
+            logger.exception("/exam/extract 오류")
+            raise HTTPException(status_code=502, detail="이미지에서 문제를 읽지 못했습니다.")
+
+    return {"text": masked_text, "pii_found": pii_found}
 
 
 # ── 기존 JSON 엔드포인트 (하위 호환) ────────────────────────────────────

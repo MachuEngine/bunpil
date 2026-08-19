@@ -55,7 +55,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./assets/architecture-dark.svg">
-  <img src="./assets/architecture-light.svg" alt="분필 시스템 구성도 — 브라우저에서 FastAPI를 거쳐 출제 그래프(LangGraph)로 이어지고, ChromaDB·생성 LLM(Qwen2.5-14B)을 사용하며 judge 노드만 별도 Judge LLM(gpt-5.6-luna)을 사용하는 구조도">
+  <img src="./assets/architecture-light.svg" alt="분필 시스템 구성도 — 브라우저에서 FastAPI를 거쳐 출제 그래프(LangGraph)로 이어지고, ChromaDB·생성 LLM(Qwen2.5-14B)을 사용하며 judge 노드만 별도 Judge LLM(gpt-5.6-luna)을 사용하고, /exam/extract는 그래프를 거치지 않고 별도 VLM(gpt-4o-mini)을 호출해 이미지를 텍스트로 추출하는 구조도">
 </picture>
 
 > 🎯로 표시한 **Judge LLM은 생성 LLM과 완전히 다른 백엔드**입니다 — 문항을 쓰는 모델이 자기 글을 자기가 채점하지 않도록 의도적으로 분리했습니다(배경은 [아키텍처](#아키텍처) 참고).
@@ -143,7 +143,12 @@
 
 - **`POST /exam/stream`** (SSE) — UI가 사용하는 기본 경로. `graph.stream(stream_mode="updates")`로 LangGraph 노드 완료 시점마다 진행 이벤트를 전송합니다. POST 요청이라 브라우저 네이티브 `EventSource`(GET 전용) 대신 프론트엔드가 `fetch` + `ReadableStream`을 수동 파싱합니다.
 - **`POST /exam`** (JSON 단발) — 동일 로직의 대안 엔드포인트 (curl 등 비-브라우저 클라이언트용)
+- **`POST /exam/extract`** — 예시 문제 캡처 이미지(png/jpeg/webp, 5MB까지)를 받아 VLM으로 텍스트를 추출하고 마스킹해 반환합니다. 그래프와는 무관한 별도 경로이며, 추출된 텍스트를 `/exam/stream`에 그대로 넘기는 건 교사 몫입니다.
 - **`GET /health`** — 헬스체크 (인증 불필요)
+
+### 이미지로 예시 문제 입력하기
+
+텍스트를 옮겨 적는 대신 화면 캡처를 붙여넣을 수 있습니다. 예시 문제 입력창에 이미지를 `Ctrl+V`로 붙여넣거나 "이미지 첨부" 버튼으로 파일을 선택하면, VLM(기본 OpenAI, `VLM_BACKEND`)이 발문·`<보기>`·선지를 원문 그대로 옮기고 표·그래프·지도 같은 비텍스트 자료는 `[자료: ...]`로 서술합니다. 추출된 텍스트는 입력창에 자동으로 채워지되 생성이 자동 시작되지는 않습니다 — 교사가 확인하고 고친 뒤 직접 "문항 생성"을 눌러야 합니다. **주의**: 다른 모든 LLM 호출은 개인정보 마스킹 이후에 이뤄지지만, 이 경로만은 원본 이미지가 마스킹 전에 VLM으로 먼저 전달됩니다(이미지 자체는 마스킹할 방법이 없어 텍스트 추출 후에야 마스킹). 학생 개인정보가 찍힌 캡처는 넣지 않는 것이 안전합니다. 이미지 원본은 애플리케이션이 디스크에 저장하지 않고(자세한 예외 범위와 트레이싱 차단 방식은 [DESIGN.md](./DESIGN.md) 6절 참고) 요청 처리 중에만 다룹니다.
 
 ```
 data: {"status": "truncated", "msg": "입력이 길어 앞부분만 반영되었습니다."}  # 8,000자 초과 시만
@@ -553,11 +558,11 @@ bash deploy/billing_alarm.sh   # 월 $10 초과 시 이메일 알람
 bunpil/
 ├── app/
 │   ├── common/
-│   │   ├── llm/          # LLM 추상화 (OllamaBackend / RunPodBackend / OpenAIBackend / ChatRunPod)
+│   │   ├── llm/          # LLM 추상화 (OllamaBackend / RunPodBackend / OpenAIBackend / ChatRunPod / OpenAIVLMBackend)
 │   │   └── rag/          # PDF 파싱, 임베딩, 리랭킹, ChromaDB
 │   ├── modules/
 │   │   ├── exam/         # 출제 모듈 — graph.py(LangGraph) / tools.py(도구 7개) / judge.py(Judge 채점 함수)
-│   └── main.py           # FastAPI (/exam/stream · /exam · /health)
+│   └── main.py           # FastAPI (/exam/stream · /exam · /exam/extract · /health)
 ├── frontend/             # Next.js UI
 ├── data/
 │   ├── regulations/      # 생기부 기재요령·훈령 (검색 eval 전용 — 런타임 미사용)
@@ -595,6 +600,8 @@ bunpil/
 | `OPENAI_API_KEY` | `LLM_BACKEND=openai` 또는 `JUDGE_BACKEND=openai`일 때 필요 | — |
 | `OPENAI_MODEL` | 생성 모델 비교 실험용(`LLM_BACKEND=openai`일 때만) | `gpt-4o-mini` |
 | `OPENAI_JUDGE_MODEL` | Judge 기본 모델(`JUDGE_BACKEND=openai`). 채택 근거는 [MODEL_SELECTION.md](./MODEL_SELECTION.md) | `gpt-5.6-luna` |
+| `VLM_BACKEND` | 이미지→텍스트 추출 백엔드(`/exam/extract`). 생성/Judge와 완전히 독립. 현재 `openai`만 지원 | `openai` |
+| `OPENAI_VLM_MODEL` | 이미지 추출용 OpenAI Vision 모델명 | `gpt-4o-mini` |
 | `CHROMA_PERSIST_DIR` | ChromaDB 저장 경로 | `/data/chroma_db` (EC2) / `./chroma_db` (로컬) |
 | `BGE_EMBED_MODEL` | 임베딩 모델명 | `BAAI/bge-m3` |
 | `BGE_RERANK_MODEL` | 리랭킹 모델명 | `BAAI/bge-reranker-base` |

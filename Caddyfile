@@ -9,18 +9,36 @@
 # docker-compose.yml의 frontend 서비스가 3000:3000으로 호스트에 포트를 열어둠.
 
 your-domain.com {
-	request_body {
-		max_size 64KB
+	# 2026-08-19: 이미지 업로드(/api/exam/extract)만 5MB까지 허용 — 스크린샷은
+	# 보통 300KB~2MB. 텍스트 경로(아래 기본 handle, 64KB)는 그대로 둔다.
+	# app/main.py의 MAX_IMAGE_BYTES/MAX_REQUEST_BYTES와 짝을 맞춰 유지할 것.
+	handle /api/exam/extract* {
+		request_body {
+			max_size 5MB
+		}
+
+		reverse_proxy localhost:3000 {
+			transport http {
+				read_timeout 300s
+				write_timeout 300s
+			}
+		}
 	}
 
-	# 타임아웃: LLM 생성이 길므로 넉넉히 설정 (frontend → FastAPI 프록시 구간 포함)
-	reverse_proxy localhost:3000 {
-		transport http {
-			read_timeout 300s
-			write_timeout 300s
+	handle {
+		request_body {
+			max_size 64KB
 		}
-		# SSE 스트리밍을 위한 flush 설정
-		flush_interval -1
+
+		# 타임아웃: LLM 생성이 길므로 넉넉히 설정 (frontend → FastAPI 프록시 구간 포함)
+		reverse_proxy localhost:3000 {
+			transport http {
+				read_timeout 300s
+				write_timeout 300s
+			}
+			# SSE 스트리밍을 위한 flush 설정
+			flush_interval -1
+		}
 	}
 
 	# 요청/응답 로그 — PII 포함 가능성이 있으므로 body 로깅 비활성화

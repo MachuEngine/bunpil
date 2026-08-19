@@ -163,6 +163,25 @@ PII 마스킹(`app/common/privacy.py`)은 출제 경로가 계속 쓰므로 유�
   적용돼 있으나(`_build_spec`이 그래프 진입 전에 마스킹), **저작권 있는 교사 지문 자체는 마스킹
   대상이 아니라 그대로 외부에 전송됨** — 의도적으로 수용한 트레이드오프(생성·Judge 모델 분리
   우선). 로컬로만 처리하려면 `JUDGE_BACKEND=local`로 전환할 것
+- **⚠️ 2026-08-19부터 — 하드룰 2 순서 예외(`POST /exam/extract`)**: 다른 모든 LLM 호출은
+  `mask_pii()` 이후에 이뤄지지만, 이 경로만은 **원본 이미지가 마스킹 전에 VLM(`get_vlm_backend()`)
+  으로 먼저 전달된다** — 이미지 자체를 텍스트 마스킹 규칙으로 처리할 방법이 없어, 텍스트로
+  변환된 뒤에야 마스킹이 가능하기 때문이다. 캡처에는 학교명 헤더·이름 칸이 그대로 찍혀
+  있을 수 있으므로, VLM이 반환한 텍스트는 클라이언트로 응답하기 전 반드시 `mask_pii()`를
+  거친다(`app/main.py`의 `exam_extract()`, `tests/test_exam_input_privacy.py`로 회귀 확인).
+  이 순서 예외가 LangSmith 트레이싱(위 항목의 승인된 예외, "마스킹 후"만 전제)까지 어기면
+  안 되므로 — LangSmith 자동 트레이싱은 그래프 안/밖이 아니라 **LangChain `Runnable` 호출
+  여부**로 결정된다(`LANGCHAIN_TRACING_V2=true`는 프로세스 전역 스위치) — `OpenAIVLMBackend`는
+  `langchain_openai.ChatOpenAI`를 쓰지 않고 `openai` SDK를 직접 호출한다. `OllamaBackend`/
+  `RunPodBackend`가 같은 이유로 LangChain Runnable을 피해 트레이싱을 원천 차단하는 것과
+  동일한 설계(`app/common/llm/backends/openai_vlm.py` 참고).
+  이미지 원본은 애플리케이션 코드가 디스크에 명시적으로 쓰지 않고 `UploadFile.read()`로
+  읽어 VLM 호출에만 쓰고 즉시 버린다(하드룰 3). 다만 Starlette의 multipart 파서가 1MB
+  초과 업로드는 내부적으로 `SpooledTemporaryFile`로 OS temp에 일시 스풀할 수 있다 —
+  요청 종료 시 자동 삭제되는 임시 파일이며 앱이 관리하는 영구 경로에는 쓰이지 않는다.
+  추출된 텍스트는 그래프로 들어가지 않고 프론트엔드
+  입력창에 채워질 뿐이며, 교사가 확인 후 기존 `/exam/stream` 경로로 별도 제출한다 — 그래프
+  (`app/modules/exam/graph.py`)는 이미지의 존재를 모른다.
 
 ---
 

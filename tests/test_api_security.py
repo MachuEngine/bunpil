@@ -112,3 +112,65 @@ def test_exam_returns_graceful_error_instead_of_raw_500(monkeypatch):
     assert response.json()["status"] == "error"
     # 슬롯이 예외 상황에서도 반납됐는지 확인(누수 방지)
     assert main_module._REQUEST_SLOTS._value == initial
+
+
+# ── 2026-08-19: /exam/extract(이미지 입력) 경계 테스트 ────────────────────
+# VLM 호출 없음 — 인증·MIME 화이트리스트·크기 제한 세 경계가 핸들러 본문(VLM 호출)에
+# 도달하기 전에 각각 차단하는지만 검증한다.
+
+_PNG_BYTES = b"\x89PNG\r\n\x1a\n"  # 시그니처만 있는 최소 더미 — 실제 디코딩은 하지 않음
+
+
+def test_exam_extract_requires_api_key(monkeypatch):
+    monkeypatch.setenv("BUNPIL_API_KEY", "synthetic-secret")
+    response = TestClient(app).post(
+        "/exam/extract",
+        files={"image": ("test.png", _PNG_BYTES, "image/png")},
+    )
+    assert response.status_code == 401
+
+
+def test_exam_extract_rejects_unsupported_mime(monkeypatch):
+    monkeypatch.setenv("BUNPIL_API_KEY", "synthetic-secret")
+    response = TestClient(app).post(
+        "/exam/extract",
+        headers={"X-Bunpil-Api-Key": "synthetic-secret"},
+        files={"image": ("test.gif", b"GIF89a", "image/gif")},
+    )
+    assert response.status_code == 400
+
+
+def test_exam_extract_rejects_oversized_image(monkeypatch):
+    monkeypatch.setenv("BUNPIL_API_KEY", "synthetic-secret")
+    response = TestClient(app).post(
+        "/exam/extract",
+        headers={
+            "X-Bunpil-Api-Key": "synthetic-secret",
+            "Content-Length": str(6 * 1024 * 1024),
+        },
+        files={"image": ("test.png", _PNG_BYTES, "image/png")},
+    )
+    assert response.status_code == 413
+
+
+def test_exam_extract_releases_slot_and_masks_error_on_vlm_failure(monkeypatch):
+    """VLM 호출이 예외를 던져도 (1) 세마포어가 반납되고 (2) 스택트레이스 없이
+    generic 502로 응답해야 한다 — /exam의 test_exam_returns_graceful_error_instead_of_raw_500
+    과 동일한 회귀 방지 목적."""
+    monkeypatch.setenv("BUNPIL_API_KEY", "synthetic-secret")
+    initial = main_module._REQUEST_SLOTS._value
+
+    class _FailingVLMBackend:
+        async def extract_text(self, image_bytes, mime_type):
+            raise RuntimeError("합성 오류")
+
+    monkeypatch.setattr(common_llm, "get_vlm_backend", lambda: _FailingVLMBackend())
+
+    response = TestClient(app).post(
+        "/exam/extract",
+        headers={"X-Bunpil-Api-Key": "synthetic-secret"},
+        files={"image": ("test.png", _PNG_BYTES, "image/png")},
+    )
+    assert response.status_code == 502
+    assert "합성 오류" not in response.text
+    assert main_module._REQUEST_SLOTS._value == initial

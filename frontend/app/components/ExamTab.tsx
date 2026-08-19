@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -78,6 +78,49 @@ export default function ExamTab() {
   const [error, setError] = useState("");
   const [truncated, setTruncated] = useState(false);
   const [piiFound, setPiiFound] = useState<string[]>([]);
+
+  // 이미지(캡처) 입력 — 2026-08-19
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractError, setExtractError] = useState("");
+  const [extractPiiFound, setExtractPiiFound] = useState<string[]>([]);
+
+  const handleImageUpload = async (file: File) => {
+    setExtractError("");
+    setExtractPiiFound([]);
+    setIsExtracting(true);
+    try {
+      const fd = new FormData();
+      fd.append("image", file);
+      const res = await fetch("/api/exam/extract", { method: "POST", body: fd });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data: any = await res.json().catch(() => null);
+      if (!res.ok || typeof data?.text !== "string") {
+        setExtractError("이미지에서 문제를 읽지 못했습니다. 직접 입력해 주세요.");
+        return;
+      }
+      setPassageText((prev) => (prev.trim() ? `${prev.trim()}\n\n${data.text}` : data.text));
+      setExtractPiiFound(data.pii_found ?? []);
+    } catch {
+      setExtractError("이미지에서 문제를 읽지 못했습니다. 직접 입력해 주세요.");
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const item = Array.from(e.clipboardData.items).find((it) => it.type.startsWith("image/"));
+    if (!item) return; // 텍스트 붙여넣기는 기본 동작 그대로 둔다
+    e.preventDefault();
+    const file = item.getAsFile();
+    if (file) handleImageUpload(file);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleImageUpload(file);
+    e.target.value = ""; // 같은 파일을 다시 선택해도 onChange가 발생하도록 초기화
+  };
 
   const handleGenerate = async () => {
     if (!passageText.trim()) { setError("예시 문제를 붙여넣어 주세요."); return; }
@@ -170,9 +213,10 @@ export default function ExamTab() {
           </div>
           <textarea
             rows={12}
-            placeholder="참고할 예시 문제를 그대로 붙여넣어 주세요. 문항 수, 유형(객관식/서술형), 난이도 구성을 그대로 파악해 새 문항 세트를 만듭니다."
+            placeholder="참고할 예시 문제를 그대로 붙여넣어 주세요. 문항 수, 유형(객관식/서술형), 난이도 구성을 그대로 파악해 새 문항 세트를 만듭니다. 이미지를 붙여넣거나(Ctrl+V) 첨부해도 됩니다."
             value={passageText}
             onChange={(e) => setPassageText(e.target.value)}
+            onPaste={handlePaste}
             className="w-full rounded-lg border border-[#DBDCD2] bg-white px-3 py-2 text-[13px] text-[#1C2620] placeholder:text-[#6E7469] focus:outline-none focus:border-[#2F4A3D] transition-colors resize-none"
           />
           {overLimit && (
@@ -183,6 +227,43 @@ export default function ExamTab() {
           <p className="text-[12px] text-[#6E7469] mt-1">
             실제 학생 정보는 입력하지 마세요. 감지된 개인정보는 모델 호출 전에 마스킹됩니다.
           </p>
+
+          <div className="flex items-center gap-2 mt-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isExtracting}
+            >
+              이미지 첨부
+            </Button>
+            {isExtracting && (
+              <span className="text-[12px] text-[#6E7469] flex items-center gap-1.5">
+                <span className="w-3 h-3 border-2 border-[#2F4A3D] border-t-transparent rounded-full animate-spin" />
+                문제를 읽는 중...
+              </span>
+            )}
+          </div>
+          <p className="text-[12px] text-[#6E7469] mt-1">
+            이미지는 텍스트 추출을 위해 외부 모델로 전달된 뒤 마스킹됩니다(텍스트와 달리 마스킹이 추출 이후에 적용됨). 학생 개인정보가 찍힌 캡처는 넣지 마세요.
+          </p>
+
+          {extractError && (
+            <p className="text-[12px] text-[#A63B2E] mt-1">{extractError}</p>
+          )}
+          {extractPiiFound.length > 0 && (
+            <p className="text-[12px] text-[#93601F] bg-[#F5EBD8] rounded-lg px-3 py-2 mt-2">
+              추출된 텍스트에서 마스킹된 개인정보: {extractPiiFound.join(", ")}
+            </p>
+          )}
         </div>
 
 
@@ -194,7 +275,7 @@ export default function ExamTab() {
 
         <Button
           onClick={handleGenerate}
-          disabled={isLoading}
+          disabled={isLoading || isExtracting}
           className="w-full"
         >
           {isLoading ? "생성 중..." : "문항 생성"}
