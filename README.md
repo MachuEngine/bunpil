@@ -329,6 +329,7 @@ KST에서 오늘 오전 9시 이전 트레이스가 통째로 빠지는 버그�
 | `test_llm.py` | Ollama 응답 수신 | ✅ |
 | `test_llm.py` | local → RunPod 백엔드 전환 | ✅ |
 | `test_exam.py` | passage_text → 에이전트 세트 생성 → judge 노드 채점 흐름 (그래프 무크래시, 도구 오류 자기수정) | ✅ |
+| `test_vlm.py` | PIL 합성 이미지 → `get_vlm_backend()` 실제 추출(2026-08-20) | ✅ |
 
 </details>
 
@@ -567,11 +568,14 @@ bunpil/
 ├── data/
 │   ├── regulations/      # 생기부 기재요령·훈령 (검색 eval 전용 — 런타임 미사용)
 │   ├── standards/        # 사회과 교육과정 PDF
-│   └── golden/           # 골든셋 JSON — 정기 평가용 6종 + 실험 아카이브
+│   └── golden/           # 골든셋 JSON — 정기 평가용 5종 + 실험 아카이브
 │                         # (파일별 용도·라벨 필드는 data/golden/README.md 참고)
-├── evals/                # 정기 품질 평가 — eval_exam.py / eval_ragas.py (+ 공용 eval_lib.py)
+├── evals/                # 품질 평가 — eval_exam.py / eval_ragas.py (+ 공용 eval_lib.py)는 정기 실행
 │                         # eval_trajectory.py는 산출물이 아닌 과정(궤적) 집계 — LangSmith 트레이스만 읽음
-├── golden_gen/           # 골든셋 생성 도구 — gen_structure_golden.py / gen_golden_retrieval.py
+│                         # eval_vlm.py(2026-08-20)는 실행마다 실제 VLM·Judge API를 호출해 비용이
+│                         # 들어 정기 자동 실행 대상에 넣지 않음 — 필요할 때 수동 실행(MODEL_SELECTION.md 7절)
+├── golden_gen/           # 골든셋 생성 도구 — gen_structure_golden.py / gen_golden_retrieval.py /
+│                         # gen_vlm_golden.py(합성 시험 문제 이미지 40장 PIL 렌더링, 2026-08-20)
 ├── experiments/          # 일회성 실험·비교 기록 (compare_*.py 등, 결과는 data/golden/_*.json에 아카이브)
 ├── scripts/
 │   ├── index_*.py        # RAG 컬렉션 인덱싱

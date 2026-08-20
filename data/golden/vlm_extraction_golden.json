@@ -1,0 +1,349 @@
+{
+  "_schema": {
+    "description": "VLM(이미지→텍스트 추출, POST /exam/extract) 정확도 골든셋. text_only 20건 + figure 15건 + adversarial 5건 = 40건. 이미지는 golden_gen/gen_vlm_golden.py가 PIL로 합성(재실행 시 idempotent).",
+    "entry_fields": {
+      "id": "고유 ID",
+      "category": "text_only | figure | adversarial",
+      "image": "data/golden/ 기준 상대경로",
+      "ground_truth_text": "이미지에 실제로 적힌 발문·<보기>·선지(및 있다면 메모) 원문 — CER/WER 채점 기준",
+      "figure_summary": "(figure만) 자료가 담아야 할 핵심 사실. Claude 초안, reviewed=false면 사람 검수 전",
+      "reviewed": "(figure만) figure_summary를 사람이 검수했는지",
+      "forbidden_answer_leak": "(adversarial, no_leak/leak_present만) true면 이미지에 정답 표시가 없으므로 VLM 출력에 '정답은/정답:/따라서 답은' 등이 나오면 안 됨",
+      "pii_labels_expected": "(adversarial, pii_variant만) mask_pii()가 반드시 잡아야 하는 PII 라벨 — 누락되면 실패로 채점",
+      "pii_labels_known_limitation": "(adversarial, pii_variant만) mask_pii() 정규식이 구조적으로 못 잡는다고 알려진 라벨 — 누락돼도 실패로 채점하지 않고 리포트에만 남김",
+      "notes": "이 항목을 넣은 이유"
+    },
+    "provenance": "전부 Claude가 golden_gen/gen_vlm_golden.py로 합성(PIL, matplotlib 미사용 — 의존성 최소화). 실제 스크린샷·학생 데이터 미사용(CLAUDE.md 하드룰 1). figure_summary는 Claude 초안 — 사람 검수 전까지 reviewed=false."
+  },
+  "entries": [
+    {
+      "id": "t01",
+      "category": "text_only",
+      "topic": "정치와 법 — 입법 절차",
+      "image": "vlm_golden_images/t01_정치와법.png",
+      "ground_truth_text": "1. 다음 중 법률안 제정 절차에 해당하지 않는 것은?\n① 법률안 제출 ② 위원회 심사 ③ 본회의 의결 ④ 대통령 공포 ⑤ 헌법재판소 위헌 심사"
+    },
+    {
+      "id": "t02",
+      "category": "text_only",
+      "topic": "정치와 법 — 헌법재판소",
+      "image": "vlm_golden_images/t02_정치와법.png",
+      "ground_truth_text": "2. 헌법재판소의 권한으로 옳지 않은 것은?\n① 위헌 법률 심판 ② 탄핵 심판 ③ 정당 해산 심판 ④ 권한쟁의 심판 ⑤ 대통령 임명"
+    },
+    {
+      "id": "t03",
+      "category": "text_only",
+      "topic": "정치와 법 — 선거 원칙",
+      "image": "vlm_golden_images/t03_정치와법.png",
+      "ground_truth_text": "3. 다음 <보기>가 설명하는 선거의 4대 원칙은?\n\n<보기>\n선거권자가 직접 투표소에 나가 투표해야 하며, 대리 투표는 인정되지 않는다.\n① 보통 선거 ② 평등 선거 ③ 직접 선거 ④ 비밀 선거 ⑤ 자유 선거"
+    },
+    {
+      "id": "t04",
+      "category": "text_only",
+      "topic": "경제 — 수요공급",
+      "image": "vlm_golden_images/t04_경제.png",
+      "ground_truth_text": "4. 공급이 일정할 때 수요가 증가하면 나타나는 변화로 옳은 것은?\n① 가격 하락, 거래량 감소 ② 가격 하락, 거래량 증가 ③ 가격 상승, 거래량 증가 ④ 가격 상승, 거래량 감소 ⑤ 가격·거래량 모두 불변"
+    },
+    {
+      "id": "t05",
+      "category": "text_only",
+      "topic": "경제 — 기회비용",
+      "image": "vlm_golden_images/t05_경제.png",
+      "ground_truth_text": "5. 다음 <보기>의 밑줄 친 개념에 해당하는 것은?\n\n<보기>\n민수는 저녁에 아르바이트 대신 스터디를 선택하며 포기한 시급 만원을 아까워했다.\n① 매몰 비용 ② 기회비용 ③ 명시적 비용 ④ 한계 비용 ⑤ 고정 비용"
+    },
+    {
+      "id": "t06",
+      "category": "text_only",
+      "topic": "경제 — 통화정책",
+      "image": "vlm_golden_images/t06_경제.png",
+      "ground_truth_text": "6. 중앙은행이 기준 금리를 인상했을 때 나타나는 효과로 가장 적절한 것은?\n① 시중 통화량 증가 ② 물가 상승 압력 증가 ③ 저축 유인 감소 ④ 대출 수요 감소 ⑤ 환율 하락 압력 감소"
+    },
+    {
+      "id": "t07",
+      "category": "text_only",
+      "topic": "사회문화 — 사회화 기관",
+      "image": "vlm_golden_images/t07_사회문화.png",
+      "ground_truth_text": "7. 다음 중 2차적 사회화 기관에 해당하는 것은?\n① 가족 ② 또래 집단 ③ 학교 ④ 친족 ⑤ 이웃"
+    },
+    {
+      "id": "t08",
+      "category": "text_only",
+      "topic": "사회문화 — 사회 불평등",
+      "image": "vlm_golden_images/t08_사회문화.png",
+      "ground_truth_text": "8. 다음 <보기>에서 설명하는 사회 불평등 이론은?\n\n<보기>\n사회 불평등은 사회 유지를 위해 기능적으로 필요하며, 중요한 직위일수록 더 많은 보상이 따른다.\n① 기능론 ② 갈등론 ③ 상징적 상호작용론 ④ 교환 이론 ⑤ 낙인 이론"
+    },
+    {
+      "id": "t09",
+      "category": "text_only",
+      "topic": "사회문화 — 문화 상대주의",
+      "image": "vlm_golden_images/t09_사회문화.png",
+      "ground_truth_text": "9. 문화를 이해하는 태도 중 문화 상대주의에 해당하는 서술은?\n① 우리 문화 기준으로 다른 문화를 평가한다 ② 모든 문화는 그 사회의 맥락에서 이해해야 한다 ③ 선진국 문화가 후진국 문화보다 우월하다 ④ 특정 문화만이 보편적으로 옳다 ⑤ 문화 간 우열을 명확히 가릴 수 있다"
+    },
+    {
+      "id": "t10",
+      "category": "text_only",
+      "topic": "한국지리 — 인구 분포",
+      "image": "vlm_golden_images/t10_한국지리.png",
+      "ground_truth_text": "10. 우리나라 인구의 수도권 집중 현상의 원인으로 옳지 않은 것은?\n① 일자리 집중 ② 교육 기반 시설 집중 ③ 각종 편의 시설 집중 ④ 신생아 출산 장려금 지역 편중 ⑤ 행정·경제 기능 집중"
+    },
+    {
+      "id": "t11",
+      "category": "text_only",
+      "topic": "한국지리 — 도시 재개발",
+      "image": "vlm_golden_images/t11_한국지리.png",
+      "ground_truth_text": "11. 다음 중 도시 재개발 방식과 그 설명이 잘못 짝지어진 것은?\n① 철거 재개발 — 기존 건물을 완전히 철거 ② 보존 재개발 — 역사·문화적 가치 보존 ③ 수복 재개발 — 기존 골격 유지하며 부분 개량 ④ 개량 재개발 — 노후 시설만 교체 ⑤ 철거 재개발 — 기존 건물을 그대로 보존"
+    },
+    {
+      "id": "t12",
+      "category": "text_only",
+      "topic": "세계지리 — 기후대",
+      "image": "vlm_golden_images/t12_세계지리.png",
+      "ground_truth_text": "12. 다음 <보기>가 설명하는 기후는?\n\n<보기>\n연중 고온다습하며 스콜성 강우가 잦고, 열대 우림이 발달한다.\n① 열대 우림 기후 ② 사바나 기후 ③ 지중해성 기후 ④ 온대 계절풍 기후 ⑤ 툰드라 기후"
+    },
+    {
+      "id": "t13",
+      "category": "text_only",
+      "topic": "세계지리 — 지역 갈등",
+      "image": "vlm_golden_images/t13_세계지리.png",
+      "ground_truth_text": "13. 종교 차이가 주요 원인으로 작용한 지역 갈등에 해당하지 않는 것은?\n① 카슈미르 분쟁 ② 팔레스타인 분쟁 ③ 벨기에 언어 갈등 ④ 북아일랜드 분쟁 ⑤ 스리랑카 내전"
+    },
+    {
+      "id": "t14",
+      "category": "text_only",
+      "topic": "동아시아사 — 유교 사상",
+      "image": "vlm_golden_images/t14_동아시아사.png",
+      "ground_truth_text": "14. 다음 <보기>의 사상가가 강조한 개념으로 가장 적절한 것은?\n\n<보기>\n그는 인(仁)을 최고의 덕목으로 삼고, 자기 수양을 통한 도덕적 완성을 강조했다.\n① 공자 ② 노자 ③ 한비자 ④ 묵자 ⑤ 순자"
+    },
+    {
+      "id": "t15",
+      "category": "text_only",
+      "topic": "세계사 — 시민혁명",
+      "image": "vlm_golden_images/t15_세계사.png",
+      "ground_truth_text": "15. 다음 중 프랑스 혁명의 배경으로 옳지 않은 것은?\n① 절대 왕정의 재정 위기 ② 계몽사상의 확산 ③ 제3신분의 불만 고조 ④ 산업 혁명 이후 노동 계급 형성 ⑤ 신분제 사회의 모순"
+    },
+    {
+      "id": "t16",
+      "category": "text_only",
+      "topic": "윤리 — 공리주의",
+      "image": "vlm_golden_images/t16_윤리.png",
+      "ground_truth_text": "16. 다음 <보기>의 입장에 해당하는 윤리 사상은?\n\n<보기>\n행위의 옳고 그름은 그 행위가 가져오는 결과, 즉 최대 다수의 최대 행복 여부로 판단해야 한다.\n① 의무론 ② 공리주의 ③ 덕 윤리 ④ 배려 윤리 ⑤ 담론 윤리"
+    },
+    {
+      "id": "t17",
+      "category": "text_only",
+      "topic": "윤리 — 칸트 의무론",
+      "image": "vlm_golden_images/t17_윤리.png",
+      "ground_truth_text": "17. 칸트의 윤리 사상에 대한 설명으로 옳지 않은 것은?\n① 행위의 결과보다 동기를 중시한다 ② 정언 명령을 도덕 법칙으로 제시한다 ③ 인간을 목적으로 대우해야 한다고 본다 ④ 도덕적 행위의 기준을 유용성에 둔다 ⑤ 보편화 가능성을 도덕 판단의 기준으로 삼는다"
+    },
+    {
+      "id": "t18",
+      "category": "text_only",
+      "topic": "정치와 법 — 지방자치제도",
+      "image": "vlm_golden_images/t18_정치와법.png",
+      "ground_truth_text": "18. 지방자치제도의 의의로 가장 적절하지 않은 것은?\n① 주민의 정치 참여 기회 확대 ② 지역 실정에 맞는 행정 실현 ③ 권력 분립을 통한 견제와 균형 ④ 중앙 정부의 재정 부담 전면 해소 ⑤ 지방 자치 단체 간 자율성 보장"
+    },
+    {
+      "id": "t19",
+      "category": "text_only",
+      "topic": "경제 — 시장실패",
+      "image": "vlm_golden_images/t19_경제.png",
+      "ground_truth_text": "19. 다음 <보기>의 사례가 나타내는 시장 실패의 원인은?\n\n<보기>\n공장이 오염 물질을 배출하지만, 이로 인한 주변 주민의 피해는 시장 가격에 반영되지 않는다.\n① 공공재 ② 외부 효과 ③ 정보 비대칭 ④ 독과점 ⑤ 진입 장벽"
+    },
+    {
+      "id": "t20",
+      "category": "text_only",
+      "topic": "사회문화 — 사회 변동",
+      "image": "vlm_golden_images/t20_사회문화.png",
+      "ground_truth_text": "20. 사회 변동을 설명하는 이론 중 <보기>에 해당하는 것은?\n\n<보기>\n사회는 단순한 형태에서 복잡한 형태로, 미분화 상태에서 분화된 상태로 진보한다고 본다.\n① 진화론 ② 순환론 ③ 갈등론 ④ 기능론 ⑤ 균형론"
+    },
+    {
+      "id": "f01",
+      "category": "figure",
+      "figure_kind": "bar",
+      "image": "vlm_golden_images/f01_bar.png",
+      "ground_truth_text": "1. 다음 자료를 보고 물음에 답하시오.\n\n다음은 A~D 지역의 인구를 나타낸 것이다. 인구가 가장 많은 지역은?\n① A ② B ③ C ④ D ⑤ 네 지역 모두 같다",
+      "figure_summary": "A~D 4개 지역의 인구를 막대그래프로 비교. A지역이 820만 명으로 가장 많고, B(450)·C(610)·D(300) 순. 값이 가장 큰 막대는 A.",
+      "reviewed": true
+    },
+    {
+      "id": "f02",
+      "category": "figure",
+      "figure_kind": "bar",
+      "image": "vlm_golden_images/f02_bar.png",
+      "ground_truth_text": "2. 다음은 갑국의 산업별 취업자 비율을 나타낸 것이다. 2차 산업 취업자 비율이 가장 높은 시기는?\n① 1970년 ② 1990년 ③ 2010년 ④ 2020년 ⑤ 자료로 알 수 없다",
+      "figure_summary": "1970/1990/2010/2020년 4개 시점의 2차 산업 취업자 비율 막대그래프. 1990년이 35%로 가장 높고, 1970년(15)→1990년(35)→2010년(28)→2020년(20) 순으로 1990년 정점 후 감소.",
+      "reviewed": true
+    },
+    {
+      "id": "f03",
+      "category": "figure",
+      "figure_kind": "line",
+      "image": "vlm_golden_images/f03_line.png",
+      "ground_truth_text": "3. 다음 자료는 갑국의 연도별 실업률 추이이다. 실업률이 가장 낮았던 해는?\n① 2018년 ② 2019년 ③ 2020년 ④ 2021년 ⑤ 2022년",
+      "figure_summary": "2018~2022년 5개년 실업률 꺾은선 그래프. 2020년에 4.9%로 급등했다가(코로나 시기 연상) 이후 하락, 2022년이 3.0%로 가장 낮음.",
+      "reviewed": true
+    },
+    {
+      "id": "f04",
+      "category": "figure",
+      "figure_kind": "line",
+      "image": "vlm_golden_images/f04_line.png",
+      "ground_truth_text": "4. 다음은 갑국의 연도별 합계 출산율 추이이다. 이 자료에 대한 설명으로 옳은 것은?\n① 출산율은 매년 증가했다 ② 2021년이 가장 높다 ③ 전반적으로 감소 추세이다 ④ 2019년이 가장 낮다 ⑤ 변화가 전혀 없다",
+      "figure_summary": "2018~2022년 합계 출산율 꺾은선 그래프. 0.98→0.92→0.84→0.81→0.78로 5개년 연속 하락하는 감소 추세.",
+      "reviewed": true
+    },
+    {
+      "id": "f05",
+      "category": "figure",
+      "figure_kind": "pie",
+      "image": "vlm_golden_images/f05_pie.png",
+      "ground_truth_text": "5. 다음은 갑 지역 주민 300명을 대상으로 한 여가 활동 설문 조사 결과이다. 가장 높은 비율을 차지하는 활동은?\n① 운동 ② 독서 ③ 여행 ④ 게임 ⑤ 기타",
+      "figure_summary": "여가 활동 설문 조사 원그래프(5개 항목). 운동이 35%로 가장 큰 비중, 여행 25%, 게임 18%, 독서 15%, 기타 7% 순.",
+      "reviewed": true
+    },
+    {
+      "id": "f06",
+      "category": "figure",
+      "figure_kind": "pie",
+      "image": "vlm_golden_images/f06_pie.png",
+      "ground_truth_text": "6. 다음은 갑국 유권자의 정치 성향 조사 결과이다. 이 자료에 대한 해석으로 옳은 것은?\n① 중도 성향이 가장 많다 ② 보수 성향이 가장 적다 ③ 진보 성향이 과반이다 ④ 응답 불명은 존재하지 않는다 ⑤ 보수와 진보 비율이 같다",
+      "figure_summary": "정치 성향 설문 원그래프(4개 항목). 중도 40%로 가장 많고, 진보 32%, 보수 24%, 응답 불명 4%.",
+      "reviewed": true
+    },
+    {
+      "id": "f07",
+      "category": "figure",
+      "figure_kind": "table",
+      "image": "vlm_golden_images/f07_table.png",
+      "ground_truth_text": "7. 다음은 갑~병국의 무역 수지를 나타낸 표이다. 무역 적자를 기록한 나라는?\n① 갑국 ② 을국 ③ 병국 ④ 갑국과 병국 ⑤ 세 나라 모두",
+      "figure_summary": "갑·을·병 3개국 수출입 표. 갑국은 수출(520)>수입(480)로 흑자, 을국은 수출=수입(310)으로 균형, 병국은 수출(270)<수입(340)로 적자.",
+      "reviewed": true
+    },
+    {
+      "id": "f08",
+      "category": "figure",
+      "figure_kind": "table",
+      "image": "vlm_golden_images/f08_table.png",
+      "ground_truth_text": "8. 다음은 갑국의 시대별 인구 구성비를 나타낸 표이다. 고령화가 가장 심화된 시기는?\n① 1990년대 ② 2000년대 ③ 2010년대 ④ 2020년대 ⑤ 변화 없음",
+      "figure_summary": "1990~2020년대 4개 시기 유소년/노년 인구 비율 표. 노년 비율이 5→8→13→18%로 계속 증가, 2020년대가 고령화 가장 심함.",
+      "reviewed": true
+    },
+    {
+      "id": "f09",
+      "category": "figure",
+      "figure_kind": "bar",
+      "image": "vlm_golden_images/f09_bar.png",
+      "ground_truth_text": "9. 다음은 갑국의 연령대별 스마트폰 이용률을 나타낸 것이다. 이용률이 가장 낮은 연령대는?\n① 10대 ② 20대 ③ 40대 ④ 60대 ⑤ 70대 이상",
+      "figure_summary": "연령대별 스마트폰 이용률 막대그래프(5개 구간). 10대·20대는 98~99%로 최상위, 연령이 높아질수록 감소해 70대 이상이 42%로 가장 낮음.",
+      "reviewed": true
+    },
+    {
+      "id": "f10",
+      "category": "figure",
+      "figure_kind": "line",
+      "image": "vlm_golden_images/f10_line.png",
+      "ground_truth_text": "10. 다음은 갑국의 연도별 이산화탄소 배출량 추이이다. 이 자료에 대한 설명으로 옳은 것은?\n① 매년 증가했다 ② 2020년 이후 뚜렷이 감소했다 ③ 변화가 없다 ④ 2019년이 가장 낮다 ⑤ 자료로 알 수 없다",
+      "figure_summary": "2017~2021년 이산화탄소 배출량 꺾은선. 2019년(655)까지 증가하다가 2020년(590)부터 뚜렷이 감소해 2021년 560까지 하락.",
+      "reviewed": true
+    },
+    {
+      "id": "f11",
+      "category": "figure",
+      "figure_kind": "pie",
+      "image": "vlm_golden_images/f11_pie.png",
+      "ground_truth_text": "11. 다음은 갑국의 종교 인구 비율을 나타낸 것이다. 가장 높은 비율을 차지하는 종교는?\n① 개신교 ② 불교 ③ 천주교 ④ 무교 ⑤ 기타",
+      "figure_summary": "종교 인구 비율 원그래프(5개 항목). 무교가 53%로 과반을 차지, 개신교 20%, 불교 16%, 천주교 8%, 기타 3%.",
+      "reviewed": true
+    },
+    {
+      "id": "f12",
+      "category": "figure",
+      "figure_kind": "bar",
+      "image": "vlm_golden_images/f12_bar.png",
+      "ground_truth_text": "12. 다음은 갑국 대통령 선거의 지역별 A후보 득표율이다. A후보 득표율이 가장 높은 지역은?\n① 수도권 ② 충청권 ③ 영남권 ④ 호남권 ⑤ 강원권",
+      "figure_summary": "5개 권역별 A후보 득표율 막대그래프. 영남권이 55%로 가장 높고, 호남권이 30%로 가장 낮음.",
+      "reviewed": true
+    },
+    {
+      "id": "f13",
+      "category": "figure",
+      "figure_kind": "table",
+      "image": "vlm_golden_images/f13_table.png",
+      "ground_truth_text": "13. 다음은 갑~정 지역의 1월 평균 기온과 연 강수량을 나타낸 표이다. 가장 한랭 건조한 지역은?\n① 갑 ② 을 ③ 병 ④ 정 ⑤ 자료로 알 수 없다",
+      "figure_summary": "갑·을·병·정 4개 지역의 1월 평균기온·연 강수량 표. 병 지역이 기온 -12℃로 가장 낮고 강수량도 450mm로 가장 적어 가장 한랭 건조.",
+      "reviewed": true
+    },
+    {
+      "id": "f14",
+      "category": "figure",
+      "figure_kind": "line",
+      "image": "vlm_golden_images/f14_line.png",
+      "ground_truth_text": "14. 다음은 갑국의 연도별 1인당 온실가스 배출량 추이이다. 이 자료에 대한 해석으로 옳은 것은?\n① 지속적으로 증가했다 ② 2021년까지 증가하다 이후 감소했다 ③ 매년 동일하다 ④ 2018년이 가장 높다 ⑤ 자료로 알 수 없다",
+      "figure_summary": "2018~2022년 1인당 온실가스 배출량 꺾은선. 2018년(11.2)부터 2021년(12.9)까지 증가하다 2022년(11.5)에 감소로 전환.",
+      "reviewed": true
+    },
+    {
+      "id": "f15",
+      "category": "figure",
+      "figure_kind": "pie",
+      "image": "vlm_golden_images/f15_pie.png",
+      "ground_truth_text": "15. 다음은 갑 가구의 월평균 소비 지출 항목별 비중이다. 가장 큰 비중을 차지하는 항목은?\n① 주거비 ② 식료품비 ③ 교육비 ④ 의료비 ⑤ 기타",
+      "figure_summary": "가구 월평균 소비 지출 원그래프(5개 항목). 주거비가 28%로 가장 크고, 식료품비 22%, 교육비 19%, 기타 20%, 의료비 11%.",
+      "reviewed": true
+    },
+    {
+      "id": "a01",
+      "category": "adversarial",
+      "adversarial_kind": "no_leak",
+      "image": "vlm_golden_images/a01_no_leak.png",
+      "notes": "정답·해설이 이미지에 전혀 없음 — VLM이 스스로 '정답은 ②입니다' 같은 문구를 지어내지 않는지 확인(요약·해설·정답 추론 금지 규칙 검증).",
+      "ground_truth_text": "1. 다음 중 삼권분립의 목적으로 가장 적절한 것은?\n① 행정 효율성 극대화 ② 권력 남용 방지 ③ 입법 속도 향상 ④ 사법부 권한 확대 ⑤ 국가 통합 강화",
+      "forbidden_answer_leak": true
+    },
+    {
+      "id": "a02",
+      "category": "adversarial",
+      "adversarial_kind": "no_leak",
+      "image": "vlm_golden_images/a02_no_leak.png",
+      "notes": "a01과 동일 취지의 두 번째 케이스(주제만 경제로 변경) — 반복 측정으로 우연 여부 배제.",
+      "ground_truth_text": "2. 다음 중 시장 가격의 기능으로 옳지 않은 것은?\n① 자원 배분 기능 ② 정보 전달 기능 ③ 소득 재분배 기능 ④ 경제 활동 유인 기능 ⑤ 조절 기능",
+      "forbidden_answer_leak": true
+    },
+    {
+      "id": "a03",
+      "category": "adversarial",
+      "adversarial_kind": "leak_present",
+      "image": "vlm_golden_images/a03_leak_present.png",
+      "notes": "이미지 자체에 정답 메모가 실제로 찍혀 있는 케이스 — 이번엔 반대로, 이미지에 있는 내용을 빠뜨리지 않고 그대로(추론이 아니라 전사로서) 옮기는지 확인. '원문 그대로 옮긴다'는 지시와 '정답 추론 금지'가 충돌하지 않는 경계 사례.",
+      "ground_truth_text": "3. 다음 중 국회의 권한에 해당하지 않는 것은?\n① 법률 제정권 ② 예산 심의·확정권 ③ 조약 체결·비준 동의권 ④ 국정 감사권 ⑤ 대법원장 임명권\n[채점 메모] 정답: ⑤ (대법원장 임명권은 대통령의 권한)",
+      "forbidden_answer_leak": false
+    },
+    {
+      "id": "a04",
+      "category": "adversarial",
+      "adversarial_kind": "pii_variant",
+      "image": "vlm_golden_images/a04_pii_variant.png",
+      "notes": "라벨·값 사이 공백이 불규칙(캡처마다 서식이 다를 수 있음)하지만 이름·연락처 자체는 정상 표기 — mask_pii()가 이 정도 변형은 잡아내는지 확인(공백 실측: `mask_pii()`가 실제로 ['이름','전화번호']를 반환함을 golden_gen 실행 시 확인).",
+      "ground_truth_text": "분필고등학교 2학년 3반 사회 수행평가지\n성명 : 김민준     연락처 : 010-9876-5432\n\n4. 다음 중 문화의 속성으로 옳지 않은 것은?\n① 학습성 ② 공유성 ③ 전체성 ④ 고정성 ⑤ 변동성",
+      "pii_labels_expected": [
+        "이름",
+        "전화번호"
+      ],
+      "pii_labels_known_limitation": []
+    },
+    {
+      "id": "a05",
+      "category": "adversarial",
+      "adversarial_kind": "pii_variant",
+      "image": "vlm_golden_images/a05_pii_variant.png",
+      "notes": "연락처를 한글 숫자('공일공-...')로 표기 — mask_pii()의 숫자 기반 정규식(\\d)이 구조적으로 못 잡는 케이스. 이름은 '이름:' 레이블이 있어 정상적으로 잡히므로 필수 항목, 전화번호만 알려진 한계로 분리(실패로 채점하지 않되 리포트에는 남김).",
+      "ground_truth_text": "분필고등학교 1학년 5반\n이름: 이서연  /  연락처(공일공-일이삼사-오육칠팔)\n\n5. 다음 중 근로자의 권리에 해당하지 않는 것은?\n① 단결권 ② 단체 교섭권 ③ 단체 행동권 ④ 무제한 파업권 ⑤ 근로 기준법상 최저 임금 보장",
+      "pii_labels_expected": [
+        "이름"
+      ],
+      "pii_labels_known_limitation": [
+        "전화번호"
+      ]
+    }
+  ]
+}

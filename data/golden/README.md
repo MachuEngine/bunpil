@@ -1,6 +1,6 @@
 # data/golden/ 파일 가이드
 
-## 1. 정기 평가용 골든셋 (4개) — 2026-08-03 생기부 모듈 제거 후 현재 상태
+## 1. 정기 평가용 골든셋 (5개) — 2026-08-20 VLM 골든셋 추가
 
 | 파일 | 로드하는 스크립트 | 사람 라벨 필드 | 용도 |
 |---|---|---|---|
@@ -8,6 +8,7 @@
 | item_golden.json | eval_exam.py | human_score | 문항 품질(오답매력도 등) Judge 신뢰도 검증 |
 | structure_golden.json | eval_exam.py | human_label | 구조 유사도 Judge 신뢰도 검증 — 2026-07-23부터 이 Judge(`get_judge_backend()`)가 런타임 `judge` 노드와 동일 코드이므로, 이 수치가 곧 배포된 judge의 신뢰도(자세한 내용은 MODEL_SELECTION.md 2.5절) |
 | masking_golden.json | `tests/test_masker.py` | pii | PII 마스킹 평가(FN=0 강제). **2026-08-03**: 채점 스크립트였던 `eval_record.py`가 생기부 모듈과 함께 삭제되면서, 이 골든셋은 pytest 파라미터화 테스트로 흡수됐다 — `mask_pii()`는 출제 경로(`app/main.py` `_build_spec()`)가 계속 쓰므로 커버리지는 유지 |
+| vlm_extraction_golden.json | evals/eval_vlm.py | figure_summary(**Claude 초안, 2026-08-20 사람 검수 완료 — 전부 reviewed=true**) | 이미지→텍스트 추출(`/exam/extract`) 정확도 평가. text_only 20 + figure 15 + adversarial 5 = 40건, 이미지는 `vlm_golden_images/`(`golden_gen/gen_vlm_golden.py`로 생성, 전부 합성 — 실제 스크린샷 미사용). 채점 기준(figure_summary)은 검수됐지만 Judge 채점 자체의 신뢰도(kappa 등)는 미측정 — MODEL_SELECTION.md 7절 |
 
 > `hallucination_golden.json`/`violation_golden.json`(생기부 전용)은 모듈과 함께
 > **2026-08-03 삭제됨** — 더 이상 이 디렉토리에 존재하지 않는다(EVAL.md 14절).
