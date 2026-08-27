@@ -49,10 +49,11 @@ except ImportError:
         def decorator(fn): return fn
         return decorator
 
-from app.common.llm import PromptTemplate, get_llm_backend
+from app.common.llm import PromptTemplate, get_judge_backend, get_llm_backend
 from app.common.rag import get_embedder, get_retriever
 from app.modules.exam.tools import _HANGUL_RE, _HAN_RE  # 언어 오염 검출 재사용
 
+from eval_lib import eval_item_quality, score_items
 from gen_structure_golden import PASSAGE_SAMPLES  # noqa: E402
 
 _TRACE_META = {"model": os.getenv("OLLAMA_MODEL", "unknown"), "backend": os.getenv("LLM_BACKEND", "local")}
@@ -133,6 +134,7 @@ def build_sample(sample: dict) -> dict:
         "context": context,
         "answer": answer,
         "n_items": len(items),
+        "items": items,  # 개별 문항 원본 — 실측 생성 품질(judge_one) 채점용, 재생성 없이 재사용
     }
 
 
@@ -269,16 +271,19 @@ def answer_relevancy_one(item: dict, llm, embedder) -> dict:
 @traceable(name="eval_ragas", run_type="chain", metadata=_TRACE_META)
 def eval_ragas(sample_ids: list[str]) -> dict:
     llm = get_llm_backend()
+    judge_llm = get_judge_backend()  # 실측 생성 품질(judge_one)용 — ITEM_GOLDEN과 같은 Judge라야 비교 가능
     embedder = get_embedder()
     samples = [s for s in PASSAGE_SAMPLES if s["id"] in sample_ids]
 
     results = []
+    generated_items: list[dict] = []
     for i, sample in enumerate(samples, 1):
         print(f"[{i}/{len(samples)}] {sample['id']} 처리 중...")
         item = build_sample(sample)
         if item["n_items"] == 0:
             print(f"  -> 문항 0개 생성, 건너뜀")
             continue
+        generated_items.extend(item["items"])
         faith = faithfulness_one(item, llm)
         rel = answer_relevancy_one(item, llm, embedder)
         print(f"  -> faithfulness={faith['score']}, answer_relevancy={rel['score']}")
@@ -293,12 +298,19 @@ def eval_ragas(sample_ids: list[str]) -> dict:
     avg_faith = round(sum(faith_scores) / len(faith_scores), 3) if faith_scores else None
     avg_rel = round(sum(rel_scores) / len(rel_scores), 3) if rel_scores else None
 
+    # 실측 생성 품질(참고값, 게이트 없음) — ITEM_GOLDEN(고정 30문항)이 아니라 이번 실행에서
+    # 실제로 생성된 문항 기준. 재생성 없이 위 루프에서 이미 만든 문항을 그대로 재사용한다.
+    item_quality_scored = score_items(generated_items, judge_llm) if generated_items else []
+    item_quality = eval_item_quality(item_quality_scored) if item_quality_scored else None
+
     return {
         "n": n,
         "n_faithfulness_applicable": len(faith_scores),
         "n_answer_relevancy_applicable": len(rel_scores),
         "avg_faithfulness": avg_faith,
         "avg_answer_relevancy": avg_rel,
+        "item_quality": item_quality,
+        "item_quality_scored": item_quality_scored,
         "results": results,
     }
 
@@ -362,11 +374,34 @@ def print_report(result: dict):
     print("\n" + "=" * 55)
     print("  분필 RAG 품질 평가 (Ragas 알고리즘 자체 구현)")
     print("=" * 55)
+    if result.get("note"):
+        # eval_ragas()가 n==0(전 샘플 문항 생성 실패)일 때 반환하는 축약 dict —
+        # avg_faithfulness 등 나머지 키가 아예 없으므로 여기서 끝낸다(KeyError 방지).
+        print(f"\n{result['note']} (n={result.get('n', 0)})")
+        print("=" * 55)
+        return
     print(f"\nn = {result['n']}")
     faith_str = f"{result['avg_faithfulness']:.3f}" if result["avg_faithfulness"] is not None else "N/A"
     print(f"Faithfulness (평균, n={result.get('n_faithfulness_applicable', 0)}) : {faith_str}")
     rel_str = f"{result['avg_answer_relevancy']:.3f}" if result["avg_answer_relevancy"] is not None else "N/A"
     print(f"Answer Relevancy (평균, n={result.get('n_answer_relevancy_applicable', 0)}) : {rel_str}")
+    print("=" * 55)
+
+    quality = result.get("item_quality")
+    print("\n[실측 생성 품질] (참고값, 게이트 없음)")
+    print("  ITEM_GOLDEN(고정 30문항)이 아니라 이번 실행에서 실제로 생성된 문항 기준")
+    print("  — ITEM_GOLDEN 기반 문항품질·kappa·±1 지표(eval_exam.py)는 Judge 신뢰도를")
+    print("  재는 것이지 생성 품질이 아니다. 이 지표가 생성 품질 쪽이다.")
+    if quality is None:
+        print("  n=0 (생성된 문항 없음, 채점 불가)")
+    else:
+        print(f"  n={quality['n']}")
+        for name in ("정답유일성", "오답매력도", "근거성"):
+            print(
+                f"    {name:<12}평균 {quality[f'avg_{name}']:.2f}  "
+                f"저품질(≤3) {quality[f'low_rate_{name}']*100:.0f}%"
+            )
+        print(f"    종합평균    : {quality['avg_overall']:.2f} (참고, 게이트 없음)")
     print("=" * 55)
 
 

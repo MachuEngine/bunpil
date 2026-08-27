@@ -68,7 +68,8 @@ def print_report(retrieval: dict, quality: dict, structure: dict, reliability: d
 
     # 평균 옆에 저품질 비율(≤3점)을 나란히 찍는다 — 평균만 보면 "무엇을 고쳐야 하는지"가
     # 가려진다. 실측상 오답매력도는 82%가 4점이라 평균이 거의 하위 꼬리로만 결정된다(EVAL.md 26절).
-    print(f"\n[2] 문항 품질 LLM Judge (n={quality['n']}, 5점 척도)")
+    print(f"\n[2] Judge 신뢰도 검증 (ITEM_GOLDEN 고정 {quality['n']}건 — 생성 품질 아님, "
+          f"실측 생성 품질은 eval_ragas.py 참고, 5점 척도)")
     print(f"  {'기준':<12}{'평균':<8}{'저품질(≤3) 비율'}")
     for name in ("정답유일성", "오답매력도", "근거성"):
         print(f"  {name:<12}{quality[f'avg_{name}']:<8.2f}{quality[f'low_rate_{name}']*100:.0f}%")
