@@ -2,8 +2,9 @@
 
 > `EVAL.md`가 "지표·기준·결과 이력"을 다룬다면, 이 문서는 **"이 프로젝트에 평가가
 > 몇 층으로 나뉘어 있고, 각 층이 어떤 스크립트·데이터로 무엇을 확인하는지"**를
-> 빠르게 찾기 위한 색인이다. 2026-07-23 조사 시점 기준(이후 2026-08-03/08-04 변경사항은
-> 각 절에 갱신 표시로 반영).
+> 빠르게 찾기 위한 색인이다. 2026-07-23 조사 시점 기준(이후 2026-08-03/08-04/08-20
+> 변경사항은 각 절에 갱신 표시로 반영 — 08-20 `eval_vlm.py`/`eval_trajectory.py`
+> 관련 행은 2026-08-27에야 이 문서에 반영됨, 그 전까지 누락 상태였다).
 >
 > 결과·개선 스토리 요약은 [EVAL_SUMMARY.md](./EVAL_SUMMARY.md) 참고.
 >
@@ -16,9 +17,9 @@
 
 | 계층 | 위치 | 성격 | LLM 호출 | CI/정기 실행 |
 |---|---|---|---|---|
-| ① 정기 평가 파이프라인 | `evals/*.py` | 골든셋(사람 라벨) 대비 정량 지표 측정 | O | 모델·프롬프트 바꿀 때마다 수동 실행, 결과를 EVAL.md에 기록 |
+| ① 정기 평가 파이프라인 | `evals/*.py`(eval_exam·eval_ragas·eval_trajectory·eval_vlm) | 골든셋(사람 라벨) 대비 정량 지표 측정 | O | 모델·프롬프트 바꿀 때마다 수동 실행, 결과를 EVAL.md/MODEL_SELECTION.md에 기록 |
 | ② pytest 유닛테스트 | `tests/*.py` | 결정론적 로직 검증 (마스킹, 게이트, 순서 등) | 거의 없음(FakeLLM) | `pytest` 실행, 회귀 방지용 |
-| ③ 스모크 테스트 | `scripts/test_exam.py`, `test_llm.py`, `test_rag.py`, `test_record.py` | 실제 로컬 Ollama로 파이프라인이 "일단 돌아가는지" 눈으로 확인 | O (로컬) | 구조 변경 직후 수동 1회 |
+| ③ 스모크 테스트 | `scripts/test_exam.py`, `test_llm.py`, `test_rag.py`, `test_vlm.py` | 실제 로컬 Ollama/API로 파이프라인이 "일단 돌아가는지" 눈으로 확인 | O (로컬/API) | 구조 변경 직후 수동 1회 |
 | ④ 일회성 실험/비교 | `experiments/*.py` | 특정 의사결정 하나를 검증하고 끝(A/B, 파라미터 튜닝) | O | 이미 실행 완료, 결과는 `data/golden/_*.json`에 아카이브 |
 
 ②는 "코드가 항상 이렇게 동작해야 한다"는 회귀 테스트, ①은 "모델/프롬프트 품질이
@@ -72,6 +73,29 @@ Ragas 패키지 대신 Faithfulness/Answer Relevancy 알고리즘을 직접 구�
 기록**된다(`evals/langsmith_experiments.py` 공용 유틸). 회차별 최신 수치는
 LangSmith 탭이 더 정확한 소스 — EVAL.md는 "왜 이렇게 바꿨는지" 서사 기록용.
 
+### 출제 모듈 Agent Trajectory — `evals/eval_trajectory.py` (2026-08-03 신규, 이전 누락)
+
+골든셋 없이 LangSmith에 쌓인 실행 트레이스를 집계한다. 위 세 스크립트가 **산출물**
+(검색·문항·근거)을 채점하는 것과 달리, 이쪽은 **과정**(도구 호출 실패 분포·재시도
+원인)을 본다. 13개 지표, 전부 참고값(게이트 없음) — `python evals/eval_trajectory.py
+--since <날짜>`로 실행하며 LLM을 직접 호출하지 않고 LangSmith API만 읽는다
+(`LANGCHAIN_API_KEY` 필요). 상세는 EVAL.md 11절, 지표 정의는 EVAL_SUMMARY.md 3.3절.
+
+### VLM 이미지 추출 평가 — `evals/eval_vlm.py` (2026-08-20 신규, 이전 누락)
+
+**출제 그래프가 아니라 `/exam/extract`(이미지 캡처 → 텍스트, 2026-08-19 도입) 전용**이라
+위 세 스크립트와 대상 자체가 다르다. golden_gen(§2)·scripts(§4)에도 짝이 있는 별도
+미니 파이프라인이라 아래에 한데 모아 적는다.
+
+| 파일 | 위치 | 역할 |
+|---|---|---|
+| `gen_vlm_golden.py` | `golden_gen/` | 합성 시험 문제 이미지 40장(PIL 렌더링: text_only 20·figure 15·adversarial 5) + 정답 텍스트 생성 → `vlm_extraction_golden.json` |
+| `eval_vlm.py` | `evals/` | 실제 VLM(`get_vlm_backend()`, gpt-4o-mini) 호출로 40건 추출 → CER/WER(text_only·figure) + 자료 서술 커버리지(Judge) + adversarial(PII 유지·환각 없음) 채점. 게이트 없음(참고값) |
+| `test_vlm.py` | `scripts/` | PIL 합성 이미지 1장으로 `get_vlm_backend()` 배선 확인(스모크, §4와 같은 성격) |
+
+결과·수치 요약은 [MODEL_SELECTION.md](./MODEL_SELECTION.md) §7에 있다(EVAL.md는
+`eval_exam.py` 전용 문서라 이 파이프라인을 다루지 않음 — 의도된 범위).
+
 ---
 
 ## 2. 골든셋을 만드는 스크립트 — `golden_gen/` (평가 자체가 아니라 데이터 생성)
@@ -80,6 +104,7 @@ LangSmith 탭이 더 정확한 소스 — EVAL.md는 "왜 이렇게 바꿨는지
 |---|---|---|
 | `gen_structure_golden.py` | `data/golden/structure_golden.json` | 실제 qwen2.5 출력으로 구조 유사도 골든셋 생성(초안, human_label은 사람이 채움) |
 | `gen_golden_retrieval.py` | `data/golden/retrieval_golden.json` | ChromaDB 컬렉션에서 검색 골든셋 초안 생성(`reviewed: false`, 사람 검수 필요) |
+| `gen_vlm_golden.py` (2026-08-20 신규) | `data/golden/vlm_extraction_golden.json` | 합성 시험 문제 이미지 40장(PIL 렌더링) + 정답 텍스트 생성 — 위 두 스크립트와 달리 실제 시험지가 아니라 스크립트가 이미지 자체를 그린다. §1 "VLM 이미지 추출 평가" 참고 |
 
 ---
 
@@ -99,6 +124,7 @@ LangSmith 탭이 더 정확한 소스 — EVAL.md는 "왜 이렇게 바꿨는지
 | `test_llm.py` | LLM 백엔드 연결(응답이 오는지)만 확인. 내용 정확도는 범위 밖 |
 | `test_rag.py` | 인덱싱→검색→rerank 배선 확인 |
 | `test_exam.py` | 출제 그래프(`plan→agent→judge→validate`) 전체 흐름을 실제 로컬 모델로 1회 실행해 확인. 2026-07-23 judge 분리 반영해 docstring 갱신됨, 2026-08-04 `load_dotenv()`/`init_langsmith_project()` 호출 추가(LANGSMITH_GUIDE.md 3.3.1절) |
+| `test_vlm.py` (2026-08-20 신규) | PIL 합성 이미지로 `get_vlm_backend()` 실제 추출 1회 확인. 출제 그래프와 무관 — `/exam/extract` 전용, §1 "VLM 이미지 추출 평가" 참고 |
 
 > `test_record.py`는 2026-08-03 생기부 모듈 제거와 함께 삭제됨.
 

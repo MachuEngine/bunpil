@@ -1,6 +1,11 @@
 # 분필(Bunpil) 평가(Eval) 문서
 
-`evals/eval_exam.py`가 측정하는 지표, 골든셋 현황, 실행 방법, 결과 이력을 모아둔 참고 문서.
+`evals/eval_exam.py`가 측정하는 지표, 골든셋 현황, 실행 방법, 결과 이력을 모아둔 참고 문서
+(에이전트 실행 과정을 보는 `evals/eval_trajectory.py`도 11절에서 함께 다룬다 — 둘 다 출제
+그래프 대상). **이미지→텍스트 추출(`evals/eval_vlm.py`, `/exam/extract` 전용)은 출제
+그래프와 무관한 별도 파이프라인이라 이 문서 범위 밖**이다 — 결과는
+[MODEL_SELECTION.md](./MODEL_SELECTION.md) §7, 지표 정의는
+[EVAL_SUMMARY.md](./EVAL_SUMMARY.md) 3.3절(4)에 있다.
 
 > **압축된 요약이 필요하면 [EVAL_SUMMARY.md](./EVAL_SUMMARY.md)를 먼저 읽을 것** — 런타임/
 > 오프라인 평가 구분, 지표 의미, 개선 스토리(before→after)를 한 문서로 정리해뒀다. 이
@@ -75,11 +80,12 @@ MASKING_GOLDEN 20건을 유닛테스트가 그대로 강제하도록 옮겼다.
 | 골든셋 | 경로 | 규모 | 비고 |
 |---|---|---|---|
 | retrieval_golden | `data/golden/retrieval_golden_final.json` | 22개 (reviewed 22개, 2026-07-24 확인 — 이전 문서엔 21개로 기록돼 있었으나 실제 파일은 전량 검수 완료 상태) | 실데이터 기반, 사람 검수. 2026.07 past_exams 참조 8개 제거(30→22) |
-| STRUCTURE_GOLDEN | `data/golden/structure_golden.json` | 14개 (라벨링 대기) | count_match 폐기·num_items 도입으로 Claude 부트스트랩 전량 폐기, 실제 qwen2.5:7b 출력으로 전면 재생성(정확히 일치 5·부족 8·초과 1) — human_label 라벨링 대기 |
+| STRUCTURE_GOLDEN | `data/golden/structure_golden.json` | **45개, 45개 라벨링 완료**(2026-07-12 n=20→45 확대, 이후 전량 human_label 완료 — 아래 4절 07.12 행 참고. 이전 문서엔 "14개, 라벨링 대기"로 기록돼 있었으나 초기 재생성 단계의 스냅샷이었음) | count_match 폐기·num_items 도입으로 Claude 부트스트랩 전량 폐기, 실제 qwen2.5:7b→14b 출력으로 전면 재생성 |
 | MASKING_GOLDEN | `data/golden/masking_golden.json` | 20개 | 합성. 생기부 모듈 제거 후 `tests/test_masker.py`가 채점(출제 경로가 `mask_pii`를 계속 사용) |
 | ~~VIOLATION_GOLDEN~~ | — | — | **2026-08-03 삭제** (생기부 모듈과 함께, 14절) |
 | ~~HALLUCINATION_GOLDEN~~ | — | — | **2026-08-03 삭제** (생기부 모듈과 함께, 14절) |
 | ITEM_GOLDEN | `data/golden/item_golden.json` | 30개 | human_score 1~5점 분포. 2026-07-09 `evals/eval_exam.py` 하드코딩에서 외부화 |
+| VLM_EXTRACTION_GOLDEN | `data/golden/vlm_extraction_golden.json` | 40개 (text_only 20 · figure 15, 채점 기준 `figure_summary` 전량 사람 검수 완료 · adversarial 5) | 합성 시험 문제 이미지(PIL 렌더링, `golden_gen/gen_vlm_golden.py`). **출제 모듈이 아니라 `/exam/extract`(이미지→텍스트) 전용** — `evals/eval_exam.py`가 아닌 별도 `evals/eval_vlm.py`가 채점. 상세는 [MODEL_SELECTION.md](./MODEL_SELECTION.md) §7 |
 | example_question_retrieval_test | `data/golden/example_question_retrieval_test.json` | 8개 (reviewed 0개) | 주제어가 아닌 "실제 문제 문장" 스타일 query — standards 컬렉션과의 문체 격차 검증용, 라벨링 대기 |
 
 ## 3. 실행 방법
@@ -138,6 +144,12 @@ Windows 콘솔에서 실행 시 `cp949` 인코딩 오류(`UnicodeEncodeError`)�
 > **2026.07.09 전/후 비교 주의사항**: 위 두 행은 20분 간격으로 연속 실행한 것으로, `JUDGE_TPL`(`정답유일성`·`오답매력도`·`근거성`)에 오답매력도=5점 few-shot 예시 1개만 추가한 차이만 있음(생성 프롬프트는 미변경). Recall@5(0.857→0.905)와 구조Judge MAE(2.000→1.667)도 이 변경과 무관한데 함께 흔들려서, 이 실행 간 약 ±0.05~0.3 수준의 자연 노이즈(HNSW 근사검색·LLM 샘플링 변동)가 있는 것으로 보임 — 오답매력도 +0.33도 전부가 few-shot 효과라고 단정하기보다는 방향성 신호로 해석 권장. 합격률이 47%→73%로 크게 뛴 건 여러 문항의 overall이 4.0 문턱을 살짝 넘었기 때문(경계 근처 문항이 많았다는 뜻).
 >
 > **방법론 오류 정정(2026.07.09)**: 이후 `graph.py` agent_node 프롬프트(생성 측)에도 오답 매력도 지시를 추가하고 같은 방식(`eval_exam.py` 전/후 재실행)으로 검증하려 했으나, `eval_item_quality()`가 채점하는 `ITEM_GOLDEN`은 **스크립트에 하드코딩된 고정 30개 문항**이라 agent_node를 전혀 호출하지 않는다 — 즉 생성 프롬프트를 바꿔도 이 지표엔 원리적으로 반영될 수 없다(실제로 전/후 평균이 2.815로 완전히 동일하게 나와서 발견). 생성 프롬프트 변경 효과는 `scripts/compare_distractor_quality.py`로 별도 검증함(아래 결과 이력 참고).
+
+> **이 표는 2026.08.03 행에서 멈춰 있다.** 그 뒤(정답유일성/오답매력도 재보정, 22~27절)는
+> 표 형식 대신 서사(§22~27)로만 기록돼 있어 여기 추가하지 않았다 — 그 결과 이 표의
+> 문항품질·kappa·구조Judge 값(2026.07.24 행)은 더 이상 최신이 아니다. **"지금 코드가
+> 어떤 상태인가"는 [EVAL_SUMMARY.md](./EVAL_SUMMARY.md) §5(현재 열린 이슈)를 볼 것.**
+> 검색(Recall@5/MRR) 값만은 08.03 행이 여전히 최신이다(이후 변경 없음).
 
 ## 5. 진행 중인 조사
 

@@ -22,7 +22,7 @@
 | 4 | 리랭커 모델 | **BGE-reranker-base** (CPU) | 상동 — 비교 근거 없음, CPU 배치 이유만 명시 | ⚠️ 미검증 채택 |
 | 5 | 검색 방식 | **Dense-only** (BGE dense → ChromaDB cosine → rerank) | 명시적 근거 없음. BGE-M3가 sparse도 지원하지만 코드가 dense만 사용 | ⚠️ 하이브리드 미검토 |
 | 6 | LLM 백엔드 추상화 | `LLMBackend` ABC + factory(local/runpod/openai) | 로컬↔프로덕션 무중단 전환, Judge/생성 독립 교체 | ✅ 확정, 단 코드·문서 기본값 불일치 1건 발견(§6) |
-| 7 | VLM 모델 (이미지 텍스트 추출) | **gpt-4o-mini** (OpenAI) | 다른 모델과 비교 안 함 — 다만 정확도 실측은 완료(text_only CER 0.007, figure CER 0.107, `evals/eval_vlm.py`) | ⚠️ 정확도 실측·모델 비교 없음 |
+| 7 | VLM 모델 (이미지 텍스트 추출) | **gpt-4o-mini** (OpenAI) | 정확도 실측은 완료(text_only CER 0.007, figure CER 0.107, `evals/eval_vlm.py`) — 단 다른 모델과 비교는 안 함 | ⚠️ 모델 비교 없음(정확도 실측은 완료) |
 
 ---
 
