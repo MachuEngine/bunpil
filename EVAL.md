@@ -813,6 +813,74 @@ n이 회차마다 들쭉날쭉한 건 두 가지 독립적인 실패 모드가 �
 `data/golden/_ragas_eval_results.json` — 샘플별 claim·역질문·유사도 전량 보존
 (골든셋 아님, 재실행 시 덮어씀).
 
+## 8.1 실측 생성 품질 정기 관측 도입 (2026-08-27)
+
+### 발단
+
+1절·4절의 `avg_overall≥4.0`/κ≥0.4/±1≥0.7 게이트는 전부 **ITEM_GOLDEN**(고정 30문항,
+`item_golden.json` `_schema.provenance`에 "LLM Judge의 등급별 신뢰도를 검증한다"고
+명시) 대상이다. 즉 이 세 게이트는 **"Judge가 사람과 얼마나 일치하는가"**를 재는 것이지
+**"지금 만드는 문항이 좋은가"**가 아니다. `judge_one()`은 `app/` 어디에서도 호출되지
+않는다(전수 grep 확인) — 실제 생성 품질을 이 게이트가 반영할 방법이 원리적으로 없다.
+4절 "방법론 오류 정정(2026.07.09)"에 이미 실측 기록이 있다: agent_node 프롬프트를
+바꿔도 ITEM_GOLDEN 평균은 2.815로 완전히 동일했다.
+
+그래서 실제 생성 품질은 지금까지 `experiments/`의 일회성 스크립트로만 측정돼 왔다 —
+`diagnose_distractor.py`(22절), `ab_uniqueness_instruction.py`(23·24절),
+few-shot 개입(25절), 저품질 비율 재정의(26·27절) 전부 **그 순간의 질문 하나에 답하고
+끝나는 실행**이었다. "모델·프롬프트를 바꿀 때마다 정기적으로 반복 측정"하는 자리가
+없었다.
+
+### 조치
+
+`evals/eval_ragas.py`를 확장했다 — 위 8개 샘플에서 `build_sample()`이 이미 만드는
+개별 문항(지금까지는 버리고 합쳐진 답변 문자열만 썼음)을 보존해, `eval_lib.py`의
+`judge_one()`/`score_items()`/`eval_item_quality()`(ITEM_GOLDEN을 채점하는 것과
+**동일한 함수**)로 한 번 더 채점한다. **재생성 없음** — `build_sample()`이 만든
+문항을 그대로 재사용할 뿐, `get_exam_graph()`를 다시 호출하지 않는다. 이 원칙은
+`eval_ragas.py`의 `run_langsmith_experiments()` docstring(2026-08-04, L308-317)에
+이미 명시돼 있다(9.1절은 `eval_exam.py`의 별개 중복 호출 버그를 다룬 절이라 이
+파일과는 무관 — 오히려 그 절 말미에 "`eval_ragas.py`는 해당 없음, 매 실행 재생성이
+의도된 설계"라고 적혀 있다). Judge 백엔드도 `get_judge_backend()`로
+통일해 ITEM_GOLDEN 수치와 직접 비교 가능하게 했다(기존 Faithfulness/Answer Relevancy는
+`get_llm_backend()`를 쓰고 있었다는 별개 사실을 조사 중 발견했으나, 이번 범위 밖이라
+손대지 않음).
+
+게이트는 걸지 않았다 — n=8 샘플로는 작고, 오답매력도는 이미 27절에서 "개선 수단
+없음으로 종결"됐으므로 임계값을 걸면 통과 불가능한 영구 실패 알람이 될 위험이 있다.
+Faithfulness/Answer Relevancy와 같은 성격(참고값)으로 시작해, 몇 회 정기 실행 후 변동폭이
+확인되면 임계값 도입 여부를 별도 판단한다.
+
+### 지표 정의·상세
+
+EVAL_SUMMARY.md 3.3절(2) "실측 생성 품질" 참고. ITEM_GOLDEN 기반 지표와 헷갈리지
+않도록 `eval_exam.py`의 출력 라벨도 "[2] 문항 품질 LLM Judge" → "[2] Judge 신뢰도
+검증(ITEM_GOLDEN 고정 n건 — 생성 품질 아님)"으로 정정했다(계산 로직·게이트 임계값은
+불변, 출력 문구만).
+
+### 검증
+
+이 워크트리 환경에 `.env`(OPENAI_API_KEY 등)와 인덱싱된 `chroma_db`가 없어 실제 실행은
+못 했다 — 코드 배선(반환 스키마·함수 시그니처·필드명 일치)을 정적으로 추적 확인하고
+reviewer 에이전트로 독립 리뷰만 거쳤다. **`.env`·`chroma_db`가 있는 환경에서
+`python evals/eval_ragas.py` 최초 실행 후 이 절에 실측치를 추가해야 한다** — 아직 안 함.
+
+### 남은 과제
+
+- 첫 실측치 기록(위 참고)
+- LangSmith 연동은 이번엔 안 함 — 기존 3개 지표는 전부 per-example evaluator 패턴인데
+  이 지표는 8개 샘플을 합친 집계값이라 그 패턴에 맞추려면 샘플별 집계 로직이 추가로
+  필요함. 필요성이 확인되면 별도 작업
+- `eval_ragas.py`의 기존 Faithfulness/Answer Relevancy가 `get_llm_backend()`(생성
+  백엔드)로 채점되고 있다는 사실을 조사 중 발견 — `judge_one()`류와 다른 백엔드를 쓰는
+  기존 설계라 이번엔 안 건드렸음. 일관성 문제로 볼지는 별도 판단 필요
+- **(리뷰에서 발견, PLAUSIBLE)** `judge_one()`의 `JUDGE_TPL` few-shot과 ITEM_GOLDEN
+  신뢰도 검증은 전부 **객관식** 문항 형식이다. 그런데 실제 생성물(PASSAGE_SAMPLES 기반)에는
+  `options=[]`·`answer=""`인 **서술형** 문항이 섞일 수 있어(`app/modules/exam/graph.py`
+  확인), 이번 지표가 Judge가 한 번도 검증되지 않은 입력 형식에 처음 적용되는 셈이다.
+  서술형 비율이 높으면 수치 해석에 영향을 줄 수 있음 — 첫 실측 시 `item_type` 분포를
+  함께 확인할 것
+
 ## 9. LangSmith Experiments 연동 (2026-07-12)
 
 로드맵 항목 6의 3단계. 6개 지표 전부가 아니라 **Judge 기반 3개만 정식 연동**하기로

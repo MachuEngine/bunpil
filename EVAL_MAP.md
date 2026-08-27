@@ -62,12 +62,19 @@ python evals/eval_exam.py      # 출제 모듈
 | 규정 위반 Recall | 함수 | `violation_golden.json` (50개: 위반25+정상25) | ≥ 0.95 |
 | regulations RAG Recall@5/MRR | 함수 | (내장 쿼리) | 참고값 |
 
-### 출제 모듈 RAG 품질 — `evals/eval_ragas.py`
+### 출제 모듈 RAG 품질 + 실측 생성 품질 — `evals/eval_ragas.py`
 
 Ragas 패키지 대신 Faithfulness/Answer Relevancy 알고리즘을 직접 구현(의존성 충돌
 회피, EVAL.md 8절). 실제 `get_exam_graph()`를 호출해 생성된 문항을 채점하므로
 ①에 속하지만 `eval_exam.py`와 별도 스크립트로 분리돼 있다. 결과는
 `data/golden/_ragas_eval_results.json`에 누적.
+
+**2026-08-27부터**: 같은 실행에서 생성된 문항을(재생성 없이 재사용) `eval_lib.py`의
+`judge_one()`/`score_items()`/`eval_item_quality()`로 한 번 더 채점해 "실측 생성 품질"
+참고 지표(정답유일성·오답매력도·근거성·overall, 게이트 없음)도 함께 낸다 — `eval_exam.py`의
+ITEM_GOLDEN 기반 게이트가 고정 30문항만 채점해 생성 프롬프트 변경에 반응하지 않는다는
+문제(EVAL.md 4절)를 메우려고 추가했다. `eval_lib.py`가 이제 `eval_exam.py`뿐 아니라
+`eval_ragas.py`에서도 쓰인다. 상세는 EVAL_SUMMARY.md 3.3절(2).
 
 **신뢰도(kappa 등) 3개 지표는 실행할 때마다 LangSmith Experiments에도 자동
 기록**된다(`evals/langsmith_experiments.py` 공용 유틸). 회차별 최신 수치는
