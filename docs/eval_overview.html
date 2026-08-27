@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>분필 채점표</title>
+<style>
+  :root {
+    --bg: #eef1ee;
+    --surface: #ffffff;
+    --surface-2: #e4e8e4;
+    --ink: #1b2420;
+    --ink-soft: #52605a;
+    --ink-faint: #7c887f;
+    --line: #cbd3cc;
+    --line-soft: #dde3dd;
+    --accent: #a67a1f;
+    --accent-ink: #6b5015;
+    --accent-soft: #f2e3c4;
+    --good: #2f7d4f;
+    --good-soft: #dcefe1;
+    --bad: #a8402f;
+    --bad-soft: #f6ded9;
+    --neutral-badge: #566063;
+    --neutral-badge-soft: #e6e9e6;
+    --code-bg: #e4e9e3;
+    --shadow: 0 1px 2px rgba(20, 30, 22, 0.06), 0 6px 20px rgba(20, 30, 22, 0.05);
+    --font-body: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+      "Malgun Gothic", "Noto Sans KR", sans-serif;
+    --font-mono: "SF Mono", ui-monospace, "JetBrains Mono", "IBM Plex Mono", Menlo, Consolas,
+      monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #161b1c;
+      --surface: #1d2426;
+      --surface-2: #242c2e;
+      --ink: #e8ece8;
+      --ink-soft: #a9b4ac;
+      --ink-faint: #7d8880;
+      --line: #33403f;
+      --line-soft: #2a3534;
+      --accent: #e0b563;
+      --accent-ink: #f2d9a3;
+      --accent-soft: #322a17;
+      --good: #5cb583;
+      --good-soft: #1c3327;
+      --bad: #e08a76;
+      --bad-soft: #3a241f;
+      --neutral-badge: #9aa6a0;
+      --neutral-badge-soft: #263030;
+      --code-bg: #232b2b;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #161b1c;
+    --surface: #1d2426;
+    --surface-2: #242c2e;
+    --ink: #e8ece8;
+    --ink-soft: #a9b4ac;
+    --ink-faint: #7d8880;
+    --line: #33403f;
+    --line-soft: #2a3534;
+    --accent: #e0b563;
+    --accent-ink: #f2d9a3;
+    --accent-soft: #322a17;
+    --good: #5cb583;
+    --good-soft: #1c3327;
+    --bad: #e08a76;
+    --bad-soft: #3a241f;
+    --neutral-badge: #9aa6a0;
+    --neutral-badge-soft: #263030;
+    --code-bg: #232b2b;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+  code, .mono { font-family: var(--font-mono); }
+  h1, h2, h3 { text-wrap: balance; font-weight: 700; margin: 0; }
+  p { margin: 0; }
+  a { color: var(--accent-ink); }
+  table { font-variant-numeric: tabular-nums; }
+
+  /* ---- Masthead ---- */
+  .masthead {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 28px;
+  }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+    font-weight: 600;
+  }
+  .masthead h1 {
+    font-size: clamp(28px, 4vw, 38px);
+    letter-spacing: -0.01em;
+  }
+  .masthead .sub {
+    color: var(--ink-soft);
+    font-size: 15.5px;
+    max-width: 640px;
+  }
+  .masthead .meta {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink-faint);
+    margin-top: 4px;
+  }
+
+  /* ---- North star callout ---- */
+  .thesis {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 16px;
+    align-items: start;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px;
+    padding: 20px 22px;
+    margin-bottom: 40px;
+    box-shadow: var(--shadow);
+  }
+  .thesis .label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+    white-space: nowrap;
+    padding-top: 3px;
+  }
+  .thesis p { color: var(--ink-soft); font-size: 14.5px; }
+  .thesis strong { color: var(--ink); }
+
+  section.block { margin-bottom: 56px; }
+  section.block > h2 {
+    font-size: 21px;
+    margin-bottom: 6px;
+  }
+  section.block > .lede {
+    color: var(--ink-soft);
+    font-size: 14.5px;
+    max-width: 680px;
+    margin-bottom: 22px;
+  }
+
+  /* ---- Runtime diagram ---- */
+  figure.diagram {
+    margin: 0 0 20px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 8px 6px;
+    box-shadow: var(--shadow);
+  }
+  figure.diagram svg { display: block; width: 100%; height: auto; }
+  figure.diagram figcaption {
+    font-size: 12.5px;
+    color: var(--ink-faint);
+    padding: 10px 18px 14px;
+    border-top: 1px solid var(--line-soft);
+    margin-top: 10px;
+  }
+  .dnode-label { font-size: 13px; font-weight: 700; }
+  .dnode-sub { font-size: 10.5px; }
+  .darrow-label { font-family: var(--font-mono); font-size: 10px; }
+
+  .gate-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 12px;
+  }
+  .gate-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .gate-card h4 {
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--accent-ink);
+    letter-spacing: 0.02em;
+    margin-bottom: 8px;
+  }
+  .gate-card ul { margin: 0; padding-left: 16px; font-size: 13px; color: var(--ink-soft); }
+  .gate-card li + li { margin-top: 5px; }
+  .gate-card code { font-size: 12px; background: var(--code-bg); padding: 1px 4px; border-radius: 4px; }
+
+  /* ---- 4-layer grid ---- */
+  .layer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 14px;
+  }
+  .layer-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .layer-card .num { font-family: var(--font-mono); font-size: 11px; color: var(--ink-faint); }
+  .layer-card h3 { font-size: 16px; }
+  .layer-card code.path { font-size: 12px; color: var(--accent-ink); display: block; }
+  .layer-card p.desc { font-size: 13px; color: var(--ink-soft); }
+  .layer-card .when {
+    margin-top: auto;
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    border-top: 1px dashed var(--line);
+    padding-top: 8px;
+  }
+
+  /* ---- Tabs ---- */
+  .tabbar {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+  }
+  .tabbar button {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    background: none;
+    border: none;
+    color: var(--ink-faint);
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .tabbar button .n { color: var(--ink-faint); }
+  .tabbar button[aria-selected="true"] {
+    color: var(--ink);
+    border-bottom-color: var(--accent);
+  }
+  .tabbar button:hover { color: var(--ink); }
+  .tabbar button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .panel > .intro { font-size: 13.5px; color: var(--ink-soft); margin-bottom: 18px; max-width: 700px; }
+
+  .metric-group { margin-bottom: 26px; }
+  .metric-group h4 {
+    font-size: 13.5px;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .metric-group h4 .tag {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--ink-faint);
+    font-weight: 400;
+  }
+
+  .metric-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .metric-table-wrap { overflow-x: auto; border-radius: 10px; }
+  .metric-table th {
+    text-align: left;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    color: var(--ink-faint);
+    background: var(--surface-2);
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  .metric-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: top;
+    color: var(--ink-soft);
+  }
+  .metric-table tr:last-child td { border-bottom: none; }
+  .metric-table td.name { font-family: var(--font-mono); font-size: 12.5px; color: var(--ink); white-space: nowrap; }
+  .metric-table td.what { color: var(--ink); }
+  .metric-table td.val { font-family: var(--font-mono); white-space: nowrap; }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .badge.pass { background: var(--good-soft); color: var(--good); }
+  .badge.ref { background: var(--neutral-badge-soft); color: var(--neutral-badge); }
+  .badge.pending {
+    background: transparent;
+    color: var(--ink-faint);
+    border: 1px dashed var(--ink-faint);
+  }
+  .badge.fail { background: var(--bad-soft); color: var(--bad); }
+
+  .callout {
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 13px;
+    color: var(--ink);
+    margin: 16px 0 24px;
+  }
+  .callout strong { color: var(--accent-ink); }
+
+  /* ---- status ---- */
+  .issue-list { display: flex; flex-direction: column; gap: 10px; }
+  .issue {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 13px 16px;
+    font-size: 13px;
+  }
+  .issue .status-badge {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    height: fit-content;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-weight: 700;
+  }
+  .issue .status-badge.open { background: var(--bad-soft); color: var(--bad); }
+  .issue .status-badge.progress { background: var(--accent-soft); color: var(--accent-ink); }
+  .issue .status-badge.closed { background: var(--good-soft); color: var(--good); text-decoration: none; }
+  .issue p { color: var(--ink-soft); }
+  .issue strong { color: var(--ink); }
+
+  /* ---- glossary ---- */
+  .glossary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px 24px;
+  }
+  .glossary-grid dt {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--accent-ink);
+    font-weight: 700;
+  }
+  .glossary-grid dd {
+    margin: 3px 0 0;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+  }
+
+  footer {
+    border-top: 1px solid var(--line);
+    padding-top: 20px;
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--ink-faint);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  footer a { color: var(--ink-faint); }
+
+  @media (max-width: 560px) {
+    .thesis { grid-template-columns: 1fr; }
+    .issue { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="masthead">
+    <span class="eyebrow">Bunpil · Evaluation</span>
+    <h1>분필 채점표</h1>
+    <p class="sub">
+      출제 AI가 자기 자신을 어떻게 채점하는지 — 런타임에서 문항 하나가 통과되는 기준부터,
+      그 기준(Judge)을 얼마나 믿어도 되는지 확인하는 오프라인 지표까지 한 장으로.
+    </p>
+    <div class="meta">
+      <span>업데이트 2026-08-28</span>
+      <span>·</span>
+      <span>상세 서사는 EVAL.md · EVAL_SUMMARY.md</span>
+    </div>
+  </header>
+
+  <div class="thesis">
+    <span class="label">North Star</span>
+    <p>
+      진짜 재고 싶은 건 딱 하나 — <strong>"교사가 수정 없이 그대로 쓴 문항의 비율"</strong>이다.
+      근데 이건 직접 잴 방법이 없다(실사용자가 지인 교사 1명이라 A/B가 불가능하고,
+      실제 학생 데이터는 하드룰로 금지돼 있음). 그래서 사람이 미리 라벨을 붙여둔 골든셋으로
+      <strong>대신 근사</strong>한다 — 아래 나오는 지표 50여 개는 전부 이 하나를 대신 재는 값들이다.
+    </p>
+  </div>
+
+  <!-- ============ RUNTIME ============ -->
+  <section class="block" id="runtime">
+    <h2>① 런타임 — 문항 하나가 나가기까지</h2>
+    <p class="lede">
+      교사가 요청할 때마다 실제로 도는 경로. 여기 나온 기준을 넘어야 문항이 화면에 나간다.
+    </p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 920 300" role="img"
+        aria-label="agent node가 문항을 생성하면 judge node가 별도 LLM으로 채점하고, validate가 코드로 4개 조건을 AND로 확인한다. 통과하면 종료, 미달이면 budget이 남은 한 agent node로 돌아가 재시도한다.">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+          </marker>
+          <marker id="arrowAccent" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/>
+          </marker>
+        </defs>
+
+        <!-- nodes -->
+        <g>
+          <rect x="30" y="40" width="190" height="76" rx="10" fill="none" stroke="currentColor" opacity="0.55"/>
+          <text x="125" y="70" text-anchor="middle" class="dnode-label" fill="currentColor">agent node</text>
+          <text x="125" y="88" text-anchor="middle" class="dnode-sub" fill="currentColor" opacity="0.65">생성 LLM · Qwen2.5-14B</text>
+          <text x="125" y="103" text-anchor="middle" class="dnode-sub" fill="currentColor" opacity="0.65">save_item 게이트 3개(코드)</text>
+        </g>
+
+        <g>
+          <rect x="365" y="40" width="190" height="76" rx="10" fill="none" stroke="var(--accent)" stroke-width="1.6"/>
+          <text x="460" y="70" text-anchor="middle" class="dnode-label" fill="var(--accent-ink)">judge node</text>
+          <text x="460" y="88" text-anchor="middle" class="dnode-sub" fill="var(--accent-ink)" opacity="0.85">별도 Judge LLM · gpt-5.6-luna</text>
+          <text x="460" y="103" text-anchor="middle" class="dnode-sub" fill="var(--accent-ink)" opacity="0.85">type_ratio·difficulty·overall</text>
+        </g>
+
+        <g>
+          <rect x="700" y="40" width="190" height="76" rx="10" fill="none" stroke="currentColor" opacity="0.55"/>
+          <text x="795" y="70" text-anchor="middle" class="dnode-label" fill="currentColor">validate</text>
+          <text x="795" y="88" text-anchor="middle" class="dnode-sub" fill="currentColor" opacity="0.65">코드, LLM 미사용</text>
+          <text x="795" y="103" text-anchor="middle" class="dnode-sub" fill="currentColor" opacity="0.65">4조건 AND</text>
+        </g>
+
+        <!-- arrows forward -->
+        <line x1="220" y1="78" x2="360" y2="78" stroke="currentColor" opacity="0.6" marker-end="url(#arrow)"/>
+        <text x="290" y="68" text-anchor="middle" class="darrow-label" fill="currentColor" opacity="0.7">submit_for_review</text>
+        <text x="290" y="80" text-anchor="middle" class="darrow-label" fill="currentColor" opacity="0.7">또는 14턴 한도</text>
+
+        <line x1="555" y1="78" x2="695" y2="78" stroke="currentColor" opacity="0.6" marker-end="url(#arrow)"/>
+
+        <!-- pass exit -->
+        <line x1="890" y1="78" x2="905" y2="78" stroke="var(--good)" stroke-width="2"/>
+        <path d="M905,68 v20" stroke="var(--good)" stroke-width="2" fill="none"/>
+        <text x="795" y="145" text-anchor="middle" class="darrow-label" fill="var(--good)" font-weight="700">4조건 전부 충족 → 통과, 종료</text>
+
+        <!-- retry loop back -->
+        <path d="M795,116 v50 C795,205 125,205 125,175 L125,116"
+          fill="none" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#arrowAccent)"/>
+        <text x="460" y="200" text-anchor="middle" class="darrow-label" fill="var(--accent-ink)">
+          하나라도 미달 → budget 남으면(기본 5회) agent node로 재시도
+        </text>
+
+        <text x="460" y="255" text-anchor="middle" font-size="11" fill="currentColor" opacity="0.55">
+          budget 소진 시 미달 상태로도 강제 종료 — "끝났다"가 곧 "합격"은 아니다
+        </text>
+      </svg>
+      <figcaption>
+        생성(agent) → 별도 모델의 채점(judge) → 코드가 판정(validate) → 통과하면 끝, 아니면
+        예산이 남은 만큼 처음부터 다시. 생성 모델과 채점 모델을 분리해 둔 게 핵심 —
+        자기가 만든 걸 자기가 채점하지 않는다(2026-07-23 self-judge 폐기).
+      </figcaption>
+    </figure>
+
+    <div class="gate-cards">
+      <div class="gate-card">
+        <h4>agent node · save_item 게이트 3개</h4>
+        <ul>
+          <li>한자 오염 <code>≥5%</code> 또는 한글 0개 → 거부</li>
+          <li>예시 복사 bigram <code>containment ≥0.90</code> → 거부</li>
+          <li>세트 내 중복 <code>Jaccard ≥0.80</code> → 거부</li>
+        </ul>
+      </div>
+      <div class="gate-card">
+        <h4>judge node · 3개 채점값</h4>
+        <ul>
+          <li><code>type_ratio_score</code> 0~1 — 문항 유형 구성 유사도</li>
+          <li><code>difficulty_match</code> T/F — 난이도 구성 부합 여부</li>
+          <li><code>overall_score</code> 0~5 — 세트 전체 품질</li>
+        </ul>
+      </div>
+      <div class="gate-card">
+        <h4>validate · 4조건 AND</h4>
+        <ul>
+          <li>문항 개수 == 요청 개수</li>
+          <li><code>type_ratio_score ≥ 0.5</code></li>
+          <li><code>difficulty_match == true</code></li>
+          <li><code>overall_score ≥ 3</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>2026-08-04 재보정:</strong> 원래 기준은 <code>overall≥4</code>·<code>type_ratio≥0.7</code>이었는데
+      실측 통과율이 6.7~8.9%로 사실상 통과 불가능했다. <code>≥3</code>·<code>≥0.5</code>로 낮춘 뒤
+      42.2~48.9%로 정상화됐다 — Judge가 애초에 4~5점을 잘 안 준다는 실제 점수 분포를 무시한
+      기준이었다는 뜻.
+    </div>
+  </section>
+
+  <!-- ============ 4 LAYERS ============ -->
+  <section class="block" id="layers">
+    <h2>② 오프라인 — 4개 계층</h2>
+    <p class="lede">
+      "런타임 기준(Judge·검색기) 자체를 믿어도 되는가"를 사람이 수동으로 확인하는 계층.
+      성격이 서로 다른 4가지가 있고, 아래 ③ 지표 목록은 이 중 <strong>①만</strong> 다룬다.
+    </p>
+    <div class="layer-grid">
+      <div class="layer-card">
+        <span class="num">01</span>
+        <h3>정기 평가</h3>
+        <code class="path">evals/*.py</code>
+        <p class="desc">골든셋·실제 생성물 대비 정량 지표. 이 문서 ③절의 주인공.</p>
+        <span class="when">모델·프롬프트 바꿀 때마다 수동 실행</span>
+      </div>
+      <div class="layer-card">
+        <span class="num">02</span>
+        <h3>pytest</h3>
+        <code class="path">tests/*.py</code>
+        <p class="desc">마스킹·저장 게이트·검증 순서 같은 결정론적 로직. 통과/실패만, 수치 없음.</p>
+        <span class="when"><code>pytest</code>로 회귀 방지</span>
+      </div>
+      <div class="layer-card">
+        <span class="num">03</span>
+        <h3>스모크</h3>
+        <code class="path">scripts/test_*.py</code>
+        <p class="desc">로컬 Ollama/API로 배선이 안 끊겼는지 눈으로 1회 확인.</p>
+        <span class="when">구조 변경 직후</span>
+      </div>
+      <div class="layer-card">
+        <span class="num">04</span>
+        <h3>일회성 실험</h3>
+        <code class="path">experiments/*.py</code>
+        <p class="desc">의사결정 하나(A/B, 파라미터 튜닝)에 답하고 끝. 정기 관리 대상 아님.</p>
+        <span class="when">이미 종료, 결과는 <code>data/golden/_*.json</code>에 보관</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ METRICS ============ -->
+  <section class="block" id="metrics">
+    <h2>③ 정기 평가 지표 — 스크립트별 전체 목록</h2>
+    <p class="lede">
+      총 <strong>50개</strong> 지표 중 통과/미달 게이트가 걸린 건 <strong>4개</strong>뿐이다. 나머지는
+      참고값이거나 원인을 쪼개 보는 값 — 탭으로 스크립트를 골라서 보면 된다.
+    </p>
+
+    <div class="tabbar" role="tablist">
+      <button role="tab" aria-selected="true" data-panel="p-exam">eval_exam.py <span class="n">18</span></button>
+      <button role="tab" aria-selected="false" data-panel="p-ragas">eval_ragas.py <span class="n">12</span></button>
+      <button role="tab" aria-selected="false" data-panel="p-traj">eval_trajectory.py <span class="n">13</span></button>
+      <button role="tab" aria-selected="false" data-panel="p-vlm">eval_vlm.py <span class="n">7</span></button>
+    </div>
+
+    <!-- ---------- eval_exam.py ---------- -->
+    <div class="panel active" id="p-exam">
+      <p class="intro">
+        검색이 정답을 찾는가 + <strong>Judge를 믿어도 되는가</strong>. 뒤쪽 두 그룹은 사실
+        "문항이 좋은가"가 아니라 <strong>"채점한 Judge가 사람과 일치하는가"</strong>를 잰다 —
+        아래 콜아웃 참고.
+      </p>
+
+      <div class="metric-group">
+        <h4>검색 성능 <span class="tag">retrieval_golden_final.json · 22건</span></h4>
+        <div class="metric-table-wrap"><table class="metric-table">
+          <thead><tr><th>지표</th><th>값</th><th>무엇을 보나</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="name">recall_at_5</td><td class="val">1.000</td><td class="what">상위 5개 후보 안에 정답 청크가 들어왔는가</td><td><span class="badge pass">GATE ≥0.8</span></td></tr>
+            <tr><td class="name">mrr</td><td class="val">0.854</td><td class="what">찾은 정답을 몇 등으로 올렸는가(리랭커 품질)</td><td><span class="badge ref">참고 ≥0.6</span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+
+      <div class="metric-group">
+        <h4>문항 품질 <span class="tag">judge_one() · ITEM_GOLDEN 30건</span></h4>
+        <div class="metric-table-wrap"><table class="metric-table">
+          <thead><tr><th>지표</th><th>값</th><th>무엇을 보나</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="name">avg_정답유일성</td><td class="val">4.40</td><td class="what">정답이 오직 하나인가</td><td><span class="badge ref">참고</span></td></tr>
+            <tr><td class="name">avg_오답매력도</td><td class="val">3.50</td><td class="what">오답 선지가 그럴듯한가</td><td><span class="badge ref">참고</span></td></tr>
+            <tr><td class="name">avg_근거성</td><td class="val">4.57</td><td class="what">교육과정에 근거하는가</td><td><span class="badge ref">참고</span></td></tr>
+            <tr><td class="name">avg_overall</td><td class="val">4.06</td><td class="what">세 기준 평균의 전체 평균</td><td><span class="badge pass">GATE ≥4.0</span></td></tr>
+            <tr><td class="name">pass_rate</td><td class="val">80%</td><td class="what">overall≥4.0인 문항 비율</td><td><span class="badge ref">참고</span></td></tr>
+            <tr><td class="name">low_rate_정답유일성</td><td class="val">13%</td><td class="what">3점 이하 비율(낮을수록 좋음)</td><td><span class="badge ref">참고</span></td></tr>
+            <tr><td class="name">low_rate_오답매력도</td><td class="val">37%</td><td class="what">〃 — 평균을 묶어두는 하위 구간</td><td><span class="badge ref">참고</span></td></tr>
+            <tr><td class="name">low_rate_근거성</td><td class="val">10%</td><td class="what">〃 — 셋 중 가장 낮음</td><td><span class="badge ref">참고</span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+
+      <div class="metric-group">
+        <h4>문항 Judge 신뢰도 <span class="tag">같은 30건, human_score 대조</span></h4>
+        <div class="metric-table-wrap"><table class="metric-table">
+          <thead><tr><th>지표</th><th>값</th><th>무엇을 보나</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="name">exact_agreement</td><td class="val">—</td><td class="what">사람·Judge가 완전히 같은 점수</td><td><span class="badge ref">참고</span></td></tr>
+            <tr><td class="name">agreement_within_1</td><td class="val">0.700</td><td class="what">두 점수 차이 1점 이내 비율</td><td><span class="badge pass">GATE ≥0.7</span></td></tr>
+            <tr><td class="name">cohen_kappa (κ)</td><td class="val">0.468</td><td class="what">우연을 걷어낸 실질 일치도</td><td><span class="badge pass">GATE ≥0.4</span></td></tr>
+            <tr><td class="name">human_avg / llm_avg</td><td class="val">—</td><td class="what">차이가 곧 Judge의 편향(bias)</td><td><span class="badge ref">참고</span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+
+      <div class="metric-group">
+        <h4>구조 유사도 Judge 신뢰도 <span class="tag">STRUCTURE_GOLDEN 45건, human_label 대조</span></h4>
+        <div class="metric-table-wrap"><table class="metric-table">
+          <thead><tr><th>지표</th><th>값</th><th>무엇을 보나</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="name">difficulty_match_agreement</td><td class="val">0.933</td><td class="what">난이도 판정이 사람과 같은가</td><td><span class="badge ref">참고, 게이트 폐기</span></td></tr>
+            <tr><td class="name">overall_score_mae</td><td class="val">0.644</td><td class="what">점수가 사람과 평균 몇 점 어긋나는가</td><td><span class="badge ref">참고, 역대 최저</span></td></tr>
+            <tr><td class="name">count_match_code_rate</td><td class="val">—</td><td class="what">골든셋 문항 수가 num_items와 맞는가(정합성 확인용)</td><td><span class="badge ref">참고</span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+
+      <div class="callout">
+        <strong>왜 이 게이트가 "품질"이 아니라 "신뢰도"인가</strong> — 위 두 그룹 모두
+        <code>item_golden.json</code>(3주 전에 만들고 그 뒤 안 바뀐 고정 30문항)을 채점한다.
+        <code>judge_one()</code>은 <code>app/</code> 실제 서비스 코드 어디서도 호출되지 않는다.
+        그래서 생성 로직(프롬프트 등)을 아무리 바꿔도 이 숫자는 반응하지 않는다 — 실제로 프롬프트
+        전/후 평균이 <code>2.815</code>로 완전히 동일하게 나온 적이 있다. 즉 이 게이트가 확인하는 건
+        "지금 문항이 좋은가"가 아니라 <strong>"Judge가 사람 채점과 얼마나 일치하는가"</strong>다.
+        실제 생성 품질은 <span class="mono">eval_ragas.py</span> 탭에서 본다.
+      </div>
+    </div>
+
+    <!-- ---------- eval_ragas.py ---------- -->
+    <div class="panel" id="p-ragas">
+      <p class="intro">
+        고정 골든셋이 아니라 <strong>실행할 때마다 실제로 문항을 생성</strong>해서(샘플 8개) 그
+        생성물 자체를 채점한다. 게이트는 하나도 없음 — 전부 참고값.
+      </p>
+
+      <div class="metric-group">
+        <h4>RAG 품질 <span class="tag">Faithfulness / Answer Relevancy, 자체 구현</span></h4>
+        <div class="metric-table-wrap"><table class="metric-table">
+          <thead><tr><th>지표</th><th>값</th><th>무엇을 보나</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="name">avg_faithfulness</td><td class="val">0.600<span style="opacity:.55">(n=5)</span></td><td class="what">검색 근거로 뒷받침되는 주장의 비율(환각 탐지)</td><td><span class="badge ref">참고, 기준선</span></td></tr>
+            <tr><td class="name">avg_answer_relevancy</td><td class="val">0.631<span style="opacity:.55">(n=5)</span></td><td class="what">역질문이 원 질문과 얼마나 닮았는가(주제 이탈 탐지)</td><td><span class="badge ref">참고, 기준선</span></td></tr>
+            <tr><td class="name">n_*_applicable</td><td class="val">—</td><td class="what">채점 가능했던 샘플 건수(분모)</td><td><span class="badge ref">참고</span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+
+      <div class="metric-group">
+        <h4>실측 생성 품질 <span class="tag">2026-08-27 신규 · judge_one() 재사용, 대상만 실제 생성물</span></h4>
+        <div class="metric-table-wrap"><table class="metric-table">
+          <thead><tr><th>지표</th><th>값</th><th>무엇을 보나</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="name">avg_정답유일성</td><td class="val">—</td><td class="what">실제 생성물 기준 정답유일성</td><td><span class="badge pending">측정 대기</span></td></tr>
+            <tr><td class="name">avg_오답매력도</td><td class="val">—</td><td class="what">실제 생성물 기준 오답매력도</td><td><span class="badge pending">측정 대기</span></td></tr>
+            <tr><td class="name">avg_근거성</td><td class="val">—</td><td class="what">실제 생성물 기준 근거성</td><td><span class="badge pending">측정 대기</span></td></tr>
+            <tr><td class="name">avg_overall / pass_rate</td><td class="val">—</td><td class="what">종합 평균 / 4.0 이상 비율</td><td><span class="badge pending">측정 대기</span></td></tr>
+            <tr><td class="name">low_rate_*</td><td class="val">—</td><td class="what">기준별 저품질(≤3점) 비율</td><td><span class="badge pending">측정 대기</span></td></tr>
+          </tbody>
+        </table></div>
+        <p style="font-size:12.5px; color:var(--ink-faint); margin-top:8px;">
+          <code>CHROMA_PERSIST_DIR=./chroma_db python evals/eval_ragas.py</code> 최초 실행 후 채워짐.
+        </p>
+      </div>
+
+      <div class="callout">
+        <strong>이게 왜 생겼나</strong> — eval_exam.py 탭의 문항품질 게이트가 고정 문항이라
+        생성 로직 변화에 무반응이라는 게 확인되자, 이미 매번 실제로 생성하고 있던 이 스크립트의
+        문항(재생성 없이 재사용)에 <strong>같은 채점 함수(<code>judge_one()</code>)</strong>를 한 번
+        더 통과시켰다. "빠져 있던 정기 관측 자리"를 메운 것 — 채점 기준을 새로 만든 게 아니다.
+      </div>
+    </div>
+
+    <!-- ---------- eval_trajectory.py ---------- -->
+    <div class="panel" id="p-traj">
+      <p class="intro">
+        골든셋이 아니라 <strong>LangSmith에 쌓인 실행 트레이스</strong>를 집계한다. 결과물의
+        품질이 아니라 "에이전트가 어디서 헛도는가"를 원인별로 쪼개 보는 진단 계층 — 좋고
+        나쁨을 매기지 않아 게이트가 없다.
+      </p>
+
+      <div class="metric-group">
+        <h4>A · 도구 호출 신뢰도</h4>
+        <div class="metric-table-wrap"><table class="metric-table">
+          <tbody>
+            <tr><td class="name">error_rate</td><td class="what">도구 호출 중 예외로 끝난 비율 — 진짜 실패</td><td><span class="badge ref">진단</span></td></tr>
+            <tr><td class="name">rejection_rate</td><td class="what">게이트가 정상적으로 거부한 비율 — 실패 아님</td><td><span class="badge ref">진단</span></td></tr>
+            <tr><td class="name">empty_result_rate</td><td class="what">검색이 빈 결과로 돌아온 비율</td><td><span class="badge ref">진단</span></td></tr>
+            <tr><td class="name">by_tool</td><td class="what">위 세 상태를 도구별로 쪼갠 건수표</td><td><span class="badge ref">진단</span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+
+      <div class="metric-group">
+        <h4>B · 재시도 원인</h4>
+        <div class="metric-table-wrap"><table class="metric-table">
+          <tbody>
+            <tr><td class="name">feedback_categories</td><td class="what">재시도 사유 5종(형식/판단/둘다/미분류) 건수</td><td><span class="badge ref">진단</span></td></tr>
+            <tr><td class="name">malformed_tool_call_rate</td><td class="what">tool-call 문법이 깨진 빈도</td><td><span class="badge ref">진단</span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+
+      <div class="metric-group">
+        <h4>C · 궤적 형태</h4>
+        <div class="metric-table-wrap"><table class="metric-table">
+          <tbody>
+            <tr><td class="name">avg_agent_reentries_per_session</td><td class="what">요청 하나가 agent를 평균 몇 번 도는가(1.0=첫 시도 완료)</td><td><span class="badge ref">진단</span></td></tr>
+            <tr><td class="name">submit_for_review_calls</td><td class="what">에이전트가 스스로 "다 썼다"고 끝낸 횟수</td><td><span class="badge ref">진단</span></td></tr>
+            <tr><td class="name">validation_passed_rate</td><td class="what">런타임에서 실제로 관측된 게이트 통과율</td><td><span class="badge ref">진단</span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+
+      <div class="callout">
+        <strong>error와 rejected를 가르는 이유</strong> — 저장 게이트가 복사·중복을 걸러내는 건
+        가드레일이 의도대로 작동한 것이지 실패가 아니다. 이 구분 덕분에 자기채점 도구를 없앤 뒤
+        malformed tool-call 비율이 <strong>18.4% → 0%</strong>로 사라진 걸 실제로 확인했다.
+      </div>
+    </div>
+
+    <!-- ---------- eval_vlm.py ---------- -->
+    <div class="panel" id="p-vlm">
+      <p class="intro">
+        <strong>출제 그래프와 무관한 별도 파이프라인</strong> — 시험 문제 캡처 이미지를 텍스트로
+        옮기는 <code>/exam/extract</code> 전용. 마스킹 전 원본 이미지를 VLM에 바로 넘기는
+        유일한 경로(하드룰 2 예외)라 별도 골든셋 3종으로 검증한다.
+      </p>
+
+      <div class="metric-group">
+        <h4>text_only <span class="tag">n=20 · 텍스트만 있는 문항</span></h4>
+        <div class="metric-table-wrap"><table class="metric-table">
+          <tbody>
+            <tr><td class="name">cer</td><td class="val">0.0071</td><td class="what">문자 오류율 — 정답 원문을 얼마나 그대로 재현하는가</td><td><span class="badge ref">참고</span></td></tr>
+            <tr><td class="name">wer</td><td class="val">0.0216</td><td class="what">단어 오류율</td><td><span class="badge ref">참고</span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+
+      <div class="metric-group">
+        <h4>figure <span class="tag">n=15 · 표·그래프·지도 포함 문항</span></h4>
+        <div class="metric-table-wrap"><table class="metric-table">
+          <tbody>
+            <tr><td class="name">cer / wer</td><td class="val">0.1066 / 0.1184</td><td class="what">텍스트 부분만 채점(자료 서술 블록 제외)</td><td><span class="badge ref">참고</span></td></tr>
+            <tr><td class="name">judge_score</td><td class="val">3.80/5</td><td class="what">비텍스트 자료를 말로 잘 옮겼는가</td><td><span class="badge ref">참고, 신뢰도 미검증</span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+
+      <div class="metric-group">
+        <h4>adversarial <span class="tag">n=5 · 환각·PII 유출 방지 확인</span></h4>
+        <div class="metric-table-wrap"><table class="metric-table">
+          <tbody>
+            <tr><td class="name">adversarial_pass</td><td class="val">5/5 통과</td><td class="what">없는 정답을 지어내지 않는가 + PII가 추출 후에도 유지되는가</td><td><span class="badge pass">전부 통과</span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STATUS ============ -->
+  <section class="block" id="status">
+    <h2>④ 지금 열려있는 이슈</h2>
+    <div class="issue-list">
+      <div class="issue">
+        <span class="status-badge open">대기</span>
+        <p><strong>실측 생성 품질 첫 측정</strong> — <code>eval_ragas.py</code> 신규 지표를 아직
+        한 번도 실행 못 함(이 워크트리에 .env·chroma_db 없음). 로컬에서 실행 후 숫자만 채우면 됨.</p>
+      </div>
+      <div class="issue">
+        <span class="status-badge progress">개선중</span>
+        <p><strong>정답유일성 3.875 / 목표 4.0</strong> — few-shot으로 3.091→3.875 개선(치명적 실패
+        36%→21%), 단 통계적으로 아직 미확정.</p>
+      </div>
+      <div class="issue">
+        <span class="status-badge closed">종결</span>
+        <p><strong>오답매력도 3.82 / 저품질 15%</strong> — 텍스트 지시·few-shot·어휘 게이트·의미
+        게이트 네 가지 모두 근거 부족으로 개선 수단 없음. 런타임 게이트가 아니라 오프라인 관측
+        지표라 실사용 결과엔 영향 없음.</p>
+      </div>
+      <div class="issue">
+        <span class="status-badge open">미검증</span>
+        <p><strong>VLM 모델·Judge 비교</strong> — gpt-4o-mini 정확도 실측은 끝났지만 다른 vision
+        모델과 비교한 적 없고, 자료 서술 채점 Judge의 신뢰도(kappa 등)도 검증 안 됨.</p>
+      </div>
+      <div class="issue">
+        <span class="status-badge open">천장 도달</span>
+        <p><strong>검색 골든셋</strong> — 기존 22건은 Recall@5 1.000이라 더 이상 개선을 잴 수 없음.
+        더 어려운 골든셋(regulations 후보 10건, 현재 0.600)을 정식 편입할지 검토 중.</p>
+      </div>
+      <div class="issue">
+        <span class="status-badge open">중단</span>
+        <p><strong>RunPod GPU 서빙</strong> — 2026-07-22부터 크레딧 소진으로 중단. 설정은 그대로라
+        복구만 하면 됨.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ GLOSSARY ============ -->
+  <section class="block" id="glossary">
+    <h2>용어</h2>
+    <dl class="glossary-grid">
+      <div><dt>Recall@5</dt><dd>정답 청크가 상위 5개 검색 결과 안에 들어왔는가(0~1)</dd></div>
+      <div><dt>MRR</dt><dd>정답이 나온 순위의 역수 평균 — 1위=1.0, 2위=0.5, 3위=0.33…</dd></div>
+      <div><dt>Cohen's kappa (κ)</dt><dd>우연히 맞았을 몫을 빼고 남은 실질 일치도. 0이면 아무렇게나 찍은 것과 다를 바 없음</dd></div>
+      <div><dt>MAE</dt><dd>평균 절대 오차 — Judge 점수와 사람 점수가 평균 몇 점 어긋나는지(방향 무관)</dd></div>
+      <div><dt>±1 일치율</dt><dd>사람과 Judge 점수 차이가 1점 이내인 비율. κ보다 관대한 "거의 맞았다" 기준</dd></div>
+      <div><dt>편향(bias)</dt><dd>Judge 평균 − 사람 평균. 양수면 Judge가 후하게 채점한다는 뜻</dd></div>
+      <div><dt>CER / WER</dt><dd>문자/단어 오류율 — OCR·음성인식 평가 표준 지표, 정답 원문 대비 편집거리</dd></div>
+      <div><dt>Faithfulness</dt><dd>생성물의 주장 중 검색 근거로 뒷받침되는 비율(환각 탐지)</dd></div>
+    </dl>
+  </section>
+
+  <footer>
+    <span>분필(Bunpil) · 사회 교사용 AI 문항 출제 어시스턴트</span>
+    <span>상세 서사 EVAL.md · 스크립트 색인 EVAL_MAP.md · 압축 요약 EVAL_SUMMARY.md</span>
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    var tabs = document.querySelectorAll('.tabbar button');
+    var panels = document.querySelectorAll('.panel');
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        tabs.forEach(function (t) { t.setAttribute('aria-selected', 'false'); });
+        panels.forEach(function (p) { p.classList.remove('active'); });
+        tab.setAttribute('aria-selected', 'true');
+        document.getElementById(tab.dataset.panel).classList.add('active');
+      });
+    });
+  })();
+</script>
+
+</body>
+</html>
