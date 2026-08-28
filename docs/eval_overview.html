@@ -424,7 +424,7 @@
     <span class="eyebrow">Bunpil · Evaluation</span>
     <h1>분필 평가 대시보드</h1>
     <p class="sub">
-      출제 AI가 자기 자신을 어떻게 채점하는지 — 런타임에서 문항 하나가 통과되는 기준부터,
+      출제 AI가 만든 결과물을 어떻게 평가하는지 — 런타임에서 문항 하나가 통과되는 기준부터,
       그 기준(Judge)을 얼마나 믿어도 되는지 확인하는 오프라인 지표까지 한 장으로.
     </p>
     <div class="meta">
@@ -452,8 +452,8 @@
     </p>
 
     <figure class="diagram">
-      <svg viewBox="0 0 920 300" role="img"
-        aria-label="agent node가 문항을 생성하면 judge node가 별도 LLM으로 채점하고, validate가 코드로 4개 조건을 AND로 확인한다. 통과하면 종료, 미달이면 budget이 남은 한 agent node로 돌아가 재시도한다.">
+      <svg viewBox="0 0 920 235" role="img"
+        aria-label="agent node가 문항을 생성하면 judge node가 별도 LLM으로 평가하고, validate가 코드로 4개 조건을 AND로 확인한다. 통과하면 종료, 미달이면 budget이 남은 한 agent node로 돌아가 재시도한다.">
         <defs>
           <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
@@ -487,31 +487,29 @@
 
         <!-- arrows forward -->
         <line x1="220" y1="78" x2="360" y2="78" stroke="currentColor" opacity="0.6" marker-end="url(#arrow)"/>
-        <text x="290" y="68" text-anchor="middle" class="darrow-label" fill="currentColor" opacity="0.7">submit_for_review</text>
-        <text x="290" y="80" text-anchor="middle" class="darrow-label" fill="currentColor" opacity="0.7">또는 14턴 한도</text>
+        <text x="290" y="66" text-anchor="middle" class="darrow-label" fill="currentColor" opacity="0.7">submit_for_review</text>
+        <text x="290" y="78" text-anchor="middle" class="darrow-label" fill="currentColor" opacity="0.7">또는 14턴 한도</text>
 
         <line x1="555" y1="78" x2="695" y2="78" stroke="currentColor" opacity="0.6" marker-end="url(#arrow)"/>
 
-        <!-- pass exit -->
+        <!-- pass exit: stays inside the validate column, clear of the retry loop's drop lines -->
         <line x1="890" y1="78" x2="905" y2="78" stroke="var(--good)" stroke-width="2"/>
         <path d="M905,68 v20" stroke="var(--good)" stroke-width="2" fill="none"/>
-        <text x="795" y="145" text-anchor="middle" class="darrow-label" fill="var(--good)" font-weight="700">4조건 전부 충족 → 통과, 종료</text>
+        <text x="850" y="140" text-anchor="middle" class="darrow-label" fill="var(--good)" font-weight="700">4조건 충족</text>
+        <text x="850" y="152" text-anchor="middle" class="darrow-label" fill="var(--good)" font-weight="700">→ 통과, 종료</text>
 
-        <!-- retry loop back -->
-        <path d="M795,116 v50 C795,205 125,205 125,175 L125,116"
+        <!-- retry loop back: right-angled, offset from box centers so it never crosses other labels -->
+        <path d="M750,116 V175 H170 V116"
           fill="none" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#arrowAccent)"/>
-        <text x="460" y="200" text-anchor="middle" class="darrow-label" fill="var(--accent-ink)">
-          하나라도 미달 → budget 남으면(기본 5회) agent node로 재시도
-        </text>
+        <text x="460" y="163" text-anchor="middle" class="darrow-label" fill="var(--accent-ink)">미달 → budget 남으면 재시도</text>
 
-        <text x="460" y="255" text-anchor="middle" font-size="11" fill="currentColor" opacity="0.55">
-          budget 소진 시 미달 상태로도 강제 종료 — "끝났다"가 곧 "합격"은 아니다
-        </text>
+        <text x="460" y="205" text-anchor="middle" font-size="11" fill="currentColor" opacity="0.55">budget 소진 시 미달 상태로도 강제 종료</text>
       </svg>
       <figcaption>
-        생성(agent) → 별도 모델의 채점(judge) → 코드가 판정(validate) → 통과하면 끝, 아니면
-        예산이 남은 만큼 처음부터 다시. 생성 모델과 채점 모델을 분리해 둔 게 핵심 —
-        자기가 만든 걸 자기가 채점하지 않는다(2026-07-23 self-judge 폐기).
+        생성(agent) → 별도 모델의 평가(judge) → 코드가 판정(validate) → 통과하면 끝, 아니면
+        예산(기본 5회)이 남은 만큼 처음부터 다시. 생성 모델과 평가 모델을 분리해 둔 게 핵심 —
+        자기가 만든 걸 자기가 평가하지 않는다(2026-07-23 self-judge 폐기). budget이 떨어지면
+        미달 상태로도 강제 종료되므로 "끝났다"가 곧 "통과"는 아니다.
       </figcaption>
     </figure>
 
@@ -525,7 +523,7 @@
         </ul>
       </div>
       <div class="gate-card">
-        <h4>judge node · 3개 채점값</h4>
+        <h4>judge node · 평가값 3개</h4>
         <ul>
           <li><code>type_ratio_score</code> 0~1 — 문항 유형 구성 유사도</li>
           <li><code>difficulty_match</code> T/F — 난이도 구성 부합 여부</li>
@@ -609,7 +607,7 @@
     <div class="panel active" id="p-exam">
       <p class="intro">
         검색이 정답을 찾는가 + <strong>Judge를 믿어도 되는가</strong>. 뒤쪽 두 그룹은 사실
-        "문항이 좋은가"가 아니라 <strong>"채점한 Judge가 사람과 일치하는가"</strong>를 잰다 —
+        "문항이 좋은가"가 아니라 <strong>"평가한 Judge가 사람과 일치하는가"</strong>를 잰다 —
         아래 콜아웃 참고.
       </p>
 
@@ -668,11 +666,11 @@
 
       <div class="callout">
         <strong>왜 이 게이트가 "품질"이 아니라 "신뢰도"인가</strong> — 위 두 그룹 모두
-        <code>item_golden.json</code>(3주 전에 만들고 그 뒤 안 바뀐 고정 30문항)을 채점한다.
+        <code>item_golden.json</code>(3주 전에 만들고 그 뒤 안 바뀐 고정 30문항)을 평가한다.
         <code>judge_one()</code>은 <code>app/</code> 실제 서비스 코드 어디서도 호출되지 않는다.
         그래서 생성 로직(프롬프트 등)을 아무리 바꿔도 이 숫자는 반응하지 않는다 — 실제로 프롬프트
         전/후 평균이 <code>2.815</code>로 완전히 동일하게 나온 적이 있다. 즉 이 게이트가 확인하는 건
-        "지금 문항이 좋은가"가 아니라 <strong>"Judge가 사람 채점과 얼마나 일치하는가"</strong>다.
+        "지금 문항이 좋은가"가 아니라 <strong>"Judge가 사람 평가와 얼마나 일치하는가"</strong>다.
         실제 생성 품질은 <span class="mono">eval_ragas.py</span> 탭에서 본다.
       </div>
     </div>
@@ -681,7 +679,7 @@
     <div class="panel" id="p-ragas">
       <p class="intro">
         고정 골든셋이 아니라 <strong>실행할 때마다 실제로 문항을 생성</strong>해서(샘플 8개) 그
-        생성물 자체를 채점한다. 게이트는 하나도 없음 — 전부 참고값.
+        생성물 자체를 평가한다. 게이트는 하나도 없음 — 전부 참고값.
       </p>
 
       <div class="metric-group">
@@ -691,7 +689,7 @@
           <tbody>
             <tr><td class="name">avg_faithfulness</td><td class="val">0.600<span style="opacity:.55">(n=5)</span></td><td class="what">검색 근거로 뒷받침되는 주장의 비율(환각 탐지)</td><td><span class="badge ref">참고, 기준선</span></td></tr>
             <tr><td class="name">avg_answer_relevancy</td><td class="val">0.631<span style="opacity:.55">(n=5)</span></td><td class="what">역질문이 원 질문과 얼마나 닮았는가(주제 이탈 탐지)</td><td><span class="badge ref">참고, 기준선</span></td></tr>
-            <tr><td class="name">n_*_applicable</td><td class="val">—</td><td class="what">채점 가능했던 샘플 건수(분모)</td><td><span class="badge ref">참고</span></td></tr>
+            <tr><td class="name">n_*_applicable</td><td class="val">—</td><td class="what">평가 가능했던 샘플 건수(분모)</td><td><span class="badge ref">참고</span></td></tr>
           </tbody>
         </table></div>
       </div>
@@ -716,8 +714,8 @@
       <div class="callout">
         <strong>이게 왜 생겼나</strong> — eval_exam.py 탭의 문항품질 게이트가 고정 문항이라
         생성 로직 변화에 무반응이라는 게 확인되자, 이미 매번 실제로 생성하고 있던 이 스크립트의
-        문항(재생성 없이 재사용)에 <strong>같은 채점 함수(<code>judge_one()</code>)</strong>를 한 번
-        더 통과시켰다. "빠져 있던 정기 관측 자리"를 메운 것 — 채점 기준을 새로 만든 게 아니다.
+        문항(재생성 없이 재사용)에 <strong>같은 평가 함수(<code>judge_one()</code>)</strong>를 한 번
+        더 통과시켰다. "빠져 있던 정기 관측 자리"를 메운 것 — 평가 기준을 새로 만든 게 아니다.
       </div>
     </div>
 
@@ -764,7 +762,7 @@
 
       <div class="callout">
         <strong>error와 rejected를 가르는 이유</strong> — 저장 게이트가 복사·중복을 걸러내는 건
-        가드레일이 의도대로 작동한 것이지 실패가 아니다. 이 구분 덕분에 자기채점 도구를 없앤 뒤
+        가드레일이 의도대로 작동한 것이지 실패가 아니다. 이 구분 덕분에 자체 평가 도구를 없앤 뒤
         malformed tool-call 비율이 <strong>18.4% → 0%</strong>로 사라진 걸 실제로 확인했다.
       </div>
     </div>
@@ -791,7 +789,7 @@
         <h4>figure <span class="tag">n=15 · 표·그래프·지도 포함 문항</span></h4>
         <div class="metric-table-wrap"><table class="metric-table">
           <tbody>
-            <tr><td class="name">cer / wer</td><td class="val">0.1066 / 0.1184</td><td class="what">텍스트 부분만 채점(자료 서술 블록 제외)</td><td><span class="badge ref">참고</span></td></tr>
+            <tr><td class="name">cer / wer</td><td class="val">0.1066 / 0.1184</td><td class="what">텍스트 부분만 측정(자료 서술 블록 제외)</td><td><span class="badge ref">참고</span></td></tr>
             <tr><td class="name">judge_score</td><td class="val">3.80/5</td><td class="what">비텍스트 자료를 말로 잘 옮겼는가</td><td><span class="badge ref">참고, 신뢰도 미검증</span></td></tr>
           </tbody>
         </table></div>
@@ -831,7 +829,7 @@
       <div class="issue">
         <span class="status-badge open">미검증</span>
         <p><strong>VLM 모델·Judge 비교</strong> — gpt-4o-mini 정확도 실측은 끝났지만 다른 vision
-        모델과 비교한 적 없고, 자료 서술 채점 Judge의 신뢰도(kappa 등)도 검증 안 됨.</p>
+        모델과 비교한 적 없고, 자료 서술 평가 Judge의 신뢰도(kappa 등)도 검증 안 됨.</p>
       </div>
       <div class="issue">
         <span class="status-badge open">천장 도달</span>
@@ -855,7 +853,7 @@
       <div><dt>Cohen's kappa (κ)</dt><dd>우연히 맞았을 몫을 빼고 남은 실질 일치도. 0이면 아무렇게나 찍은 것과 다를 바 없음</dd></div>
       <div><dt>MAE</dt><dd>평균 절대 오차 — Judge 점수와 사람 점수가 평균 몇 점 어긋나는지(방향 무관)</dd></div>
       <div><dt>±1 일치율</dt><dd>사람과 Judge 점수 차이가 1점 이내인 비율. κ보다 관대한 "거의 맞았다" 기준</dd></div>
-      <div><dt>편향(bias)</dt><dd>Judge 평균 − 사람 평균. 양수면 Judge가 후하게 채점한다는 뜻</dd></div>
+      <div><dt>편향(bias)</dt><dd>Judge 평균 − 사람 평균. 양수면 Judge가 후하게 평가한다는 뜻</dd></div>
       <div><dt>CER / WER</dt><dd>문자/단어 오류율 — OCR·음성인식 평가 표준 지표, 정답 원문 대비 편집거리</dd></div>
       <div><dt>Faithfulness</dt><dd>생성물의 주장 중 검색 근거로 뒷받침되는 비율(환각 탐지)</dd></div>
     </dl>
