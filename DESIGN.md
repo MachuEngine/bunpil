@@ -130,7 +130,7 @@ PII 마스킹(`app/common/privacy.py`)은 출제 경로가 계속 쓰므로 유�
 |---|---|---|---|
 | 검색 | Recall@5, MRR | 함수 | R@5 ≥ 0.8 |
 | 문항 | 정답 유일성·오답 매력도·근거성 | LLM Judge | 5점 척도 평균 ≥ 4.0 (보정 후 확정) |
-| 구조 유사도 | type_ratio_score·difficulty_match·overall_score (LLM Judge) + 문항 개수 일치(코드) | LLM Judge(개수 제외) + 코드(개수) | diff κ ≥0.4 달성(0.424) / overall 이진 κ 0.4 미달(0.167) — 열린 이슈, EVAL.md 5·6절. 2026-07-23부터 이 Judge가 런타임 judge_node와 동일 코드라 이 수치가 곧 배포된 judge의 신뢰도임 |
+| 구조 유사도 | type_ratio_score·difficulty_match·overall_score (LLM Judge) + 문항 개수 일치(코드) | LLM Judge(개수 제외) + 코드(개수) | **게이트 없음(참고값)** — difficulty_match 일치율 0.933 / overall MAE 0.644. 원래 목표였던 "overall 이진 κ ≥ 0.4"는 **2026-07-24 폐기**했다(수개월 튜닝에도 0.000~0.178을 못 벗어났는데, 원인은 Judge가 아니라 점수가 {3,4}에 몰리면 분산이 0이 되어 이진 κ가 정의상 붕괴하는 것이었다 — EVAL.md 5·6절, EVAL_SUMMARY 4.1절). 2026-07-23부터 이 Judge가 런타임 judge_node와 동일 코드라 이 수치가 곧 배포된 judge의 신뢰도임 |
 | 과정 | 평균 반복수·미충족 실패율·latency | 함수 | 예산 내 수렴 |
 | 종단 | 수정 없는 교사 채택률 | 사람 | 북극성 |
 

@@ -324,8 +324,8 @@ ablation도 함께 측정해 MODEL_SELECTION.md 4절의 "기여도 미측정" �
    - **다음 결정 필요**: 종교·외모·추측 조항이 담긴 문서를 `data/regulations/`에 추가해
      인덱싱할지, 아니면 규칙 기반 판정으로 두고 "이 유형은 RAG 근거 없이 규칙으로만
      판정된다"를 문서에 명시할지. 후보 골든셋 10건은
-     `data/golden/regulations_retrieval_candidates.json`에 작성해뒀음(사람 검수 대기,
-     현재 검색기 Recall@5=0.600으로 변별력 확인)
+     `data/golden/regulations_retrieval_candidates.json`에 작성해뒀음(2026-08-03 사람 검수
+     완료 `reviewed: true`, 현재 검색기 Recall@5=0.500으로 변별력 확인)
 
 ---
 
