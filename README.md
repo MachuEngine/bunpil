@@ -29,27 +29,7 @@
 
 포트폴리오 프로젝트이지만 지인 교사 1인이 실제 수업에 쓰고 있습니다. 학생 개인정보가 애초에 들어올 일이 없는 구조로 설계한 덕분에 실사용까지 갈 수 있었습니다.
 
-<details>
-<summary><b>생기부 윤문 모듈을 왜 걷어냈는가 (2026-08-03, 펼치기)</b></summary>
-
-원래 이 프로젝트는 **출제**와 **생기부 윤문** 두 모듈이었습니다. 생기부 모듈은 관찰 메모를 받아 PII를 마스킹하고 문체를 다듬은 뒤 기재 규정 위반을 검증하는 체인이었고, 규정 위반 Recall 0.927 / F1 0.962라는 수치도 있었습니다.
-
-**그 수치의 근거를 추적하다 걷어냈습니다.** 검증 규칙(종교·정치성향, 외모, 추측 등 키워드 6종)이 어느 조항에서 나왔는지 확인하려고 교육부 기재요령 PDF **원문 262,678자를 전수 검색**했더니 `종교`·`신앙`·`외모`·`용모`·`추측`이 **한 번도 나오지 않았습니다**. 규칙의 실제 출처는 규정이 아니라 합성 골든셋의 라벨이었고, 그 골든셋으로 채점해 0.927이 나온 순환 구조였습니다.
-
-더 결정적인 건 오작동 방향이었습니다 — 사회과가 가르치는 주제어를 그대로 막고 있었습니다:
-
-| 결과 | 문장 |
-|---|---|
-| 🚫 차단 | 사회 수업에서 **정치적** 다원주의 개념을 조사해 발표함 |
-| 🚫 차단 | **가정환경**에 따른 교육 격차를 주제로 보고서를 작성함 |
-| ✅ 통과 | 아버지가 대기업 임원이라 경제에 관심이 많음 ← **기재요령 p24 위반** |
-
-잡아야 할 건 놓치고 놓아줘야 할 건 잡았습니다. 하드룰 1(실제 학생 데이터 미사용) 때문에 합성 데이터로만 검증할 수 있어 실 현장 적용도 못 한 상태였고, 규칙의 옳고 그름을 판정해 줄 도메인 근거도 없었습니다. **검증할 수 없는 기능을 포트폴리오에 남기는 것보다 걷어내는 쪽이 정직하다고 판단**했습니다.
-
-조사·측정 기록은 [EVAL.md](./EVAL.md) 14절에 남아 있고, 코드는 git 이력에 있습니다. PII 마스킹(`app/common/privacy.py`)은 출제 경로가 계속 사용하므로 골든셋 20건과 함께 유지됩니다.
-
-</details>
-<img width="1173" height="562" alt="image" src="https://github.com/user-attachments/assets/e82129c1-e4f2-4e49-8cf9-cb3a8c7aebcd" />
+<img width="1173" height="562" alt="분필 웹 UI 실행 화면" src="https://github.com/user-attachments/assets/e82129c1-e4f2-4e49-8cf9-cb3a8c7aebcd" />
 
 | 입력 | 처리 | 출력 |
 |---|---|---|
@@ -95,6 +75,28 @@
 | [EVAL.md](./EVAL.md) | 회차별 raw 기록 (시간순 실험 로그) |
 | [LANGSMITH_GUIDE.md](./LANGSMITH_GUIDE.md) | LangSmith Experiments 연동 |
 | [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) | 삽질 기록 |
+
+<!-- 제거된 모듈 배경: 제품 설명을 먼저 읽도록 섹션 끝으로 옮김 -->
+<details>
+<summary><b>생기부 윤문 모듈을 왜 걷어냈는가 (2026-08-03, 펼치기)</b></summary>
+
+원래 이 프로젝트는 **출제**와 **생기부 윤문** 두 모듈이었습니다. 생기부 모듈은 관찰 메모를 받아 PII를 마스킹하고 문체를 다듬은 뒤 기재 규정 위반을 검증하는 체인이었고, 규정 위반 Recall 0.927 / F1 0.962라는 수치도 있었습니다.
+
+**그 수치의 근거를 추적하다 걷어냈습니다.** 검증 규칙(종교·정치성향, 외모, 추측 등 키워드 6종)이 어느 조항에서 나왔는지 확인하려고 교육부 기재요령 PDF **원문 262,678자를 전수 검색**했더니 `종교`·`신앙`·`외모`·`용모`·`추측`이 **한 번도 나오지 않았습니다**. 규칙의 실제 출처는 규정이 아니라 합성 골든셋의 라벨이었고, 그 골든셋으로 채점해 0.927이 나온 순환 구조였습니다.
+
+더 결정적인 건 오작동 방향이었습니다 — 사회과가 가르치는 주제어를 그대로 막고 있었습니다:
+
+| 결과 | 문장 |
+|---|---|
+| 🚫 차단 | 사회 수업에서 **정치적** 다원주의 개념을 조사해 발표함 |
+| 🚫 차단 | **가정환경**에 따른 교육 격차를 주제로 보고서를 작성함 |
+| ✅ 통과 | 아버지가 대기업 임원이라 경제에 관심이 많음 ← **기재요령 p24 위반** |
+
+잡아야 할 건 놓치고 놓아줘야 할 건 잡았습니다. 하드룰 1(실제 학생 데이터 미사용) 때문에 합성 데이터로만 검증할 수 있어 실 현장 적용도 못 한 상태였고, 규칙의 옳고 그름을 판정해 줄 도메인 근거도 없었습니다. **검증할 수 없는 기능을 포트폴리오에 남기는 것보다 걷어내는 쪽이 정직하다고 판단**했습니다.
+
+조사·측정 기록은 [EVAL.md](./EVAL.md) 14절에 남아 있고, 코드는 git 이력에 있습니다. PII 마스킹(`app/common/privacy.py`)은 출제 경로가 계속 사용하므로 골든셋 20건과 함께 유지됩니다.
+
+</details>
 
 ---
 
@@ -255,7 +257,7 @@ ReAct 도구 내부에 LLM 호출이 없습니다. 구조 유사도 채점은 �
 | 생성 문항의 **45%에 중국어 오염** — "한국어로만 응답" 지시에도 발생 | LangSmith 트레이스 100건 정량 분석: 오염 출력의 입력 크기 중앙값 11,263자 vs 정상 8,009자 — 컨텍스트가 길수록 오염 확률이 오르는 **확률적 드리프트**. 오염 문항이 재시도 프롬프트에 실려 다음 시도로 전파되는 캐스케이드 경로도 확인 | `save_item`에 결정론적 한국어 게이트(한글 부재 또는 한자 비율 ≥5% 시 저장 거부 + 재작성 피드백). 기존 오염 사례 9건 소급 판정에서 수동 분류와 100% 일치 |
 | "생성 개수 = 예시 문제 개수" 전제로 만든 count_match 검증이 실제 요구사항과 불일치 | 개수는 예시와 무관하게 사용자가 지정하는 값(`num_items`)이어야 함 — **골든셋 라벨링 직전에 설계 전제 자체가 틀렸음을 발견** | count_match를 LLM Judge에서 제거하고 `len(items)==num_items` 코드 검증으로 이관. 골든셋 전면 재생성 |
 | 생성 프롬프트를 개선했는데 eval 수치가 **전혀 안 변함** | eval의 문항 품질 평가는 하드코딩된 고정 30문항을 채점하는 구조 — 생성 코드를 아무리 바꿔도 이 지표에 반영될 수 없었음 | 실제로 문항을 새로 생성해 채점하는 별도 검증 스크립트 작성. "eval이 존재하는가"와 "내 변경이 eval이 실제로 exercise하는 경로에 있는가"는 별개 |
-| **검증-배포 불일치**: EVAL.md의 구조 Judge 신뢰도 수치는 몇 달간 `get_judge_backend()`(오프라인)를 측정한 것인데, 실제 런타임은 생성 모델 자신이 `similarity_judge` 도구로 자기 출력을 채점(self-judge)하고 있었음 | self-judge 신뢰도는 사람 라벨과 한 번도 대조된 적이 없었고, 도구 docstring 한 줄뿐인 루브릭 없는 프롬프트라 오프라인 Judge보다 신뢰도가 낮을 가능성이 높았음 — "검증한 것"과 "배포된 것"이 서로 다른 코드 경로였다는 뜻 | 생성 모델과 Judge 모델을 완전히 분리: `similarity_judge` 도구 제거, 별도 `judge` 노드가 `get_judge_backend()`로 채점(오프라인 eval과 동일 함수 공유) — 이제 EVAL.md 수치가 곧 배포된 judge의 신뢰도 |
+| **검증-배포 불일치**: 몇 달간 쌓은 "구조 Judge 신뢰도"는 오프라인 `get_judge_backend()`를 잰 값인데, 런타임은 생성 모델이 `similarity_judge` 도구로 자기 출력을 채점(self-judge)하고 있었음 | self-judge는 사람 라벨과 대조된 적이 없고, 루브릭도 docstring 한 줄뿐이라 오프라인 Judge보다 신뢰도가 낮을 가능성이 높았음. "검증한 것"과 "배포된 것"이 다른 코드 경로였다는 뜻 | 생성 모델과 Judge를 완전 분리. `similarity_judge` 제거 후 별도 `judge` 노드가 오프라인 eval과 **같은 함수**로 채점 — EVAL.md 수치가 곧 배포된 judge의 신뢰도 |
 | 재시도마다 이전 시도의 문항까지 전부 폐기 → num_items가 클수록 성공률 급락 | 재시도 구조가 세트 전체 재생성 방식이었음 | **부분 진행 보존**: 재시도 시 저장된 문항은 유지하고 "나머지 N개만 작성" 프롬프트로 이어서 생성. 개수 기준으로 적용 전 14건 중 부족 실패 8건 → 적용 후 6건 전부 목표 근접 달성(통제 실험은 아닌 생성 이력 기반 비교) |
 
 ---
@@ -498,17 +500,17 @@ cp .env.example .env   # 필요 시 값 수정
 ```bash
 # Ollama 설치: https://ollama.com
 
-# 생성 전용 (OLLAMA_MODEL)
+# 생성 모델 (OLLAMA_MODEL)
 ollama pull qwen2.5:14b
 
-# Judge(기본 JUDGE_BACKEND=openai, gpt-5.6-luna)는 이제 앱 실행(judge 노드)에도 쓰임 —
-# 기본값 그대로 쓰려면 .env에 OPENAI_API_KEY 필요. OpenAI 키 없이 로컬만으로 돌리려면
-# .env에서 JUDGE_BACKEND=local로 바꿀 것(이 경우 위 qwen2.5:14b가 Judge로도 재사용됨,
-# 별도 pull 불필요)
-
-# 빠른 로직 테스트만 할 경우 (품질 낮음, 폴백 동작)
+# 로직만 빠르게 확인할 때 (품질은 낮음)
 # ollama pull qwen2.5:1.5b
 ```
+
+**Judge 모델은 따로 받을 필요가 없습니다.** 기본값(`JUDGE_BACKEND=openai`, gpt-5.6-luna)은
+`judge` 노드가 앱 실행 중에도 호출하므로 `.env`에 `OPENAI_API_KEY`만 넣으면 됩니다.
+OpenAI 키 없이 로컬만으로 돌리려면 `.env`에서 `JUDGE_BACKEND=local`로 바꾸세요. 위에서 받은
+`qwen2.5:14b`가 Judge로도 재사용됩니다.
 
 > **참고**: Ollama는 별도 설정이 없으면 `num_ctx`를 4096으로 제한합니다(모델 자체는 32K 지원). 멀티턴 ReAct 루프는 이를 몇 턴 만에 초과해 응답이 깨질 수 있어, `app/modules/exam/llm.py`에서 `num_ctx=16384`로 이미 올려뒀습니다 — 별도 조치 불필요. ([상세 기록](./TROUBLESHOOTING.md))
 
@@ -524,15 +526,17 @@ ollama pull qwen2.5:14b
 
 ### 4. 서버 실행
 
-터미널 3개를 사용합니다. `app/main.py`는 정적 파일을 서빙하지 않으므로, UI를 보려면 프론트엔드(Next.js)도 별도로 띄워야 합니다.
+터미널 3개를 사용합니다. `app/main.py`는 정적 파일을 서빙하지 않으므로, UI를 보려면 프론트엔드(Next.js)도 따로 띄워야 합니다.
+
+아래에서 `JUDGE_BACKEND=local`을 명시하는 이유는, 기본값인 `openai`가 `judge` 노드에서
+`OPENAI_API_KEY`를 요구하기 때문입니다. 순수 로컬 테스트에서는 `local`로 바꿔 Qwen을
+Judge로도 재사용합니다.
 
 ```bash
 # 터미널 1 — Ollama LLM 서버
 ollama serve
 
 # 터미널 2 — FastAPI (API 전용, 포트 8765)
-# JUDGE_BACKEND=local 지정 — 기본값(openai)은 judge 노드가 OPENAI_API_KEY를 요구하므로,
-# 순수 로컬 테스트 시엔 명시적으로 local로 바꿔 Qwen을 Judge로도 재사용한다.
 # Windows
 $env:BUNPIL_API_KEY="replace_with_a_long_random_value"; $env:LLM_BACKEND="local"; $env:OLLAMA_MODEL="qwen2.5:14b"; $env:JUDGE_BACKEND="local"
 .venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8765
@@ -720,6 +724,7 @@ bunpil/
 | 변수 | 설명 | 기본값 |
 |---|---|---|
 | `BUNPIL_API_KEY` | Next.js → FastAPI 서버 간 인증 키(양쪽에 동일한 긴 무작위 값 설정) | 필수 |
+| `BACKEND_URL` | 프론트엔드가 FastAPI를 찾아가는 주소(`frontend/app/api/*/route.ts`가 읽음). docker-compose에서는 `http://app:8765` | `http://localhost:8000` |
 | `LLM_BACKEND` | 생성 모델 백엔드 — `local`(Ollama) / `runpod` / `openai`(모델 비교 실험용) | `local` |
 | `OLLAMA_MODEL` | 로컬 개발 생성 모델명 | `qwen2.5:14b` |
 | `OLLAMA_BASE_URL` | 로컬 Ollama 서버 주소 | `http://localhost:11434` |
@@ -735,6 +740,7 @@ bunpil/
 | `CHROMA_PERSIST_DIR` | ChromaDB 저장 경로 | `/data/chroma_db` (EC2) / `./chroma_db` (로컬) |
 | `BGE_EMBED_MODEL` | 임베딩 모델명 | `BAAI/bge-m3` |
 | `BGE_RERANK_MODEL` | 리랭킹 모델명 | `BAAI/bge-reranker-base` |
+| `RAG_HYBRID` | BM25 + dense 하이브리드 검색 사용 여부. `false`면 dense 단독으로 되돌아감(재인덱싱 불필요). 근거는 [MODEL_SELECTION.md](./MODEL_SELECTION.md) 5절 | `true` |
 | `LANGCHAIN_TRACING_V2` | LangSmith 트레이싱 (`true` / `false`). 2026-07-24부터 프로덕션 API 서버에도 적용됨(PII 마스킹 후, 하드룰 3 예외) | `false` |
 | `LANGCHAIN_API_KEY` | LangSmith API 키 | — (선택) |
 | `LANGCHAIN_PROJECT` | LangSmith 프로젝트 베이스명 — 기본값('bunpil') 유지 시 `LLM_BACKEND`에 따라 `-dev`(local, 순수 로컬 개발) 또는 `-prod`(runpod/openai 등 실제 서빙 백엔드) 접미사가 자동으로 붙음(`app/common/llm/tracing.py`). 로컬 개발 노이즈가 프로덕션 통계를 오염시키지 않도록 분리. 'bunpil'이 아닌 값을 직접 설정하면 그대로 override | `bunpil` → `bunpil-dev` / `bunpil-prod` |
