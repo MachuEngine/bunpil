@@ -677,7 +677,9 @@ bash deploy/billing_alarm.sh   # 월 $10 초과 시 이메일 알람
 | `regulations` | `data/regulations/` | 학교생활기록부 종합지원포털 | **검색 eval 전용** — 생기부 모듈 제거(2026-08-03) 후 런타임에서는 조회하지 않으나, `retrieval_golden_final.json` 22건 중 10건이 이 컬렉션이라 Recall@5 히스토리 연속성을 위해 유지 |
 | `standards` | `data/standards/` | 국가교육과정정보센터(NCIC) | 출제 시 성취기준 원문 검색 (`search_standards` 도구) |
 
-> `past_exams` 컬렉션(수능·모평 기출)은 리디자인으로 완전히 제거됨 — `check_duplicate` 폐기, 2028 수능 개편으로 과목별 구조 자체가 무의미해짐.
+> `past_exams` 컬렉션(수능·모평 기출)은 리디자인 때 완전히 제거했습니다. `check_duplicate`를 폐기했고, 2028 수능 개편으로 과목별 구조 자체가 의미를 잃었기 때문입니다.
+
+**여기 있는 데이터는 전부 공개 자료입니다.** 실제 학생 데이터는 어떤 형태로도 넣지 않으며, 평가용 골든셋은 모두 합성 또는 익명 데이터입니다([설계 원칙 3](#설계-원칙)). 교사가 붙여넣는 예시 문제(`passage_text`)는 ChromaDB에 적재하지 않고 요청을 처리하는 동안에만 다룹니다.
 
 ---
 
@@ -705,11 +707,14 @@ bunpil/
 ├── golden_gen/           # 골든셋 생성 도구 — gen_structure_golden.py / gen_golden_retrieval.py /
 │                         # gen_vlm_golden.py(합성 시험 문제 이미지 40장 PIL 렌더링, 2026-08-20)
 ├── experiments/          # 일회성 실험·비교 기록 (compare_*.py 등, 결과는 data/golden/_*.json에 아카이브)
+├── tests/                # 유닛 테스트 82개 (LLM 호출 없음 — pytest tests/)
 ├── scripts/
 │   ├── index_*.py        # RAG 컬렉션 인덱싱
 │   └── test_*.py         # 실제 로컬 모델로 파이프라인 배선 확인 (스모크 테스트)
 ├── runpod_handler/       # RunPod 서버리스 핸들러 (Qwen2.5-14B-AWQ vLLM)
 ├── deploy/               # EC2·Caddy·빌링알람 프로비저닝 스크립트
+├── assets/               # README 구성도 SVG (라이트/다크 쌍)
+├── docs/                 # 평가 체계 대시보드(eval_overview.html)
 ├── Dockerfile
 ├── docker-compose.yml
 └── Caddyfile
