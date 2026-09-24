@@ -60,10 +60,32 @@ def load_config() -> dict:
         return json.load(f)
 
 
-def load_rows(split: str, limit: int | None) -> list[dict]:
+def load_rows(split: str, limit: int | None, sample: int | None = None, seed: int = 0) -> list[dict]:
     with open(os.path.join(DATA_DIR, f"{split}.jsonl"), encoding="utf-8") as f:
         rows = [json.loads(line) for line in f]
+    if sample:
+        return stratified_sample(rows, sample, seed)
     return rows[:limit] if limit else rows
+
+
+def stratified_sample(rows: list[dict], n: int, seed: int = 0) -> list[dict]:
+    """형식(format)별로 돌아가며 n건을 고른다. `--limit`처럼 앞에서 자르면 형식이 치우친다.
+
+    형식 묶음 안에서는 시드로 섞어 사례 유형도 섞이게 한다. 같은 시드면 같은 입력이 뽑혀 모델 간 짝 비교가 된다."""
+    rng = random.Random(seed)
+    groups: dict[str, list[dict]] = defaultdict(list)
+    for r in rows:
+        groups[r["format"]].append(r)
+    for g in groups.values():
+        rng.shuffle(g)
+    order = sorted(groups)
+    picked, i = [], 0
+    while len(picked) < min(n, len(rows)):
+        g = groups[order[i % len(order)]]
+        if g:
+            picked.append(g.pop())
+        i += 1
+    return sorted(picked, key=lambda r: r["id"])
 
 
 def git_commit() -> str:
@@ -159,7 +181,7 @@ def run_generate(args, cfg):
 
     if not args.trace:
         os.environ["LANGCHAIN_TRACING_V2"] = "false"
-    rows = load_rows(args.split, args.limit)
+    rows = load_rows(args.split, args.limit, args.sample, args.sample_seed)
     model_keys = args.models.split(",")
     run_id = args.run_id or f"gen-{args.split}-{time.strftime('%Y%m%d-%H%M%S')}{'-mock' if args.mock else ''}"
     rec = Recorder(run_id, args.max_cost)
@@ -168,7 +190,8 @@ def run_generate(args, cfg):
     rec.write_meta({"command": "generate", "split": args.split, "models": model_keys, "repeats": args.repeats,
                     "runtime_judge": judge_key, "mock": args.mock, "commit": git_commit(),
                     "model_specs": {k: cfg["models"][k] for k in model_keys + [judge_key]},
-                    "sensitive": args.sensitive, "n_inputs": len(rows)})
+                    "sensitive": args.sensitive, "n_inputs": len(rows), "input_ids": [r["id"] for r in rows],
+                    "sample": args.sample, "sample_seed": args.sample_seed})
     gens = {k: make_adapter(k, cfg, rec, role="generation", mock=args.mock, sensitive=args.sensitive) for k in model_keys}
     runtime_judge = make_adapter(judge_key, cfg, rec, role="judge", mock=args.mock, sensitive=args.sensitive)
     rng = random.Random(args.seed)
@@ -577,7 +600,7 @@ def verify_routes(run_dir: str, cfg: dict) -> int:
 # ── estimate: 호출 없이 예상 호출 수·최대 비용 ─────────────────────────────
 
 def run_estimate(args, cfg):
-    rows = load_rows(args.split, args.limit)
+    rows = load_rows(args.split, args.limit, args.sample, args.sample_seed)
     n_sets = len(rows) * args.repeats
     avg_items = sum(r["expected"]["num_items"] for r in rows) / len(rows)
     n_revise = sum(len(r["revise_requests"]) for r in rows) / len(rows)
@@ -615,6 +638,8 @@ def main(argv=None):
     g.add_argument("--models", required=True)
     g.add_argument("--repeats", type=int, default=1)
     g.add_argument("--limit", type=int)
+    g.add_argument("--sample", type=int, help="형식별로 고르게 n건 선택(--limit 대신)")
+    g.add_argument("--sample-seed", type=int, default=0)
     g.add_argument("--max-cost", type=float)
     g.add_argument("--run-id")
     g.add_argument("--seed", type=int, default=0)
@@ -652,6 +677,8 @@ def main(argv=None):
     e.add_argument("--models", required=True)
     e.add_argument("--repeats", type=int, default=1)
     e.add_argument("--limit", type=int)
+    e.add_argument("--sample", type=int)
+    e.add_argument("--sample-seed", type=int, default=0)
 
     args = ap.parse_args(argv)
     cfg = load_config()

@@ -303,3 +303,15 @@ def test_grade_revise_intent_and_question_scope():
     ok = graders.grade_revise([ITEM], {"intent": "question", "message": "①이 정답입니다", "changes": []},
                               {"type": "question", "target_numbers": []})
     assert ok["R7_scope_ok"] is True and ok["R11_intent_ok"] is True
+
+
+def test_stratified_sample_spreads_formats_and_is_reproducible():
+    import collections
+
+    from evals.model_selection.run import load_rows
+
+    a = load_rows("pilot", None, sample=12, seed=0)
+    b = load_rows("pilot", None, sample=12, seed=0)
+    assert [r["id"] for r in a] == [r["id"] for r in b]  # 같은 시드 → 같은 입력(모델 간 짝 비교)
+    counts = collections.Counter(r["format"] for r in a)
+    assert len(a) == 12 and len(counts) == 7 and max(counts.values()) - min(counts.values()) <= 1
