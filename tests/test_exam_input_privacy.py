@@ -33,7 +33,7 @@ def test_build_spec_masks_pii_before_num_items_llm(monkeypatch):
 def test_plain_backends_are_not_langchain_traceable():
     """`LLMBackend` 구현체들이 LangChain Runnable이 아님을 확인한다.
 
-    이 백엔드들은 `_extract_num_items()` 같은 비-에이전트 경로가 쓰는데, LangChain
+    이 백엔드들은 `_analyze_request()` 같은 비-에이전트 경로가 쓰는데, LangChain
     Runnable이 아니라 순수 클래스이므로 `LANGCHAIN_TRACING_V2` 값과 무관하게 애초에
     LangSmith 콜백에 걸리지 않는다 — 트레이싱 범위가 의도치 않게 넓어지지 않는다는
     구조적 보장이다(하드룰 3, CLAUDE.md 참고).

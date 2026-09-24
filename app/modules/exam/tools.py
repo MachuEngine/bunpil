@@ -25,14 +25,25 @@ _OPTION_MARKS = ["①", "②", "③", "④", "⑤"]
 
 
 def _num_options_for(passage_text: str) -> int:
-    return 5 if "⑤" in passage_text else 4
+    # ⑤가 선지 줄에서 ④ 뒤에 올 때만 5지선다다. 본문의 "⑤번 항목" 같은 언급을 5지로 읽으면
+    # 4지 문항이 전부 저장 거부돼 재시도만 반복했다(2026-09-24 오판 수정).
+    return 5 if re.search(r"④[^\n]*⑤", passage_text) else 4
 
 
 # 예시에 <보기>나 자료([자료: ...], VLM 추출 표기)가 있으면 객관식 문항은 stimulus가
 # 있어야 한다. 프롬프트 지시만으로는 14B가 발문만 바꾸고 <보기>를 빼먹었고, Judge도
 # 이를 감점하지 않았다(overall 5, 2026-09 스모크) — 선지 수와 같은 결정론적 규칙으로 막는다.
+# 2026-09-24: 텍스트로 붙여넣은 (가)·(나) 자료(줄 머리의 "(가)" + "(나)")도 제시문으로 본다 —
+# 수능형 자료 문항인데 표식이 없어 제시문 없이 만들어도 막지 못했다.
+_GANA_RE = re.compile(r"(?m)^\s*\(가\)")
+
+
 def _needs_stimulus_for(passage_text: str) -> bool:
-    return "<보기>" in passage_text or "[자료" in passage_text
+    return (
+        "<보기>" in passage_text
+        or "[자료" in passage_text
+        or bool(_GANA_RE.search(passage_text) and "(나)" in passage_text)
+    )
 
 
 # 합답형: 예시 선지가 "① ㄱ, ㄴ"처럼 <보기> 기호 조합이면 생성 선지도 조합이어야 한다.
@@ -44,33 +55,43 @@ def _is_combo_format(passage_text: str) -> bool:
     return bool(re.search(r"①\s*[ㄱ-ㅎ]\s*[,②]", passage_text))
 
 
+def rule_format(passage_text: str) -> dict:
+    """규칙으로 판정한 예시 형식. 요청 분석(LLM)이 실패했을 때의 대체값이자 테스트 기준.
+
+    키는 요청 분석 결과(`spec["format"]`)와 같다 — 게이트·프롬프트는 이 dict 하나만 본다."""
+    return {
+        "num_options": _num_options_for(passage_text),
+        "has_stimulus": _needs_stimulus_for(passage_text),
+        "combo": _is_combo_format(passage_text),
+        "has_essay": "[서술형]" in passage_text or "서술하시오" in passage_text,
+    }
+
+
 def _get_ctx() -> dict:
     return _request_ctx.get()
 
 
-def init_session(passage_text: str = "", target_num: int = 0) -> None:
+def init_session(passage_text: str = "", target_num: int = 0, fmt: dict | None = None) -> None:
     # LangGraph는 각 노드를 context.run()으로 격리 실행하므로
     # plan_node 내에서 set()한 새 dict가 agent_node에 전파되지 않는다.
     # 해결: asyncio.to_thread 호출 전 main.py에서 먼저 set()으로 dict를 생성하고,
     # 이후 호출(plan_node)에서는 같은 dict를 in-place로 초기화해 모든 노드가 공유한다.
     # passage_text: save_item의 원문 복사 게이트가 참조 (plan_node가 spec에서 전달)
+    # fmt: 요청 분석이 판정한 예시 형식(spec["format"]). 없으면 규칙으로 판정한다 —
+    # 게이트(여기)와 프롬프트(graph._build_system_prompt)가 같은 dict를 보게 하기 위함.
+    fmt = fmt or rule_format(passage_text)
+    fresh = {
+        "items": [],
+        "passage_text": passage_text,
+        "target_num": target_num,
+        "num_options": fmt["num_options"],
+        "needs_stimulus": fmt["has_stimulus"],
+        "combo_options": fmt["combo"],
+    }
     try:
-        ctx = _request_ctx.get()
-        ctx["items"] = []
-        ctx["passage_text"] = passage_text
-        ctx["target_num"] = target_num
-        ctx["num_options"] = _num_options_for(passage_text)
-        ctx["needs_stimulus"] = _needs_stimulus_for(passage_text)
-        ctx["combo_options"] = _is_combo_format(passage_text)
+        _request_ctx.get().update(fresh)
     except LookupError:
-        _request_ctx.set({
-            "items": [],
-            "passage_text": passage_text,
-            "target_num": target_num,
-            "num_options": _num_options_for(passage_text),
-            "needs_stimulus": _needs_stimulus_for(passage_text),
-            "combo_options": _is_combo_format(passage_text),
-        })
+        _request_ctx.set(fresh)
 
 def get_draft_items() -> list:
     """지금까지 저장된 문항들을 반환한다(각 dict는 호출부가 만져도 안전하도록 얕은 복사).
@@ -90,7 +111,7 @@ context (dict)
         "items": list,          # 문항 dict들의 리스트
         "passage_text": str,    # 교사가 입력한 예시 문제 원문
         "target_num": int,      # 목표 문항 개수 (예: 5)
-        "num_options": int,     # 객관식 선지 수 (예시에 ⑤가 있으면 5, 없으면 4)
+        "num_options": int,     # 객관식 선지 수 (spec["format"] 또는 rule_format — 선지 줄에 ⑤가 있으면 5)
         "needs_stimulus": bool, # 예시에 <보기>·자료가 있으면 True — 객관식은 stimulus 필수
         "combo_options": bool,  # 예시가 합답형이면 True — 선지는 "① ㄱ, ㄴ" 형태만 허용
     }

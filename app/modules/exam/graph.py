@@ -15,11 +15,9 @@ from .state import ExamState
 from .tools import (
     _OPTION_MARKS,
     TOOLS,
-    _is_combo_format,
-    _needs_stimulus_for,
-    _num_options_for,
     get_draft_items,
     init_session,
+    rule_format,
 )
 
 logger = logging.getLogger(__name__)
@@ -61,6 +59,7 @@ def plan_node(state: ExamState) -> dict:
     init_session(
         state["spec"].get("passage_text", ""),
         state["spec"].get("num_items", 2),
+        state["spec"].get("format"),  # 요청 분석이 판정한 형식 — 없으면 규칙으로 판정
     )
     return {
         "validation_passed": False,
@@ -74,6 +73,8 @@ def _build_system_prompt(
     num_items: int,
     existing_items: list,
     validation_feedback: str = "",
+    fmt: dict | None = None,
+    unsupported_note: str = "",
 ) -> str:
     no_text_rule = (
         "**매우 중요한 규칙**: 이 대화 내내 도구 호출(tool call) 외에는 어떤 텍스트도 "
@@ -81,23 +82,30 @@ def _build_system_prompt(
         "먼저 보여주는 것 모두 금지입니다. 매 턴 오직 도구 호출만 하세요."
     )
     remaining = max(0, num_items - len(existing_items))
-    marks = _OPTION_MARKS[:_num_options_for(passage_text)]
+    # 2026-09-24: 형식은 plan_node가 init_session에 넘긴 것과 같은 dict(spec["format"])를 쓴다 —
+    # 전에는 여기서 passage_text로 다시 계산해 게이트와 어긋날 수 있었다.
+    fmt = fmt or rule_format(passage_text)
+    marks = _OPTION_MARKS[:fmt["num_options"]]
     # 2026-09: 형식 인식 — <보기> 합답형·자료 제시형은 제시문을 발문과 분리해 stimulus에 담는다.
     # 일반 조건문("~가 있으면")보다 이 예시에 해당하는 지시만 주는 쪽이 14B가 잘 따른다.
-    if _needs_stimulus_for(passage_text):
+    if fmt["has_stimulus"]:
         stimulus_rule = (
             "**예시 문제에 <보기>나 자료가 있으므로, 모든 객관식 문항에 같은 형식의 <보기>·자료를 "
             "새로 작성해 stimulus 인자에 넣으세요**(question에 넣지 마세요, 비우면 저장이 거부됩니다). "
             "예시의 <보기>·자료 문장을 옮기지 말고 내용을 새로 쓰세요."
         )
-        if _is_combo_format(passage_text):
-            stimulus_rule += (
-                " **예시는 합답형입니다. 선지는 반드시 '① ㄱ, ㄴ', '② ㄱ, ㄷ'처럼 <보기> 기호의 "
-                "조합으로만 쓰고**, 문장으로 풀어 쓰지 마세요. 정답 조합에 속한 진술만 참이 되게 "
-                "<보기>를 구성하세요."
-            )
     else:
         stimulus_rule = "예시 문제에 <보기>·자료가 없으므로 stimulus는 비워 두세요."
+    # 합답형 지시는 제시문 분기 밖에 둔다 — 게이트(combo_options)는 제시문 여부와 따로 켜진다.
+    if fmt["combo"]:
+        stimulus_rule += (
+            " **예시는 합답형입니다. 선지는 반드시 '① ㄱ, ㄴ', '② ㄱ, ㄷ'처럼 <보기> 기호의 "
+            "조합으로만 쓰고**, 문장으로 풀어 쓰지 마세요. 정답 조합에 속한 진술만 참이 되게 "
+            "<보기>를 구성하세요."
+        )
+    if unsupported_note:
+        # 지원하지 않는 형식 — 가장 가까운 지원 형식으로 만든다(교사에게는 main.py가 안내한다)
+        stimulus_rule += f" {unsupported_note}"
 
     def _summary(items):
         """
@@ -242,6 +250,8 @@ def agent_node(state: ExamState) -> dict:
         num_items,
         existing_items,
         state.get("validation_feedback", ""),
+        spec.get("format"),
+        spec.get("format_instruction", ""),
     )
     user_content = "위 지침에 따라 문항을 작성하세요."
 

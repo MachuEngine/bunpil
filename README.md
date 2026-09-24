@@ -176,7 +176,7 @@ API 키가 없거나 호출이 실패하면 조용히 폴백하지 않고 그대
 - **`POST /exam`** (JSON 단발) — 같은 로직을 쓰는 대안 경로입니다. `curl`처럼 브라우저가 아닌 클라이언트를 위한 것입니다
 - **`POST /exam/extract`** — 예시 문제 캡처 이미지(png/jpeg/webp, 5MB까지)를 받아 **VLM**(이미지를 읽는 LLM)으로 텍스트를 추출하고 마스킹해 반환합니다. 그래프와는 무관한 별도 경로이며, 추출된 텍스트를 `/exam/stream`에 그대로 넘기는 건 교사 몫입니다.
 - **`POST /exam/explain`** — 생성된 문항 하나를 받아 정답 해설을 만듭니다. '해설 보기' 버튼을 누를 때만 호출합니다
-- **`POST /exam/revise`** — 현재 문항 세트와 수정 요청(예: "2번 선지를 더 헷갈리게")을 받아 바뀐 문항만 돌려줍니다. 바뀐 문항도 생성 때와 같은 형식·중복 검사를 거칩니다
+- **`POST /exam/revise`** — 현재 문항 세트와 메시지를 받습니다. 메시지 의도(수정·질문·새로 만들기·인사)를 함께 판정해, 수정 요청이면 바뀐 문항만 돌려주고(생성 때와 같은 형식·중복 검사를 거침) 질문이면 문항은 그대로 두고 답만 합니다
   - 두 경로 모두 서버가 문항·대화를 저장하지 않습니다. 브라우저가 매 요청에 다시 보내고, 서버는 모델 호출 전에 전부 마스킹합니다(하드룰 2·3)
 - **`GET /health`** — 서버가 살아 있는지만 확인합니다(인증 불필요)
 
@@ -201,12 +201,13 @@ API 키가 없거나 호출이 실패하면 조용히 폴백하지 않고 그대
 
 ```
 data: {"status": "truncated", "msg": "입력이 길어 앞부분만 반영되었습니다."}  # 8,000자 초과 시만
+data: {"status": "format_notice", "msg": "예시의 OX 형식은 지원하지 않아 4지 선다 형식으로 만들었습니다."}  # 미지원 형식일 때만
 data: {"status": "progress",  "msg": "준비 중..."}
 data: {"status": "progress",  "msg": "AI가 문항을 생성하고 있습니다. 수 분 소요됩니다..."}
 data: {"status": "progress",  "msg": "생성된 문항의 구조적 유사도를 채점하고 있습니다..."}
 data: {"status": "progress",  "msg": "채점 결과가 기준을 통과했는지 확인하고 있습니다..."}
 data: {"status": "progress",  "msg": "문항 세트를 다시 생성하고 있습니다 (2번째 시도)..."}  # 재시도(최대 5회)마다
-data: {"status": "done",      "items": [...], "validation_passed": true, "truncated": false}
+data: {"status": "done",      "items": [...], "validation_passed": true, "truncated": false, "format_notice": ""}
 data: {"status": "error",     "msg": "요청을 처리하지 못했습니다."}  # 내부 상세는 노출하지 않음
 ```
 

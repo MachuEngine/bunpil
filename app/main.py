@@ -76,32 +76,82 @@ MAX_PASSAGE_LENGTH = 8000
 DEFAULT_NUM_ITEMS = 2
 
 
-async def _extract_num_items(passage_text: str) -> int:
-    """passage_text 안에 교사가 명시적으로 요청한 문항 개수가 있으면 그 값을,
-    없으면 기본값(DEFAULT_NUM_ITEMS)을 반환한다. 예시 문제 자체의 문항 개수와는 무관 —
-    "5문제 만들어줘" 같은 지시문이 같은 텍스트에 섞여 들어올 수 있어 정규식이 아니라
-    LLM 판단으로 추출한다."""
+# 지원 형식 5종 — 이 밖의 형식은 가장 가까운 지원 형식으로 만들고 교사에게 안내한다(2026-09-24 결정).
+SUPPORTED_FORMATS = ("4지 선다", "5지 선다", "<보기> 합답형", "자료 제시형", "서술형")
+
+_ANALYZE_PROMPT = (
+    "다음은 교사가 문항 생성 서비스에 입력한 텍스트(예시 문제와 요청)입니다. 설명 없이 아래 JSON 하나만 출력하세요.\n"
+    '{"requested_num_items": 정수 또는 null, "num_options": 4 또는 5, "has_stimulus": true/false, "combo": true/false, '
+    '"has_essay": true/false, "unsupported": [문자열], "nearest": 문자열}\n'
+    "- requested_num_items: 교사가 '3문제 만들어 줘'처럼 **명시적으로 요청한** 생성 문항 수. 요청 문장이 없으면 null. "
+    "예시 문제의 문항 수를 세지 않는다. 범위로 요청하면(예: 3~5문제) 큰 값.\n"
+    "- num_options: 예시 객관식의 선지 수. 선지 자리에 있는 기호(①~⑤)만 센다. 본문 속 '⑤번' 같은 언급은 세지 않는다. "
+    "객관식이 없으면 4.\n"
+    "- has_stimulus: 발문과 선지 사이에 <보기>, (가)·(나) 같은 자료, 표, 그래프·그림 설명, 제시문의 **내용이 실제로 "
+    "적혀 있으면** true. '다음 자료의', '다음 지도에서'처럼 자료를 언급만 하고 내용이 없으면 false.\n"
+    "- combo: 선지가 '① ㄱ, ㄴ'처럼 <보기> 기호의 조합이면 true.\n"
+    "- has_essay: 답을 글로 쓰는 서술형 문항이 있으면 true.\n"
+    f"- unsupported: 지원 형식({', '.join(SUPPORTED_FORMATS)})으로 나타낼 수 없는 예시 형식의 이름. "
+    "예: OX, 빈칸 채우기, 연결형, 단답형. 선지가 순서 조합인 순서 배열 문항은 선다형이므로 넣지 않는다. "
+    "사회 과목 문제가 아니면 '사회 과목 아님'을 넣는다. 없으면 [].\n"
+    f"- nearest: unsupported가 있을 때 대신 만들 지원 형식({', '.join(SUPPORTED_FORMATS)} 중 하나). 없으면 \"\"."
+)
+
+
+def _parse_analysis(raw: str, masked_text: str) -> dict:
+    """요청 분석 응답을 검증한다. 잘못된 필드는 필드별로 규칙 판정(rule_format)·기본값으로 대체한다.
+
+    이전 `_extract_num_items`는 응답의 숫자를 모두 이어 붙여 "3~5문제"를 35(→20)로 읽었다 —
+    이제 num_items는 JSON 정수 하나만 인정한다. 응답이 숫자 하나뿐이면 그 값을 쓴다(하위 호환)."""
+    from app.modules.exam.revise import _parse_response
+    from app.modules.exam.tools import rule_format
+
+    rule = rule_format(masked_text)
+    data = _parse_response(raw or "")
+    if not data and (raw or "").strip().isdigit():
+        data = {"num_items": int(raw.strip())}
+
+    # 기본값은 코드가 채운다 — 모델에게 "요청이 없으면 2"를 맡겼더니 14B가 예시 문항 수(1)를 답했다(2026-09-24 실측)
+    n = data.get("requested_num_items", data.get("num_items"))
+    num_items = n if isinstance(n, int) and not isinstance(n, bool) and 1 <= n <= 20 else DEFAULT_NUM_ITEMS
+    fmt = {
+        "num_options": data["num_options"] if data.get("num_options") in (4, 5) else rule["num_options"],
+        **{k: data[k] if isinstance(data.get(k), bool) else rule[k] for k in ("has_stimulus", "combo", "has_essay")},
+    }
+    if fmt["combo"]:
+        fmt["has_stimulus"] = True  # 합답형은 <보기>가 있어야 성립한다
+
+    unsupported = data.get("unsupported")
+    if isinstance(unsupported, str):
+        unsupported = [unsupported]  # "OX"처럼 문자열 하나로 답해도 안내가 꺼지지 않게
+    unsupported = [u.strip()[:30] for u in unsupported if isinstance(u, str) and u.strip()][:5] \
+        if isinstance(unsupported, list) else []
+    nearest = data.get("nearest") if data.get("nearest") in SUPPORTED_FORMATS else "4지 선다"
+    notice = instruction = ""
+    if unsupported:
+        names = ", ".join(unsupported)
+        notice = f"예시의 {names} 형식은 지원하지 않아 {nearest} 형식으로 만들었습니다."
+        instruction = f"예시 중 {names} 형식은 지원하지 않으므로, 해당 문항은 {nearest} 형식으로 작성하세요."
+    return {"num_items": num_items, "format": fmt, "format_notice": notice, "format_instruction": instruction}
+
+
+async def _analyze_request(masked_text: str) -> dict:
+    """마스킹된 입력에서 요청 문항 수와 예시 형식을 한 번의 LLM 호출로 판정한다(2026-09-24).
+
+    이전의 문항 수 추출 호출을 확장한 것이라 요청당 LLM 호출 수는 그대로다. 형식 판정 결과는
+    spec["format"] 하나에 담겨 저장 게이트(init_session)와 생성 프롬프트가 함께 쓴다. 호출이 실패하면
+    전부 규칙 판정·기본값으로 대체한다 — 생성 자체는 막지 않는다."""
     from app.common.llm import get_llm_backend
 
     messages = [
-        {
-            "role": "system",
-            "content": (
-                "다음은 교사가 문항 생성 서비스에 입력한 텍스트입니다. "
-                "이 텍스트에서 교사가 명시적으로 요청한 생성 문항 개수를 찾으세요. "
-                f"명시적인 개수 요청이 있으면 그 숫자만 응답하고, 없으면 {DEFAULT_NUM_ITEMS}라고만 응답하세요. "
-                "설명 없이 숫자만 응답하세요."
-            ),
-        },
-        {"role": "user", "content": passage_text[:2000]},
+        {"role": "system", "content": _ANALYZE_PROMPT},
+        {"role": "user", "content": masked_text},
     ]
     try:
-        raw = await get_llm_backend().generate(messages)
-        digits = "".join(ch for ch in raw if ch.isdigit())
-        n = int(digits) if digits else DEFAULT_NUM_ITEMS
+        raw = await get_llm_backend().generate(messages, max_tokens=300)
     except Exception:
-        n = DEFAULT_NUM_ITEMS
-    return max(1, min(n, 20))  # 폭주 생성 방지
+        raw = ""
+    return _parse_analysis(raw, masked_text)
 
 
 async def _build_spec(passage_text: str):
@@ -111,10 +161,7 @@ async def _build_spec(passage_text: str):
     truncated = len(passage_text) > MAX_PASSAGE_LENGTH
     text = passage_text[:MAX_PASSAGE_LENGTH] if truncated else passage_text
     masked_text, pii_found = mask_pii(text)
-    spec = {
-        "passage_text": masked_text,
-        "num_items": await _extract_num_items(masked_text),
-    }
+    spec = {"passage_text": masked_text, **await _analyze_request(masked_text)}
     return spec, truncated, pii_found
 
 
@@ -246,12 +293,15 @@ async def exam_stream(
                 })
             if truncated:
                 yield evt({"status": "truncated", "msg": "입력이 길어 앞부분만 반영되었습니다."})
+            if spec.get("format_notice"):
+                yield evt({"status": "format_notice", "msg": spec["format_notice"]})
 
             async for event in _run_exam_events(spec):
                 if event.get("status") == "done":
                     event = {
                         **event,
                         "truncated": truncated,
+                        "format_notice": spec.get("format_notice", ""),
                         "pii_found": pii_found,
                     }
                 yield evt(event)
@@ -485,5 +535,5 @@ async def exam(
                 {"status": "error", "msg": "문항 생성 중 오류가 발생했습니다."},
                 status_code=500,
             )
-    return {"truncated": truncated, "pii_found": pii_found, **result}
+    return {"truncated": truncated, "pii_found": pii_found, "format_notice": spec.get("format_notice", ""), **result}
 

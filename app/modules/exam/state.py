@@ -1,16 +1,21 @@
-from typing_extensions import TypedDict
+from typing_extensions import NotRequired, TypedDict
 
 # 사용자 입력 사양 - num_items는 사용자 입력을 별도로 받지 않지만 이후 로직에 사용되므로 현상태 유지로 결정
 class ExamSpec(TypedDict):
     passage_text: str        # 교사가 붙여넣은 예시 문제 원문 (에이전트 프롬프트에 직접 삽입)
     num_items: int           # 생성할 문항 개수. 예시 문제 개수와 무관 — 기본값 2(main.py가 채움)
+    # 2026-09-24 요청 분석(main._analyze_request)이 채운다. 없으면 tools.rule_format(passage_text)로 판정.
+    format: NotRequired[dict]            # {num_options, has_stimulus, combo, has_essay} — 앞의 셋은 게이트·프롬프트 공통.
+                                         # has_essay는 평가 채점(R9)용 — 유형 구성은 기존대로 모델이 예시를 보고 정한다
+    format_notice: NotRequired[str]      # 교사 안내(미지원 형식을 다른 형식으로 만들었을 때). 없으면 ""
+    format_instruction: NotRequired[str] # 생성 모델 지시(예: "OX는 지원하지 않으므로 4지선다로 작성")
 
 # 생성된 개별 문항
 class DraftItem(TypedDict):
     item_id: str
     question: str
     stimulus: str            # <보기>·자료 등 발문과 선지 사이의 제시문. 없으면 ""
-    options: list            # 객관식 선지 4개 또는 5개(예시에 ⑤가 있으면 5). 서술형은 []
+    options: list            # 객관식 선지 4개 또는 5개(spec["format"]의 num_options). 서술형은 []
     answer: str
     item_type: str           # "객관식" | "서술형"
     difficulty: str          # "상" | "중" | "하"

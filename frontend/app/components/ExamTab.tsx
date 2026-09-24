@@ -128,6 +128,8 @@ export default function ExamTab() {
   const [error, setError] = useState("");
   const [truncated, setTruncated] = useState(false);
   const [piiFound, setPiiFound] = useState<string[]>([]);
+  // 지원하지 않는 형식을 다른 형식으로 만들었을 때의 안내(2026-09-24)
+  const [formatNotice, setFormatNotice] = useState("");
   const [explanations, setExplanations] = useState<Record<string, ExplanationState>>({});
 
   // 챗봇 수정 — 2026-09. 대화는 이 state에만 있고 서버에 저장되지 않는다(하드룰 3).
@@ -295,6 +297,7 @@ export default function ExamTab() {
     setChat([]);
     setTruncated(false);
     setPiiFound([]);
+    setFormatNotice("");
     setIsLoading(true);
     setStepMsg("준비 중...");
 
@@ -345,12 +348,15 @@ export default function ExamTab() {
             setStepMsg(data.msg ?? "");
           } else if (data.status === "truncated") {
             setTruncated(true);
+          } else if (data.status === "format_notice") {
+            setFormatNotice(data.msg ?? "");
           } else if (data.status === "pii_masked") {
             setPiiFound(data.pii_found ?? []);
           } else if (data.status === "done") {
             setItems(data.items ?? []);
             setTruncated(Boolean(data.truncated));
             setPiiFound(data.pii_found ?? []);
+            setFormatNotice(data.format_notice ?? "");
           } else if (data.status === "error") {
             setError(data.msg ?? "문항 생성에 실패했습니다.");
           }
@@ -479,6 +485,11 @@ export default function ExamTab() {
                 입력이 길어 앞부분만 반영되었습니다.
               </p>
             )}
+            {formatNotice && (
+              <p className="text-[13px] text-[#93601F] bg-[#F5EBD8] rounded-lg px-3 py-2 mb-3">
+                {formatNotice}
+              </p>
+            )}
             <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
               <h2 className="text-[14px] font-semibold text-[#1C2620]">
                 생성된 문항 ({items.length}개)
@@ -518,7 +529,7 @@ export default function ExamTab() {
             </div>
             {/* 챗봇 수정 */}
             <div className="mt-6 border border-[#DBDCD2] rounded-xl bg-white p-4">
-              <h3 className="text-[13px] font-semibold text-[#1C2620] mb-2">문항 수정 요청</h3>
+              <h3 className="text-[13px] font-semibold text-[#1C2620] mb-2">문항에 대해 묻거나 고치기</h3>
               {chat.length > 0 && (
                 <div className="space-y-2 mb-3 max-h-72 overflow-y-auto">
                   {chat.map((m, i) => (
@@ -535,14 +546,14 @@ export default function ExamTab() {
                       {m.content}
                     </p>
                   ))}
-                  {isRevising && <p className="text-[12px] text-[#6E7469]">문항을 고치고 있습니다...</p>}
+                  {isRevising && <p className="text-[12px] text-[#6E7469]">답변을 작성하고 있습니다...</p>}
                 </div>
               )}
               <div className="flex gap-2">
                 <textarea
                   rows={2}
                   maxLength={MAX_CHAT_LENGTH}
-                  placeholder="예: 2번 선지를 더 헷갈리게 바꿔줘 / 1번 난이도를 상으로 올려줘"
+                  placeholder="예: 2번 선지를 더 헷갈리게 바꿔줘 / 1번 정답이 왜 ③이야?"
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   onKeyDown={(e) => {

@@ -57,7 +57,7 @@ def test_stream_endpoint_also_requires_key(monkeypatch):
 
 
 def test_exam_slot_covers_num_items_llm_call(monkeypatch):
-    """세마포어가 그래프 실행뿐 아니라 _extract_num_items()의 LLM 호출까지
+    """세마포어가 그래프 실행뿐 아니라 _analyze_request()의 LLM 호출까지
     커버하는지 확인한다 — 이전엔 _build_spec()이 슬롯 확보 전에 실행돼 이
     LLM 호출이 동시요청 제한을 우회할 수 있었다."""
     monkeypatch.setenv("BUNPIL_API_KEY", "synthetic-secret")
