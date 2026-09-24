@@ -31,3 +31,6 @@ logs/
 
 # SSH 키
 *.pem
+
+# 개인 자기소개 초안 (로컬 전용)
+SELF_INTRO.md
