@@ -32,5 +32,7 @@ logs/
 # SSH 키
 *.pem
 
-# 개인 자기소개 초안 (로컬 전용)
+# 로컬 전용 작업 문서 (자기소개·블로그 초안·리뷰 체크리스트)
 SELF_INTRO.md
+blog_draft.md
+CODE_REVIEW_CHECKLIST.md
