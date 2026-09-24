@@ -8,6 +8,11 @@ import { buildText, downloadPdf, downloadPng, downloadText } from "@/lib/export"
 import ExamSheet from "./ExamSheet";
 
 const MAX_PASSAGE_LENGTH = 8000;
+// 백엔드 /exam/revise 한도와 같게 맞춘다(app/main.py _MAX_HISTORY_TURNS·_MAX_CHAT_LENGTH)
+const MAX_HISTORY_TURNS = 6;
+const MAX_CHAT_LENGTH = 1000;
+
+type ChatMessage = { role: "user" | "assistant"; content: string; failed?: boolean };
 
 // 해설 상태 — 교사용 다운로드·수정 반영 시에도 쓰므로 ExamTab이 item_id별로 들고 있다(2026-09)
 type ExplanationState = { status: "loading" } | { status: "done"; text: string } | { status: "error" };
@@ -125,6 +130,61 @@ export default function ExamTab() {
   const [piiFound, setPiiFound] = useState<string[]>([]);
   const [explanations, setExplanations] = useState<Record<string, ExplanationState>>({});
 
+  // 챗봇 수정 — 2026-09. 대화는 이 state에만 있고 서버에 저장되지 않는다(하드룰 3).
+  // 매 요청에 생성 당시 예시 문제·현재 문항·최근 대화를 함께 보낸다.
+  const [generatedPassage, setGeneratedPassage] = useState("");
+  const [chat, setChat] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [isRevising, setIsRevising] = useState(false);
+
+  const handleRevise = async () => {
+    const instruction = chatInput.trim().slice(0, MAX_CHAT_LENGTH);
+    if (!instruction || isRevising) return;
+    const history = chat
+      .filter((m) => !m.failed)
+      .slice(-MAX_HISTORY_TURNS)
+      .map(({ role, content }) => ({ role, content: content.slice(0, MAX_CHAT_LENGTH) }));
+    setChat((prev) => [...prev, { role: "user", content: instruction }]);
+    setChatInput("");
+    setIsRevising(true);
+    try {
+      const fd = new FormData();
+      fd.append("passage_text", generatedPassage);
+      fd.append("items", JSON.stringify(items));
+      fd.append("history", JSON.stringify(history));
+      fd.append("instruction", instruction);
+      const res = await fetch("/api/exam/revise", { method: "POST", body: fd });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data: any = await res.json().catch(() => null);
+      if (!res.ok || typeof data?.message !== "string") {
+        const msg =
+          res.status === 413
+            ? "문항과 대화가 너무 길어 요청을 보낼 수 없습니다. 새로 생성해 주세요."
+            : res.status === 429
+              ? "다른 요청을 처리 중입니다. 잠시 후 다시 시도해 주세요."
+              : "수정 요청을 처리하지 못했습니다.";
+        setChat((prev) => [...prev, { role: "assistant", content: msg, failed: true }]);
+        return;
+      }
+      // 바뀐 문항은 새 item_id로 교체한다 — 카드가 다시 그려지면서 이전 해설·정답 표시가 초기화된다
+      const changes = new Map<number, ExamItem>(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (data.changes ?? []).map((c: any) => [c.number, c.item]),
+      );
+      setItems((prev) =>
+        prev.map((it, i) => {
+          const changed = changes.get(i + 1);
+          return changed ? { ...changed, item_id: crypto.randomUUID().slice(0, 8) } : it;
+        }),
+      );
+      setChat((prev) => [...prev, { role: "assistant", content: data.message }]);
+    } catch {
+      setChat((prev) => [...prev, { role: "assistant", content: "서버 연결 오류가 발생했습니다.", failed: true }]);
+    } finally {
+      setIsRevising(false);
+    }
+  };
+
   // 해설은 서버에 저장되지 않는다 — 문항을 다시 보내 생성하고 이 state에만 캐시한다(하드룰 3)
   const fetchExplanation = async (item: ExamItem): Promise<string | null> => {
     setExplanations((prev) => ({ ...prev, [item.item_id]: { status: "loading" } }));
@@ -232,6 +292,7 @@ export default function ExamTab() {
     setError("");
     setItems([]);
     setExplanations({});
+    setChat([]);
     setTruncated(false);
     setPiiFound([]);
     setIsLoading(true);
@@ -240,6 +301,7 @@ export default function ExamTab() {
     try {
       const fd = new FormData();
       fd.append("passage_text", passageText.trim());
+      setGeneratedPassage(passageText.trim());
 
       const res = await fetch("/api/exam/stream", { method: "POST", body: fd });
       if (!res.ok || !res.body) {
@@ -454,6 +516,52 @@ export default function ExamTab() {
                 />
               ))}
             </div>
+            {/* 챗봇 수정 */}
+            <div className="mt-6 border border-[#DBDCD2] rounded-xl bg-white p-4">
+              <h3 className="text-[13px] font-semibold text-[#1C2620] mb-2">문항 수정 요청</h3>
+              {chat.length > 0 && (
+                <div className="space-y-2 mb-3 max-h-72 overflow-y-auto">
+                  {chat.map((m, i) => (
+                    <p
+                      key={i}
+                      className={`text-[13px] rounded-lg px-3 py-2 whitespace-pre-wrap ${
+                        m.role === "user"
+                          ? "bg-[#2F4A3D] text-white ml-8"
+                          : m.failed
+                            ? "bg-[#F7E9E4] text-[#A63B2E] mr-8"
+                            : "bg-[#F3F4EE] text-[#1C2620] mr-8"
+                      }`}
+                    >
+                      {m.content}
+                    </p>
+                  ))}
+                  {isRevising && <p className="text-[12px] text-[#6E7469]">문항을 고치고 있습니다...</p>}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <textarea
+                  rows={2}
+                  maxLength={MAX_CHAT_LENGTH}
+                  placeholder="예: 2번 선지를 더 헷갈리게 바꿔줘 / 1번 난이도를 상으로 올려줘"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                      e.preventDefault();
+                      handleRevise();
+                    }
+                  }}
+                  className="flex-1 rounded-lg border border-[#DBDCD2] bg-white px-3 py-2 text-[13px] text-[#1C2620] placeholder:text-[#6E7469] focus:outline-none focus:border-[#2F4A3D] resize-none"
+                />
+                <Button type="button" onClick={handleRevise} disabled={isRevising || !chatInput.trim() || Boolean(exportMsg)}>
+                  보내기
+                </Button>
+              </div>
+              <p className="text-[12px] text-[#6E7469] mt-1">
+                대화는 저장되지 않으며, 새로 생성하면 초기화됩니다. 개인정보는 모델 호출 전에 마스킹됩니다.
+              </p>
+            </div>
+
             {/* 다운로드 캡처용 시트 — 화면 밖에 그린다 */}
             <div aria-hidden style={{ position: "fixed", left: -10000, top: 0 }}>
               <ExamSheet ref={sheetRef} items={items} mode={sheetMode} explanations={doneExplanations()} />

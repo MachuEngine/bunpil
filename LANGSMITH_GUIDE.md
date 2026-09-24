@@ -12,6 +12,11 @@
 실제 API 서버(`agent_node`의 ChatOllama/ChatRunPod, `judge_node`)도 트레이싱된다. 기본값은
 `false`(옵트인) — 켜려면 `LANGCHAIN_API_KEY`도 `.env`에 필요.
 
+**2026-09-24 추가**: 해설(`explain_item`)과 챗봇 수정(`revise_items`)도 `@traceable`로 트레이싱된다.
+두 함수는 `app/main.py`가 문항·예시 문제·수정 요청 문장·대화 이력을 **전부 `mask_pii()`로
+마스킹한 뒤** 호출하므로 트레이스에는 마스킹된 값만 남는다. 수정 요청 문장·대화 이력의
+트레이싱은 사용자 승인으로 하드룰 3 예외에 추가됐다(CLAUDE.md).
+
 합성 골든셋만 다루는 `evals/`/`experiments/` 스크립트는 원래대로 각 진입점에서 tracing을
 별도로 초기화한다(셸에서 직접 실행할 때만):
 
