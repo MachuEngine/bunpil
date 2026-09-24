@@ -1,0 +1,6 @@
+# 평가 전용 의존성 — 프로덕션 이미지(requirements.txt)에는 넣지 않는다.
+# 모델 선정 하네스(evals/model_selection/)의 통계 계산용. OpenRouter 호출은 requirements.txt의
+# openai·langchain-openai·httpx를 그대로 쓴다(새 LangChain 패키지 없음).
+-r requirements.txt
+scipy==1.17.1
+scikit-learn==1.9.0
