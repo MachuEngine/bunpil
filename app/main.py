@@ -324,6 +324,80 @@ async def exam_extract(
     return {"text": masked_text, "pii_found": pii_found}
 
 
+# ── 생성 문항을 다시 받는 경로 공통 (해설 /exam/explain) ─────────────────────
+# 서버는 생성 문항을 저장하지 않는다(하드룰 3) — 해설·수정은 브라우저가 문항을 다시
+# 보내는 방식이다. 브라우저가 보낸 값은 사용자가 편집할 수 있는 입력이므로 형태를 검증하고,
+# 모델 호출 전에 문자열 필드 전부를 mask_pii()로 마스킹한다(하드룰 2).
+_MAX_ITEM_FIELD_LENGTH = 3000
+_ITEM_STR_FIELDS = ("question", "stimulus", "answer", "item_type", "difficulty", "standard")
+
+
+def _parse_item(raw: dict) -> dict:
+    """브라우저가 보낸 문항 dict를 검증해 필요한 필드만 남긴다. 형태가 틀리면 400."""
+    if not isinstance(raw, dict):
+        raise HTTPException(status_code=400, detail="문항 형식이 올바르지 않습니다.")
+    item = {k: raw.get(k, "") for k in _ITEM_STR_FIELDS}
+    item["options"] = raw.get("options", [])
+    if (
+        not all(isinstance(item[k], str) and len(item[k]) <= _MAX_ITEM_FIELD_LENGTH for k in _ITEM_STR_FIELDS)
+        or not isinstance(item["options"], list)
+        or len(item["options"]) > 5
+        or not all(isinstance(o, str) and len(o) <= _MAX_ITEM_FIELD_LENGTH for o in item["options"])
+        or item["item_type"] not in ("객관식", "서술형")
+        or not item["question"].strip()
+    ):
+        raise HTTPException(status_code=400, detail="문항 형식이 올바르지 않습니다.")
+    return item
+
+
+def _mask_item(item: dict) -> tuple[dict, list[str]]:
+    """문항의 모든 문자열 필드를 마스킹한다. 반환: (마스킹된 문항, 발견된 PII 유형)."""
+    from app.common.privacy import mask_pii
+
+    found: list[str] = []
+
+    def mask(text: str) -> str:
+        masked, pii = mask_pii(text)
+        found.extend(p for p in pii if p not in found)
+        return masked
+
+    masked = {k: mask(item[k]) for k in _ITEM_STR_FIELDS}
+    masked["options"] = [mask(o) for o in item["options"]]
+    return masked, found
+
+
+def _load_json_field(raw: str, name: str):
+    try:
+        return json.loads(raw)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail=f"{name} 형식이 올바르지 않습니다.")
+
+
+# ── 해설 보기 ─────────────────────────────────────────────────────────────
+# 2026-09: '해설 보기' 버튼을 누를 때만 생성한다(생성 에이전트의 도구 인자·턴 부담을 늘리지
+# 않기 위함). 그래프 밖의 단발 호출이다 — app/modules/exam/explain.py.
+
+@app.post("/exam/explain")
+async def exam_explain(
+    item: str = Form(...),
+    _: None = Depends(verify_api_key),
+):
+    """생성된 문항 하나(JSON 문자열)를 받아 마스킹 후 해설을 생성한다."""
+    parsed = _parse_item(_load_json_field(item, "문항"))
+    masked_item, pii_found = _mask_item(parsed)
+
+    async with request_slot():
+        try:
+            from app.modules.exam.explain import explain_item
+
+            explanation = await explain_item(masked_item)
+        except Exception:
+            logger.exception("/exam/explain 오류")
+            raise HTTPException(status_code=502, detail="해설을 생성하지 못했습니다.")
+
+    return {"explanation": explanation, "pii_found": pii_found}
+
+
 # ── 기존 JSON 엔드포인트 (하위 호환) ────────────────────────────────────
 
 @app.post("/exam")

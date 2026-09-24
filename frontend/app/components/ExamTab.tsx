@@ -19,8 +19,20 @@ interface ExamItem {
   // 검증된 적이 없었고, 교사 화면에 "품질"로 보이는 것이 오해를 유발했다(EVAL.md 17절).
 }
 
-function ItemCard({ item }: { item: ExamItem }) {
+// 해설 상태 — 교사용 다운로드·수정 반영 시에도 쓰므로 ExamTab이 item_id별로 들고 있다(2026-09)
+type ExplanationState = { status: "loading" } | { status: "done"; text: string } | { status: "error" };
+
+function ItemCard({
+  item,
+  explanation,
+  onExplain,
+}: {
+  item: ExamItem;
+  explanation?: ExplanationState;
+  onExplain: (item: ExamItem) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
+  const [showAnswer, setShowAnswer] = useState(false);
 
   return (
     <div
@@ -52,14 +64,14 @@ function ItemCard({ item }: { item: ExamItem }) {
               {item.options.map((opt, i) => (
                 <li
                   key={i}
-                  className={`text-[13px] pl-2 ${opt.startsWith(item.answer) ? "text-[#2F4A3D] font-medium" : "text-[#6E7469]"}`}
+                  className={`text-[13px] pl-2 ${showAnswer && item.answer && opt.startsWith(item.answer) ? "text-[#2F4A3D] font-medium" : "text-[#6E7469]"}`}
                 >
                   {opt}
                 </li>
               ))}
             </ol>
           )}
-          {item.options.length === 0 && item.answer && (
+          {showAnswer && item.options.length === 0 && item.answer && (
             <p className="text-[13px] text-[#6E7469]">
               <span className="font-medium text-[#1C2620]">예시 답안: </span>
               {item.answer}
@@ -70,6 +82,43 @@ function ItemCard({ item }: { item: ExamItem }) {
               성취기준: {item.standard}
             </p>
           )}
+
+          {/* 해설 보기 — 누르기 전에는 정답도 숨긴다(카드를 펼친 것만으로 정답이 보이지 않게) */}
+          <div className="mt-3" onClick={(e) => e.stopPropagation()}>
+            {!showAnswer ? (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setShowAnswer(true);
+                  if (!explanation || explanation.status === "error") onExplain(item);
+                }}
+              >
+                해설 보기
+              </Button>
+            ) : (
+              <div className="rounded-lg bg-[#F3F4EE] px-3 py-2 text-[13px] text-[#1C2620]">
+                {item.options.length > 0 && (
+                  <p className="font-medium mb-1">정답: {item.answer}</p>
+                )}
+                {explanation?.status === "loading" && (
+                  <p className="text-[#6E7469]">해설을 작성하고 있습니다...</p>
+                )}
+                {explanation?.status === "done" && (
+                  <p className="whitespace-pre-wrap">{explanation.text}</p>
+                )}
+                {explanation?.status === "error" && (
+                  <p className="text-[#A63B2E]">
+                    해설을 만들지 못했습니다.{" "}
+                    <button type="button" className="underline" onClick={() => onExplain(item)}>
+                      다시 시도
+                    </button>
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -84,6 +133,25 @@ export default function ExamTab() {
   const [error, setError] = useState("");
   const [truncated, setTruncated] = useState(false);
   const [piiFound, setPiiFound] = useState<string[]>([]);
+  const [explanations, setExplanations] = useState<Record<string, ExplanationState>>({});
+
+  // 해설은 서버에 저장되지 않는다 — 문항을 다시 보내 생성하고 이 state에만 캐시한다(하드룰 3)
+  const fetchExplanation = async (item: ExamItem): Promise<string | null> => {
+    setExplanations((prev) => ({ ...prev, [item.item_id]: { status: "loading" } }));
+    try {
+      const fd = new FormData();
+      fd.append("item", JSON.stringify(item));
+      const res = await fetch("/api/exam/explain", { method: "POST", body: fd });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data: any = await res.json().catch(() => null);
+      if (!res.ok || typeof data?.explanation !== "string") throw new Error();
+      setExplanations((prev) => ({ ...prev, [item.item_id]: { status: "done", text: data.explanation } }));
+      return data.explanation;
+    } catch {
+      setExplanations((prev) => ({ ...prev, [item.item_id]: { status: "error" } }));
+      return null;
+    }
+  };
 
   // 이미지(캡처) 입력 — 2026-08-19
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -132,6 +200,7 @@ export default function ExamTab() {
     if (!passageText.trim()) { setError("예시 문제를 붙여넣어 주세요."); return; }
     setError("");
     setItems([]);
+    setExplanations({});
     setTruncated(false);
     setPiiFound([]);
     setIsLoading(true);
@@ -324,7 +393,12 @@ export default function ExamTab() {
             </div>
             <div className="space-y-3">
               {items.map((item) => (
-                <ItemCard key={item.item_id} item={item} />
+                <ItemCard
+                  key={item.item_id}
+                  item={item}
+                  explanation={explanations[item.item_id]}
+                  onExplain={fetchExplanation}
+                />
               ))}
             </div>
           </div>
