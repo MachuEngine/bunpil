@@ -24,7 +24,7 @@ init_langsmith_project()
 
 from app.modules.exam import ExamSpec, get_exam_graph
 from app.modules.exam.graph import _MIN_OVERALL_SCORE, _MIN_TYPE_RATIO_SCORE
-from app.modules.exam.tools import init_session
+from app.modules.exam.tools import _COMBO_OPTION_RE, init_session
 
 # 2026-08-07 변경: 예시 문항 2개를 **둘 다 객관식(유형 균일)** 으로 바꿨다.
 #
@@ -50,6 +50,19 @@ PASSAGE_TEXT = """\
 ① 완전 경쟁 시장의 가격 결정 ② 공공재의 무임승차 ③ 자유로운 시장 진입 ④ 신축적인 가격 조정
 """
 
+# 2026-09: 형식 인식 확인용(`--bogi`). <보기> 합답형 5지선다 예시를 넣으면 생성 문항도
+# 선지 5개 + stimulus(<보기>)를 갖춰야 한다. 예시는 합성(하드룰 1).
+BOGI_PASSAGE_TEXT = """\
+[예시 문제]
+1. 다음 <보기>에서 시장 실패의 사례로 옳은 것만을 있는 대로 고른 것은?
+<보기>
+ㄱ. 국방 서비스에 대한 무임승차 문제가 발생한다.
+ㄴ. 완전 경쟁 시장에서 수요와 공급에 따라 가격이 결정된다.
+ㄷ. 공장의 폐수 배출로 인근 주민이 피해를 입는다.
+ㄹ. 독점 기업이 공급량을 줄여 가격을 높인다.
+① ㄱ, ㄴ ② ㄱ, ㄷ ③ ㄴ, ㄹ ④ ㄱ, ㄷ, ㄹ ⑤ ㄴ, ㄷ, ㄹ
+"""
+
 
 def main() -> None:
     # num_items를 예시 문제 자체의 문항 수(2개)와 다르게 줘서, 생성 개수가
@@ -57,13 +70,15 @@ def main() -> None:
     # 라이브 모델 smoke test는 tool-call 경로 자체를 안정적으로 확인하도록 1개만 생성한다.
     # 다문항 개수·교체 게이트는 tests/test_exam_*.py의 결정론적 테스트가 담당한다.
     num_items = 1
+    bogi = "--bogi" in sys.argv
+    passage_text = BOGI_PASSAGE_TEXT if bogi else PASSAGE_TEXT
     spec: ExamSpec = {
-        "passage_text": PASSAGE_TEXT,
+        "passage_text": passage_text,
         "num_items": num_items,
     }
 
     print("=== 출제 모듈 통합 테스트 (passage_text 리디자인) ===\n")
-    print(f"입력 지문 길이: {len(PASSAGE_TEXT)}자 (예시 문항 2개, 요청 num_items={num_items})")
+    print(f"입력 지문 길이: {len(passage_text)}자 ({'<보기> 5지선다 예시 1개' if bogi else '예시 문항 2개'}, 요청 num_items={num_items})")
     print("\nReAct 에이전트 출제 시작...")
 
     init_session()
@@ -71,7 +86,10 @@ def main() -> None:
     state = graph.invoke(
         {
             "spec": spec,
-            "budget": 2,
+            # <보기> 합답형은 형식 게이트가 까다로워 14B가 첫 시도에 거부당하면 0문항으로
+            # 제출하는 경우가 있다(2026-09 실측: 예산 2에서 1/3, 예산 5에서 3/3 생성) —
+            # 이 모드만 프로덕션과 같은 예산(main.py budget=5)으로 돌린다.
+            "budget": 5 if bogi else 2,
             "draft_items": [],
             "agent_messages": [],
             "validation_passed": False,
@@ -91,6 +109,10 @@ def main() -> None:
             f"\n  [{i}] {it.get('item_type','?')} | 난이도:{it.get('difficulty','?')}"
         )
         print(f"       Q: {str(it.get('question',''))[:80]}")
+        if it.get("stimulus"):
+            print(f"       보기: {str(it['stimulus'])[:120]!r}")
+        if it.get("options"):
+            print(f"       선지({len(it['options'])}개): {it['options']}")
 
     # 2026-08-07: 실패를 한 줄로 뭉뚱그리지 않고 **어느 단계가 깨졌는지** 구분한다.
     # 이전엔 "[실패] 목표 문항 수·구조 검증 미충족" 한 줄뿐이라, 배선이 끊긴 것인지
@@ -108,6 +130,16 @@ def main() -> None:
             f"\n[실패] 개수 불일치: {len(items)}개 생성 / 목표 {num_items}개 — "
             "생성은 되지만 목표 개수를 못 채웠습니다(턴 예산·재시도 확인)."
         )
+        raise SystemExit(1)
+    if bogi and any(
+        it.get("item_type") == "객관식" and (
+            len(it.get("options", [])) != 5
+            or not it.get("stimulus")
+            or not all(_COMBO_OPTION_RE.match(str(o).strip()) for o in it["options"])
+        )
+        for it in items
+    ):
+        print("\n[실패] <보기> 합답형 5지선다 예시인데 선지 5개(기호 조합) + stimulus 형식을 따르지 않았습니다.")
         raise SystemExit(1)
     if not state.get("validation_passed", False):
         print(

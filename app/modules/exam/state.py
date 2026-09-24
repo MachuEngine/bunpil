@@ -9,7 +9,8 @@ class ExamSpec(TypedDict):
 class DraftItem(TypedDict):
     item_id: str
     question: str
-    options: list            # 객관식 선지. 서술형은 []
+    stimulus: str            # <보기>·자료 등 발문과 선지 사이의 제시문. 없으면 ""
+    options: list            # 객관식 선지 4개 또는 5개(예시에 ⑤가 있으면 5). 서술형은 []
     answer: str
     item_type: str           # "객관식" | "서술형"
     difficulty: str          # "상" | "중" | "하"

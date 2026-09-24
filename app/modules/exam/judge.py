@@ -106,11 +106,19 @@ def _run_async(coro):
 # 정규화를 judge_node가 아니라 이 공유 함수에 둔 것은 의도적이다 — 호출부가 늘어도
 # 다시 어긋날 수 없다.
 _JUDGE_ITEM_FIELDS = ("question", "options", "answer", "item_type", "difficulty")
+# stimulus(<보기>·자료)는 **값이 있을 때만** 넘긴다. 비어 있으면 필드 자체를 빼서,
+# 제시문이 없는 문항은 Judge 입력이 도입 전과 똑같다 — 그 범위에서는 기존 골든셋으로
+# 잰 Judge 신뢰도가 그대로 유효하다. 제시문이 있는 문항은 Judge가 형식 유지를 판단하려면
+# 이 필드를 봐야 한다.
+_OPTIONAL_JUDGE_FIELDS = ("stimulus",)
 
 
 def _to_judge_payload(items: list) -> list:
     return [
-        {k: item.get(k) for k in _JUDGE_ITEM_FIELDS if k in item}
+        {
+            **{k: item.get(k) for k in _JUDGE_ITEM_FIELDS if k in item},
+            **{k: item[k] for k in _OPTIONAL_JUDGE_FIELDS if item.get(k)},
+        }
         for item in items
     ]
 

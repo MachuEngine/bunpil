@@ -12,7 +12,15 @@ from app.common.llm import get_judge_backend
 from .judge import judge_structure
 from .llm import get_langchain_model
 from .state import ExamState
-from .tools import TOOLS, get_draft_items, init_session
+from .tools import (
+    _OPTION_MARKS,
+    TOOLS,
+    _is_combo_format,
+    _needs_stimulus_for,
+    _num_options_for,
+    get_draft_items,
+    init_session,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +81,23 @@ def _build_system_prompt(
         "먼저 보여주는 것 모두 금지입니다. 매 턴 오직 도구 호출만 하세요."
     )
     remaining = max(0, num_items - len(existing_items))
+    marks = _OPTION_MARKS[:_num_options_for(passage_text)]
+    # 2026-09: 형식 인식 — <보기> 합답형·자료 제시형은 제시문을 발문과 분리해 stimulus에 담는다.
+    # 일반 조건문("~가 있으면")보다 이 예시에 해당하는 지시만 주는 쪽이 14B가 잘 따른다.
+    if _needs_stimulus_for(passage_text):
+        stimulus_rule = (
+            "**예시 문제에 <보기>나 자료가 있으므로, 모든 객관식 문항에 같은 형식의 <보기>·자료를 "
+            "새로 작성해 stimulus 인자에 넣으세요**(question에 넣지 마세요, 비우면 저장이 거부됩니다). "
+            "예시의 <보기>·자료 문장을 옮기지 말고 내용을 새로 쓰세요."
+        )
+        if _is_combo_format(passage_text):
+            stimulus_rule += (
+                " **예시는 합답형입니다. 선지는 반드시 '① ㄱ, ㄴ', '② ㄱ, ㄷ'처럼 <보기> 기호의 "
+                "조합으로만 쓰고**, 문장으로 풀어 쓰지 마세요. 정답 조합에 속한 진술만 참이 되게 "
+                "<보기>를 구성하세요."
+            )
+    else:
+        stimulus_rule = "예시 문제에 <보기>·자료가 없으므로 stimulus는 비워 두세요."
 
     def _summary(items):
         """
@@ -145,7 +170,8 @@ def _build_system_prompt(
         "문항 세트 작성이 모두 끝나면 submit_for_review 도구를 호출해 제출하세요. "
         "(구조 유사도 평가·문항 개수 검증은 이 도구가 아니라 시스템이 자동으로 수행합니다.)\n\n"
         "문항은 당신이 직접 작성합니다. "
-        "객관식 선지는 반드시 ①②③④ 형식으로 4개 작성하세요.\n\n"
+        f"객관식 선지는 반드시 {''.join(marks)} 형식으로 {len(marks)}개 작성하세요.\n"
+        f"{stimulus_rule}\n\n"
         # 2026-08-07 시행착오 기록 — 여기에 "정답 유일성 자가 점검" 지시를 넣었다가 되돌렸다.
         #
         # 배경: 정답유일성 실측이 낮았고(3.375/4.0) 실패 사례가 실제로 "정답이 2개인 문항"이라

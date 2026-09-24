@@ -18,6 +18,31 @@ _request_ctx: contextvars.ContextVar[dict] = contextvars.ContextVar("_request_ct
 _HANGUL_RE = re.compile(r"[가-힣]")
 _HAN_RE = re.compile(r"[一-鿿]")  # CJK 한자 (중국어 오염 검출용)
 
+# 선지 기호. 예시 원문에 ⑤가 있으면 5지선다, 없으면 4지선다로 생성한다 —
+# VLM 추출(openai_vlm.py)은 ①~⑤를 원문 그대로 옮기는데 게이트가 4지만 받아
+# 5지선다 예시의 형식을 따라갈 수 없었다(2026-09 기능 추가).
+_OPTION_MARKS = ["①", "②", "③", "④", "⑤"]
+
+
+def _num_options_for(passage_text: str) -> int:
+    return 5 if "⑤" in passage_text else 4
+
+
+# 예시에 <보기>나 자료([자료: ...], VLM 추출 표기)가 있으면 객관식 문항은 stimulus가
+# 있어야 한다. 프롬프트 지시만으로는 14B가 발문만 바꾸고 <보기>를 빼먹었고, Judge도
+# 이를 감점하지 않았다(overall 5, 2026-09 스모크) — 선지 수와 같은 결정론적 규칙으로 막는다.
+def _needs_stimulus_for(passage_text: str) -> bool:
+    return "<보기>" in passage_text or "[자료" in passage_text
+
+
+# 합답형: 예시 선지가 "① ㄱ, ㄴ"처럼 <보기> 기호 조합이면 생성 선지도 조합이어야 한다.
+# 14B는 <보기>를 붙여도 선지를 서술문으로 다시 써서 <보기>가 장식이 됐다(2026-09 스모크 3/3).
+_COMBO_OPTION_RE = re.compile(r"^[①②③④⑤]\s*[ㄱ-ㅎ](\s*,\s*[ㄱ-ㅎ])*\s*$")
+
+
+def _is_combo_format(passage_text: str) -> bool:
+    return bool(re.search(r"①\s*[ㄱ-ㅎ]\s*[,②]", passage_text))
+
 
 def _get_ctx() -> dict:
     return _request_ctx.get()
@@ -34,17 +59,23 @@ def init_session(passage_text: str = "", target_num: int = 0) -> None:
         ctx["items"] = []
         ctx["passage_text"] = passage_text
         ctx["target_num"] = target_num
+        ctx["num_options"] = _num_options_for(passage_text)
+        ctx["needs_stimulus"] = _needs_stimulus_for(passage_text)
+        ctx["combo_options"] = _is_combo_format(passage_text)
     except LookupError:
         _request_ctx.set({
             "items": [],
             "passage_text": passage_text,
             "target_num": target_num,
+            "num_options": _num_options_for(passage_text),
+            "needs_stimulus": _needs_stimulus_for(passage_text),
+            "combo_options": _is_combo_format(passage_text),
         })
 
 def get_draft_items() -> list:
     """지금까지 저장된 문항들을 반환한다(각 dict는 호출부가 만져도 안전하도록 얕은 복사).
 
-    item = {item_id, question, options, answer, item_type, difficulty, standard}
+    item = {item_id, question, stimulus, options, answer, item_type, difficulty, standard}
 
     2026-08-06: 이전엔 여기서 `judge_score`·`status` 두 필드를 덧붙였다. 그 값의 출처인
     `record_score`(에이전트 자기채점)를 제거하면서 함께 걷어냈다 — 자세한 배경은
@@ -59,6 +90,9 @@ context (dict)
         "items": list,          # 문항 dict들의 리스트
         "passage_text": str,    # 교사가 입력한 예시 문제 원문
         "target_num": int,      # 목표 문항 개수 (예: 5)
+        "num_options": int,     # 객관식 선지 수 (예시에 ⑤가 있으면 5, 없으면 4)
+        "needs_stimulus": bool, # 예시에 <보기>·자료가 있으면 True — 객관식은 stimulus 필수
+        "combo_options": bool,  # 예시가 합답형이면 True — 선지는 "① ㄱ, ㄴ" 형태만 허용
     }
 """
 
@@ -107,20 +141,30 @@ def search_standards(query: str) -> str:
 
 
 @tool
-def validate_item_format(question: str, options: list, answer: str, item_type: str) -> str:
+def validate_item_format(question: str, options: list, answer: str, item_type: str, stimulus: str = "") -> str:
     """문항 형식을 검증합니다. 오류가 있으면 구체적인 수정 지침을 반환합니다.
-    question: 문제 질문
-    options: 선지 목록 (객관식: ["①...", "②...", "③...", "④..."], 서술형: [])
-    answer: 정답 (객관식: "①"~"④", 서술형: "")
+    question: 문제 질문(발문)
+    options: 선지 목록 (객관식: ["①...", "②...", ...] 지정된 개수만큼, 서술형: [])
+    answer: 정답 (객관식: 선지 기호 하나, 서술형: "")
     item_type: 객관식|서술형
+    stimulus: <보기>·자료 등 발문과 선지 사이의 제시문 (없으면 "")
     """
-    errors = _format_errors(question, options, answer, item_type)
+    ctx = _get_ctx()
+    errors = _format_errors(
+        question, options, answer, item_type,
+        ctx.get("num_options", 4), stimulus, ctx.get("needs_stimulus", False),
+        ctx.get("combo_options", False),
+    )
     if errors:
         return "형식 오류 — 수정 필요: " + " / ".join(errors)
     return "형식 검증 통과"
 
 
-def _format_errors(question: str, options: list, answer: str, item_type: str) -> list[str]:
+def _format_errors(
+    question: str, options: list, answer: str, item_type: str,
+    num_options: int = 4, stimulus: str = "", needs_stimulus: bool = False,
+    combo_options: bool = False,
+) -> list[str]:
     """validate/save가 함께 사용하는 결정론적 형식 검증."""
     errors = []
     if not question or len(question.strip()) < 10:
@@ -128,33 +172,47 @@ def _format_errors(question: str, options: list, answer: str, item_type: str) ->
     if item_type not in ("객관식", "서술형"):
         errors.append(f"문항 유형은 객관식 또는 서술형이어야 합니다 (현재: '{item_type}')")
     elif item_type == "객관식":
-        if len(options) != 4:
-            errors.append(f"선지는 4개여야 합니다 (현재 {len(options)}개)")
-        marks = ["①", "②", "③", "④"]
+        if len(options) != num_options:
+            errors.append(f"선지는 {num_options}개여야 합니다 (현재 {len(options)}개)")
+        marks = _OPTION_MARKS[:num_options]
         if answer not in marks:
-            errors.append(f"정답은 ①②③④ 중 하나여야 합니다 (현재: '{answer}')")
-        for i, opt in enumerate(options[:4]):
+            errors.append(f"정답은 {''.join(marks)} 중 하나여야 합니다 (현재: '{answer}')")
+        # "<보기>" 라벨만 넣고 내용을 비우는 우회(2026-09 스모크 실측)를 막으려고 라벨을 뺀 본문 길이를 본다
+        if needs_stimulus and len(re.sub(r"<보기>|\s", "", str(stimulus))) < 10:
+            errors.append("예시 문제에 <보기>·자료가 있으므로 새로 작성한 <보기>·자료를 stimulus에 넣어야 합니다")
+        for i, opt in enumerate(options[:num_options]):
             if not str(opt).startswith(marks[i]):
                 errors.append(f"선지 {i+1}번이 '{marks[i]}'로 시작해야 합니다")
                 break
+        if combo_options and not all(_COMBO_OPTION_RE.match(str(o).strip()) for o in options):
+            errors.append("예시가 합답형이므로 선지는 '① ㄱ, ㄴ'처럼 <보기> 기호의 조합으로만 써야 합니다")
+        elif combo_options:
+            # <보기>에 ㄱ~ㄷ만 있는데 선지가 ㄹ을 쓰는 불일치(2026-09 실측 1/3)를 막는다
+            defined = set(re.findall(r"(?m)^\s*([ㄱ-ㅎ])\s*[.)]", str(stimulus)))
+            used = {c for o in options for c in re.findall(r"[ㄱ-ㅎ]", str(o))}
+            if used - defined:
+                errors.append(
+                    f"선지에 쓴 기호 {', '.join(sorted(used - defined))}이(가) <보기>에 없습니다 — "
+                    "<보기> 진술과 선지 기호를 맞추세요"
+                )
     elif options:
         errors.append("서술형 문항의 options는 빈 목록이어야 합니다")
     return errors
 
 
-def _check_korean(question: str, options: list, answer: str) -> str | None:
+def _check_korean(question: str, options: list, answer: str, stimulus: str = "") -> str | None:
     """문항 텍스트가 한국어인지 결정론적으로 검사한다. 통과하면 None, 아니면 거부 사유 반환.
 
     qwen2.5:7b가 컨텍스트가 길어지면 확률적으로 중국어 문항을 생성하는 문제가 있어
     (2026-07-11 발견, TROUBLESHOOTING.md 참고) 저장 전에 코드가 차단한다.
     한자 비율 5% 미만은 허용 — 정당한 괄호 병기(예: 사법(私法))까지 막지 않기 위함."""
-    text = " ".join([str(question), str(answer), *[str(o) for o in options]])
+    text = " ".join([str(question), str(stimulus), str(answer), *[str(o) for o in options]])
     hangul = len(_HANGUL_RE.findall(text))
     han = len(_HAN_RE.findall(text))
     if hangul == 0:
         return "저장 거부 — 문항에 한국어가 없습니다. 모든 내용을 한국어로 작성한 뒤 다시 저장하세요."
     if han and han / (han + hangul) >= 0.05:
-        return "저장 거부 — 문항에 중국어가 포함되어 있습니다. question·options·answer 전체를 한국어로 다시 작성한 뒤 저장하세요."
+        return "저장 거부 — 문항에 중국어가 포함되어 있습니다. question·stimulus·options·answer 전체를 한국어로 다시 작성한 뒤 저장하세요."
     return None
 
 
@@ -164,7 +222,7 @@ def _check_korean(question: str, options: list, answer: str) -> str | None:
 # 줘도 텍스트 동일성 대조를 못 해내서(EVAL.md 5절) 코드로 이관함.
 # 임계값 근거: 라벨링된 골든셋 실측 분포 — 완전 복사는 containment 1.00, 정상적인 주제
 # 유사 변형은 ~0.73 이하 / 진짜 중복은 jaccard 0.86~1.00, 정상 변형은 ~0.67 이하.
-_SIMILARITY_STRIP_RE = re.compile(r"[\s\d①②③④.,?!()\[\]·:;'\"—\-~%]")
+_SIMILARITY_STRIP_RE = re.compile(r"[\s\d①②③④⑤.,?!()\[\]·:;'\"—\-~%]")
 _PASSAGE_COPY_THRESHOLD = 0.90
 _DUPLICATE_JACCARD_THRESHOLD = 0.80
 
@@ -174,18 +232,24 @@ def _bigrams(text: str) -> set:
     return {t[i:i + 2] for i in range(len(t) - 1)}
 
 
-def _check_similarity(question: str) -> str | None:
-    """예시 문제 원문 복사·세트 내 중복을 검사한다. 통과하면 None, 아니면 거부 사유 반환."""
+def _check_similarity(question: str, stimulus: str = "") -> str | None:
+    """예시 문제 원문 복사·세트 내 중복을 검사한다. 통과하면 None, 아니면 거부 사유 반환.
+
+    stimulus(<보기>·자료)도 예시 원문 복사 여부를 같은 임계값으로 검사한다 — 발문만
+    새로 쓰고 <보기>는 예시를 그대로 옮기는 것도 복사다."""
+    ctx = _get_ctx()
+    passage = ctx.get("passage_text", "")
+    pb = _bigrams(passage) if passage else set()
+    sb = _bigrams(stimulus)
+    if pb and len(sb) >= 8 and len(sb & pb) / len(sb) >= _PASSAGE_COPY_THRESHOLD:
+        return ("저장 거부 — <보기>·자료(stimulus)가 예시 문제를 거의 그대로 복사한 것입니다. "
+                "같은 형식을 유지하되 내용을 새로 구성해 다시 저장하세요.")
     qb = _bigrams(question)
     if len(qb) < 8:  # 극단적으로 짧은 질문은 판정 불가 — 길이 검증은 validate_item_format 몫
         return None
-    ctx = _get_ctx()
-    passage = ctx.get("passage_text", "")
-    if passage:
-        pb = _bigrams(passage)
-        if pb and len(qb & pb) / len(qb) >= _PASSAGE_COPY_THRESHOLD:
-            return ("저장 거부 — 이 문항은 예시 문제를 거의 그대로 복사한 것입니다. "
-                    "예시는 참고만 하고, 같은 주제라도 질문·선지를 새로 구성해 다시 저장하세요.")
+    if pb and len(qb & pb) / len(qb) >= _PASSAGE_COPY_THRESHOLD:
+        return ("저장 거부 — 이 문항은 예시 문제를 거의 그대로 복사한 것입니다. "
+                "예시는 참고만 하고, 같은 주제라도 질문·선지를 새로 구성해 다시 저장하세요.")
     for existing in ctx["items"]:
         eb = _bigrams(existing.get("question", ""))
         union = qb | eb
@@ -196,24 +260,29 @@ def _check_similarity(question: str) -> str | None:
 
 
 @tool
-def save_item(question: str, options: list, answer: str, item_type: str, difficulty: str = "중", standard: str = "") -> str:
+def save_item(question: str, options: list, answer: str, item_type: str, difficulty: str = "중", standard: str = "", stimulus: str = "") -> str:
     """검증된 문항을 저장합니다. 에이전트가 직접 작성한 내용을 저장합니다.
     (다음 문항은 저장이 거부됩니다 — 한국어가 아닌 문항, 예시 문제를 그대로 복사한 문항,
     이미 저장된 문항과 동일한 문항. 거부 시 안내에 따라 새로 작성해 재시도하세요.)
-    question: 문제 질문
-    options: 선지 목록 (객관식: ["①...", "②...", "③...", "④..."], 서술형: [])
-    answer: 정답 (객관식: "①"~"④", 서술형: "")
+    question: 문제 질문(발문)
+    options: 선지 목록 (객관식: ["①...", "②...", ...] 지정된 개수만큼, 서술형: [])
+    answer: 정답 (객관식: 선지 기호 하나, 서술형: "")
     item_type: 객관식|서술형
     difficulty: 상|중|하
     standard: 성취기준명 (선택)
+    stimulus: <보기>·자료 등 발문과 선지 사이의 제시문 (없으면 "")
     """
-    format_errors = _format_errors(question, options, answer, item_type)
+    ctx = _get_ctx()
+    format_errors = _format_errors(
+        question, options, answer, item_type,
+        ctx.get("num_options", 4), stimulus, ctx.get("needs_stimulus", False),
+        ctx.get("combo_options", False),
+    )
     if difficulty not in ("상", "중", "하"):
         format_errors.append(f"난이도는 상·중·하 중 하나여야 합니다 (현재: '{difficulty}')")
     if format_errors:
         return "저장 거부 — 형식 오류: " + " / ".join(format_errors)
 
-    ctx = _get_ctx()
     target_num = ctx.get("target_num", 0)
     if target_num and len(ctx["items"]) >= target_num:
         return (
@@ -221,13 +290,14 @@ def save_item(question: str, options: list, answer: str, item_type: str, difficu
             "교체가 필요하면 discard_item으로 기존 문항을 먼저 폐기하세요."
         )
 
-    rejection = _check_korean(question, options, answer) or _check_similarity(question)
+    rejection = _check_korean(question, options, answer, stimulus) or _check_similarity(question, stimulus)
     if rejection:
         return rejection
     item_id = uuid.uuid4().hex[:8]
     item = {
         "item_id": item_id,
         "question": question,
+        "stimulus": stimulus,
         "options": options,
         "answer": answer,
         "item_type": item_type,

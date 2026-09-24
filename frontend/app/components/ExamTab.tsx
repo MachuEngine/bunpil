@@ -9,6 +9,7 @@ const MAX_PASSAGE_LENGTH = 8000;
 interface ExamItem {
   item_id: string;
   question: string;
+  stimulus?: string; // <보기>·자료 등 제시문. 없으면 "" (2026-09 형식 인식)
   options: string[];
   answer: string;
   item_type: "객관식" | "서술형";
@@ -41,6 +42,11 @@ function ItemCard({ item }: { item: ExamItem }) {
 
       {expanded && (
         <div className="mt-3 pt-3 border-t border-[#DBDCD2]">
+          {item.stimulus && (
+            <div className="mb-3 rounded-md border border-[#1C2620] px-3 py-2 text-[13px] text-[#1C2620] whitespace-pre-wrap">
+              {item.stimulus}
+            </div>
+          )}
           {item.options.length > 0 && (
             <ol className="space-y-1 mb-2">
               {item.options.map((opt, i) => (
