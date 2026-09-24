@@ -133,7 +133,8 @@ async def revise_items(passage_text: str, items: list, history: list, instructio
                 continue
             index, merged, errors = _check_change(change, items, needs_stimulus, combo)
             if errors:
-                rejected[index] = errors
+                # 없는 번호(index -1)는 여러 개일 수 있어 덮어쓰지 않고 모은다
+                rejected.setdefault(index, []).extend(errors)
             else:
                 accepted[index] = merged
                 rejected.pop(index, None)
@@ -143,7 +144,7 @@ async def revise_items(passage_text: str, items: list, history: list, instructio
         messages.append({
             "role": "user",
             "content": "다음 문항은 형식 검사에 걸렸습니다. 오류를 고쳐 해당 문항만 다시 JSON으로 쓰세요.\n"
-            + "\n".join(f"{i + 1}번: {' / '.join(errs)}" for i, errs in rejected.items() if i >= 0),
+            + "\n".join(f"{f'{i + 1}번' if i >= 0 else '번호 오류'}: {' / '.join(errs)}" for i, errs in rejected.items()),
         })
 
     if rejected:

@@ -221,3 +221,14 @@ def test_revise_applies_combo_rules_when_teacher_asks_for_them(monkeypatch):
     body = _post_revise("2번을 <보기> 합답형으로 바꿔줘", _ScriptedBackend([reply, reply]), monkeypatch).json()
 
     assert body["changes"] == []
+
+
+def test_revise_reports_invalid_numbers_on_retry(monkeypatch):
+    reply = json.dumps({"message": "", "changes": [{**REVISED_2, "number": 7}, {**REVISED_2, "number": 9}]}, ensure_ascii=False)
+    backend = _ScriptedBackend([reply, reply])
+
+    body = _post_revise("2번 바꿔줘", backend, monkeypatch).json()
+
+    assert body["changes"] == []
+    retry_prompt = backend.calls[1][-1]["content"]
+    assert "없는 문항 번호입니다: 7" in retry_prompt and "없는 문항 번호입니다: 9" in retry_prompt
