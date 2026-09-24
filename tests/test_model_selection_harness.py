@@ -315,3 +315,95 @@ def test_stratified_sample_spreads_formats_and_is_reproducible():
     assert [r["id"] for r in a] == [r["id"] for r in b]  # 같은 시드 → 같은 입력(모델 간 짝 비교)
     counts = collections.Counter(r["format"] for r in a)
     assert len(a) == 12 and len(counts) == 7 and max(counts.values()) - min(counts.values()) <= 1
+
+
+def _fake_run(root, name, model, n_inputs, fmt_cycle=("mc4", "mc5", "essay")):
+    d = root / name
+    d.mkdir()
+    rows = []
+    for i in range(n_inputs):
+        item = {**ITEM, "question": f"{model} 문항 {i}: 민주 정치의 원리로 가장 적절한 것은?"}
+        rows.append({"task_key": f"{model}-{i}", "kind": "set", "model": model, "input_id": f"pilot-{i:03d}", "repeat": 0,
+                     "format": fmt_cycle[i % len(fmt_cycle)], "case_type": "normal", "masked_passage": "1. 예시",
+                     "items": [item, {**item, "question": item["question"] + " (2)"}],
+                     "explanations": [{"text": "해설"}, {"text": "해설2"}]})
+    (d / "tasks.jsonl").write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n", encoding="utf-8")
+    calls = [{"model_key": model, "task": {"input_id": r["input_id"], "model": model, "repeat": 0, "task": "set"},
+              "route_ok": True} for r in rows]
+    (d / "calls.jsonl").write_text("\n".join(json.dumps(c) for c in calls) + "\n", encoding="utf-8")
+    return str(d)
+
+
+def test_export_labeling_balances_models_and_hides_mapping(tmp_path, monkeypatch):
+    import evals.model_selection.labeling as lab
+    import evals.model_selection.recorder as recorder_mod
+
+    monkeypatch.setattr(lab, "LABELING_DIR", str(tmp_path / "labeling_out"))
+    monkeypatch.setattr(recorder_mod, "RESULTS_ROOT", str(tmp_path / "results"))
+    runs = [_fake_run(tmp_path, "r1", "m-a", 10), _fake_run(tmp_path, "r2", "m-b", 10)]
+
+    r = lab.export_labeling(runs, "b1", n_items=12, n_defects=6, n_calibration=4)
+
+    assert r["per_model"] == {"m-a": 6, "m-b": 6} and r["n_defects"] == 6 and r["n_calibration"] == 4
+    rows = [json.loads(line) for line in open(r["labeling"], encoding="utf-8")]
+    assert len(rows) == 18 and all("model" not in json.dumps(x) or "m-a" not in json.dumps(x) for x in rows)
+    assert "labeling_out" not in r["mapping"]  # 매핑은 평가자용 폴더에 두지 않는다
+    calib_ids = {json.loads(line)["output_id"] for line in open(r["calibration"], encoding="utf-8")}
+    assert not calib_ids & {x["output_id"] for x in rows}
+
+
+def test_build_gold_keeps_initial_labels_and_marks_ambiguous(tmp_path, monkeypatch):
+    import evals.model_selection.labeling as lab
+    import evals.model_selection.recorder as recorder_mod
+
+    monkeypatch.setattr(lab, "LABELING_DIR", str(tmp_path / "labeling_out"))
+    monkeypatch.setattr(recorder_mod, "RESULTS_ROOT", str(tmp_path / "results"))
+    r = lab.export_labeling([_fake_run(tmp_path, "r1", "m-a", 4)], "b2", n_items=2, n_defects=0, n_calibration=0)
+    oids = [json.loads(line)["output_id"] for line in open(r["labeling"], encoding="utf-8")]
+    yes = {k: "yes" for k in lab.LABEL_KEYS}
+    labels = [
+        {"output_id": oids[0], "rater": "rater_1", "round": "initial", "labels": yes, "critical": []},
+        {"output_id": oids[0], "rater": "rater_2", "round": "initial", "labels": yes, "critical": []},
+        {"output_id": oids[1], "rater": "rater_1", "round": "initial", "labels": yes, "critical": []},
+        {"output_id": oids[1], "rater": "rater_2", "round": "initial", "labels": {**yes, "I2": "no"}, "critical": ["X2"]},
+    ]
+    path = tmp_path / "labels.jsonl"
+    path.write_text("\n".join(json.dumps(x) for x in labels) + "\n", encoding="utf-8")
+
+    g = lab.build_gold("b2", [str(path)])
+
+    rows = {x["output_id"]: x for x in map(json.loads, open(g["path"], encoding="utf-8"))}
+    assert rows[oids[0]]["resolution"] == "agreed" and rows[oids[0]]["gold"]["pass"] is True
+    assert rows[oids[1]]["resolution"] == "ambiguous"  # 합의 전 불일치는 하나로 합치지 않는다
+    assert len(rows[oids[1]]["human_initial"]) == 2
+
+
+def test_check_labels_catches_typos(tmp_path):
+    from evals.model_selection.labeling import LABEL_KEYS, check_labels, label_template
+
+    good = label_template("b-0001", "rater_1")
+    good["labels"] = {k: "yes" for k in LABEL_KEYS}
+    bad = label_template("b-0002", "rater_1")
+    bad["labels"] = {**{k: "yes" for k in LABEL_KEYS}, "I2": "yse", "I1": "no"}
+    p = tmp_path / "l.jsonl"
+    p.write_text(json.dumps(good) + "\n" + json.dumps(bad) + "\n", encoding="utf-8")
+
+    problems = check_labels(str(p))
+
+    assert any("I2='yse'" in x for x in problems) and any("reasons.I1" in x for x in problems)
+    assert not any("b-0001" in x for x in problems)
+
+
+def test_export_labeling_skips_unverified_sets(tmp_path, monkeypatch):
+    import evals.model_selection.labeling as lab
+    import evals.model_selection.recorder as recorder_mod
+
+    monkeypatch.setattr(lab, "LABELING_DIR", str(tmp_path / "labeling_out"))
+    monkeypatch.setattr(recorder_mod, "RESULTS_ROOT", str(tmp_path / "results"))
+    run = _fake_run(tmp_path, "r1", "m-a", 3)
+    calls_path = tmp_path / "r1" / "calls.jsonl"
+    calls = [json.loads(line) for line in calls_path.read_text(encoding="utf-8").splitlines()]
+    calls[0]["route_ok"] = None  # pilot-000의 경로를 확인하지 못함
+    calls_path.write_text("\n".join(json.dumps(c) for c in calls) + "\n", encoding="utf-8")
+
+    assert {c["input_id"] for c in lab._candidates([run])} == {"pilot-001", "pilot-002"}

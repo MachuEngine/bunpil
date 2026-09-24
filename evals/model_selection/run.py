@@ -668,9 +668,19 @@ def main(argv=None):
     v.add_argument("--run-id", required=True)
 
     lb = sub.add_parser("export-labeling")
-    lb.add_argument("--run-id", required=True)
+    lb.add_argument("--run-ids", required=True, help="쉼표로 구분한 생성 실행 ID들")
     lb.add_argument("--batch", required=True)
-    lb.add_argument("--defect-ratio", type=float, default=0.3)
+    lb.add_argument("--n-items", type=int, default=110)
+    lb.add_argument("--n-defects", type=int, default=45)
+    lb.add_argument("--n-calibration", type=int, default=10)
+    lb.add_argument("--seed", type=int, default=0)
+
+    ck = sub.add_parser("check-labels")
+    ck.add_argument("--labels", required=True)
+
+    gd = sub.add_parser("build-gold")
+    gd.add_argument("--batch", required=True)
+    gd.add_argument("--labels", required=True, help="쉼표로 구분한 라벨 jsonl 경로들")
 
     e = sub.add_parser("estimate")
     e.add_argument("--split", default="pilot", choices=["pilot", "test"])
@@ -689,15 +699,37 @@ def main(argv=None):
             ap.error("실제 실행에는 --max-cost가 필요합니다(유료 호출 상한).")
     return {"generate": run_generate, "score": run_score, "judge-validate": run_judge_validate,
             "summarize": run_summarize, "verify-routes": run_verify_routes, "estimate": run_estimate,
-            "export-labeling": run_export_labeling}[args.cmd](args, cfg)
+            "export-labeling": run_export_labeling, "build-gold": run_build_gold,
+            "check-labels": run_check_labels}[args.cmd](args, cfg)
 
 
 def run_export_labeling(args, cfg):
     from .labeling import export_labeling
 
-    lab, mapping = export_labeling(os.path.join(RESULTS_ROOT, args.run_id), args.batch, defect_ratio=args.defect_ratio)
-    n = sum(1 for _ in open(lab, encoding="utf-8"))
-    print(f"labeling={os.path.relpath(lab, ROOT)} ({n} rows)  mapping={os.path.relpath(mapping, ROOT)} (평가자에게 주지 않음)")
+    r = export_labeling([os.path.join(RESULTS_ROOT, x) for x in args.run_ids.split(",")], args.batch,
+                        n_items=args.n_items, n_defects=args.n_defects, n_calibration=args.n_calibration, seed=args.seed)
+    print(f"라벨링 대상 {r['n_labeling']}건(결함 주입 {r['n_defects']}) → {os.path.relpath(r['labeling'], ROOT)}")
+    print(f"보정 세트 {r['n_calibration']}건 → {os.path.relpath(r['calibration'], ROOT)}")
+    print(f"모델별 생성 문항 {r['per_model']}")
+    print(f"매핑(평가자에게 주지 않음) → {os.path.relpath(r['mapping'], ROOT)}")
+    print(f"평가자별 라벨 템플릿 → {os.path.relpath(r['template_rater_1'], ROOT)}, {os.path.relpath(r['template_rater_2'], ROOT)}")
+
+
+def run_check_labels(args, cfg):
+    from .labeling import check_labels
+
+    for path in args.labels.split(","):
+        problems = check_labels(path)
+        print(f"{path}: {'통과' if not [p for p in problems if not p.startswith('(참고)')] else '문제 있음'}")
+        for p in problems:
+            print("  ", p)
+
+
+def run_build_gold(args, cfg):
+    from .labeling import build_gold
+
+    r = build_gold(args.batch, args.labels.split(","))
+    print(f"gold {r['n']}건(ambiguous {r['n_ambiguous']}, 평가자 1명만 {r['n_single_rater']}) → {os.path.relpath(r['path'], ROOT)}")
 
 
 if __name__ == "__main__":

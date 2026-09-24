@@ -11,13 +11,20 @@
 
 ## 2. 작업 순서
 
-1. `evals/data/labeling/<batch>.jsonl`을 받는다(단계 B에서 생성).
+1. 파일 세 개를 받는다(단계 B에서 생성).
+   - `evals/data/labeling/<batch>.jsonl` — 판정할 문항(예시 문제·문항·해설). **읽기 전용**
+   - `evals/data/labeling/<batch>.calibration.jsonl` — 보정 세트 10건(둘이 같이 먼저 매긴다, gold 제외)
+   - `evals/data/labeling/<batch>.labels.rater_N.jsonl` — **내 라벨 템플릿**. 문항마다 한 줄이고 빈 칸만 채운다
 2. 항목마다 예시 문제 → 생성 문항 → 해설 순서로 읽는다.
 3. `generation-rubric.md` 2절(I1~I7)과 3절(E1~E4)을 판정한다. 각 판정은 `yes` / `no` / `unsure`.
 4. `no`·`unsure`에는 한 줄 근거를 쓴다(예: "②도 정답 — 배타성이 없음 = 비배제성").
 5. 항목마다 **확신도**(1=추측, 2=어느 정도 확신, 3=확신)를 매긴다.
 6. pairwise 항목은 `A` / `B` / `tie` / `both_bad` / `unsure` 중 하나를 고른다.
 7. 확인이 필요하면 교과서·교육과정 원문을 찾아봐도 된다. **다른 평가자의 라벨이나 LLM 출력은 보지 않는다.**
+8. 중간중간 오타를 검사한다(허용값 밖의 값, `no`·`unsure`인데 근거가 빈 칸 등을 줄 번호와 함께 알려준다):
+   ```bash
+   .venv/bin/python -m evals.model_selection.run check-labels --labels evals/data/labeling/<batch>.labels.rater_1.jsonl
+   ```
 
 ## 3. 라벨 형식
 
