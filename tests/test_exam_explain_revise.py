@@ -232,3 +232,31 @@ def test_revise_reports_invalid_numbers_on_retry(monkeypatch):
     assert body["changes"] == []
     retry_prompt = backend.calls[1][-1]["content"]
     assert "없는 문항 번호입니다: 7" in retry_prompt and "없는 문항 번호입니다: 9" in retry_prompt
+
+
+# ── 2026-09-24 의도 분류: 질문·인사에는 문항을 바꾸지 않는다 ─────────────────
+
+def test_question_intent_never_changes_items_even_if_model_fills_changes(monkeypatch):
+    """로컬 실측: '정답이 왜 ①이야?'에 모델이 발문·정답을 바꿔 버렸다. intent가 question이면 코드가 버린다."""
+    reply = json.dumps({"intent": "question", "message": "①이 정답인 이유는 비배제성 때문입니다.",
+                        "changes": [REVISED_2]}, ensure_ascii=False)
+    backend = _ScriptedBackend([reply])
+
+    body = _post_revise("2번 정답이 왜 ①이야?", backend, monkeypatch).json()
+
+    assert body["intent"] == "question" and body["changes"] == []
+    assert "비배제성" in body["message"]
+    assert len(backend.calls) == 1  # 게이트 재시도도 하지 않는다
+
+
+def test_regenerate_and_chat_get_guidance_without_changes(monkeypatch):
+    for intent, instruction in (("regenerate", "문제 3개 더 만들어 줘"), ("chat", "안녕하세요")):
+        reply = json.dumps({"intent": intent, "message": "", "changes": [REVISED_2]}, ensure_ascii=False)
+        body = _post_revise(instruction, _ScriptedBackend([reply]), monkeypatch).json()
+        assert body["intent"] == intent and body["changes"] == [] and body["message"]
+
+
+def test_missing_intent_without_changes_is_treated_as_question(monkeypatch):
+    reply = json.dumps({"message": "좋은 질문입니다.", "changes": []}, ensure_ascii=False)
+    body = _post_revise("이 문제 어때?", _ScriptedBackend([reply]), monkeypatch).json()
+    assert body["intent"] == "question" and body["changes"] == []

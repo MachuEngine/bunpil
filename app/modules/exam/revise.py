@@ -21,21 +21,35 @@ from .tools import _check_korean, _check_similarity, _format_errors, init_sessio
 _MAX_TOKENS = 2048
 _EDIT_FIELDS = ("question", "stimulus", "options", "answer", "item_type", "difficulty")
 
+# 2026-09-24 의도 분류: 수정만 가정한 프롬프트라 "정답이 왜 ①이야?" 같은 질문·인사에도 문항을 고쳤다
+# (로컬 실측 3/3). 같은 호출의 JSON에 intent를 받아, edit가 아니면 코드가 changes를 버린다(호출 수 그대로).
+INTENTS = ("edit", "question", "regenerate", "chat")
+
 _SYSTEM = (
-    "당신은 한국 고등학교 사회 문항 출제를 돕는 조수입니다. 교사가 이미 만들어진 문항 세트의 "
-    "일부를 고쳐 달라고 요청합니다. 한국어로만 답하세요.\n"
+    "당신은 한국 고등학교 사회 문항 출제를 돕는 조수입니다. 교사가 이미 만들어진 문항 세트에 대해 질문하거나, "
+    "일부를 고쳐 달라고 하거나, 새로 만들어 달라고 하거나, 인사 같은 일상적인 말을 합니다. 한국어로만 답하세요.\n"
     "반드시 아래 JSON 하나만 출력하세요. 다른 텍스트는 쓰지 마세요.\n"
-    '{"message": "교사에게 할 짧은 답변", "changes": [{"number": 문항번호, "question": "...", '
-    '"stimulus": "...", "options": ["①...", ...], "answer": "①", "item_type": "객관식", "difficulty": "중"}]}\n'
+    '{"intent": "edit|question|regenerate|chat", "message": "교사에게 할 답변", "changes": [{"number": 문항번호, '
+    '"question": "...", "stimulus": "...", "options": ["①...", ...], "answer": "①", "item_type": "객관식", "difficulty": "중"}]}\n'
+    "- intent: 문항을 고쳐 달라는 요청이면 edit, 문항·정답·개념에 대한 질문이면 question, 문항 추가나 세트를 "
+    "새로 만들어 달라는 요청이면 regenerate, 인사처럼 그 밖의 말이면 chat.\n"
+    "- **edit가 아니면 changes는 반드시 []입니다. 문항을 바꾸지 마세요.**\n"
+    "- question이면 message에 답을 쓰세요. 표시된 정답을 기준으로 설명하고 정답을 바꾸지 마세요. 정답이나 문항이 "
+    "틀린 것 같다는 지적이면 확인한 내용을 말하고, 고치려면 수정해 달라고 요청하면 된다고 안내하세요.\n"
     "- changes에는 **실제로 바꾼 문항만** 넣고, 바꾼 문항은 모든 필드를 빠짐없이 쓰세요.\n"
     "- 요청받지 않은 문항은 넣지 마세요.\n"
     "- 객관식 선지는 4개 또는 5개이고 ①②③④⑤ 기호로 시작합니다. answer는 정답 선지 기호 하나입니다.\n"
     "- 서술형은 options를 []로, answer는 예시 답안으로 쓰세요.\n"
     "- stimulus는 <보기>·자료 제시문이고, 없으면 \"\"입니다. 합답형 선지 기호는 <보기>에 있어야 합니다.\n"
     "- 정답이 하나만 되도록 하고, 오답도 같은 개념 범주의 그럴듯한 선지로 쓰세요.\n"
-    "- 문항을 새로 추가하거나 세트 전체를 새로 만들어 달라는 요청이면 changes를 []로 두고, "
-    "message에 '새로 생성' 기능을 쓰라고 안내하세요."
+    "- regenerate이면 changes를 []로 두고, message에 '문항 생성' 버튼으로 새로 만들라고 안내하세요."
 )
+
+_DEFAULT_MESSAGES = {
+    "question": "질문에 답을 만들지 못했습니다. 다시 물어봐 주세요.",
+    "regenerate": "문항을 추가하거나 새로 만들려면 '문항 생성' 버튼을 이용해 주세요.",
+    "chat": "문항에 대해 궁금한 점이나 고치고 싶은 부분을 말씀해 주세요.",
+}
 
 
 def _format_items(items: list) -> str:
@@ -103,7 +117,12 @@ def _check_change(change: dict, items: list, needs_stimulus: bool = False, combo
 async def revise_items(passage_text: str, items: list, history: list, instruction: str) -> dict:
     """마스킹된 입력으로 수정 요청을 처리한다.
 
-    반환: {"message": str, "changes": [{"number": int, "item": dict}]}.
+    반환: {"intent": str, "message": str, "changes": [{"number": int, "item": dict}]}.
+    intent가 edit가 아니면 모델이 changes를 채워도 버린다(질문에 문항이 바뀌지 않게). intent가 없거나
+    이상하면 changes가 있을 때만 edit로 본다(이전 응답 형식 호환).
+    한계: intent는 모델이 스스로 답한 값이다. 질문처럼 보이는 메시지에 모델이 edit라고 답하면(오분류·prompt
+    injection) 문항이 바뀔 수 있다 — 그래도 바뀐 문항은 형식·중복 게이트를 거치고, 서버는 아무것도 저장하지
+    않으며, 교사 화면에서 되돌릴 수 있는 새 문항으로 표시된다. 오분류율은 평가 R11로 잰다.
     게이트를 통과하지 못한 변경은 한 번 오류를 알려 다시 쓰게 하고, 그래도 실패하면 버리고
     원본을 유지한다. 호출 실패는 그대로 전파한다."""
     init_session(passage_text)
@@ -118,7 +137,7 @@ async def revise_items(passage_text: str, items: list, history: list, instructio
 
     accepted: dict[int, dict] = {}
     rejected: dict[int, list[str]] = {}
-    message = ""
+    message, intent = "", "edit"
     for attempt in range(2):
         raw = await backend.generate(messages, max_tokens=_MAX_TOKENS)
         data = _parse_response(raw)
@@ -127,6 +146,10 @@ async def revise_items(passage_text: str, items: list, history: list, instructio
             messages.append({"role": "user", "content": "형식이 틀렸습니다. 설명 없이 지정한 JSON 하나만 다시 출력하세요."})
             continue
         message = str(data.get("message", "")).strip() or message
+        intent = data.get("intent") if data.get("intent") in INTENTS else ("edit" if data.get("changes") else "question")
+        if intent != "edit":
+            accepted, rejected = {}, {}
+            break  # 질문·새로 만들기·인사 — 문항은 건드리지 않는다
         rejected = {}
         for change in data.get("changes") or []:
             if not isinstance(change, dict):
@@ -152,9 +175,12 @@ async def revise_items(passage_text: str, items: list, history: list, instructio
         note = f"{numbers}은 형식 검사를 통과하지 못해 원래 문항을 유지했습니다."
         # 반영된 변경이 없으면 모델의 "수정했습니다" 같은 답변은 사실과 달라 버린다
         message = f"{message}\n{note}" if message and accepted else note
+    if intent == "regenerate":
+        message = _DEFAULT_MESSAGES["regenerate"]  # 모델이 "문항 생성"처럼 짧게 답해 안내가 안 됐다(로컬 실측) — 고정 문구
     if not message:
-        message = "요청을 반영했습니다." if accepted else "바꾼 문항이 없습니다."
+        message = _DEFAULT_MESSAGES.get(intent) or ("요청을 반영했습니다." if accepted else "바꾼 문항이 없습니다.")
     return {
+        "intent": intent,
         "message": message,
         "changes": [{"number": i + 1, "item": accepted[i]} for i in sorted(accepted)],
     }
