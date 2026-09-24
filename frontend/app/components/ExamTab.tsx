@@ -3,21 +3,11 @@
 import { useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import type { ExamItem, SheetMode } from "@/lib/exam";
+import { buildText, downloadPdf, downloadPng, downloadText } from "@/lib/export";
+import ExamSheet from "./ExamSheet";
 
 const MAX_PASSAGE_LENGTH = 8000;
-
-interface ExamItem {
-  item_id: string;
-  question: string;
-  stimulus?: string; // <보기>·자료 등 제시문. 없으면 "" (2026-09 형식 인식)
-  options: string[];
-  answer: string;
-  item_type: "객관식" | "서술형";
-  difficulty: "상" | "중" | "하";
-  standard: string;
-  // 2026-08-06: `judge_score`·`status` 제거 — AI가 자기 문항에 스스로 매기던 점수라
-  // 검증된 적이 없었고, 교사 화면에 "품질"로 보이는 것이 오해를 유발했다(EVAL.md 17절).
-}
 
 // 해설 상태 — 교사용 다운로드·수정 반영 시에도 쓰므로 ExamTab이 item_id별로 들고 있다(2026-09)
 type ExplanationState = { status: "loading" } | { status: "done"; text: string } | { status: "error" };
@@ -150,6 +140,47 @@ export default function ExamTab() {
     } catch {
       setExplanations((prev) => ({ ...prev, [item.item_id]: { status: "error" } }));
       return null;
+    }
+  };
+
+  // 다운로드 — 2026-09. 교사용은 아직 안 받은 해설을 먼저 순차로 받는다(동시 요청 슬롯 2개)
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const [sheetMode, setSheetMode] = useState<SheetMode>("student");
+  const [exportMsg, setExportMsg] = useState("");
+
+  const doneExplanations = (): Record<string, string> =>
+    Object.fromEntries(
+      Object.entries(explanations).flatMap(([id, e]) => (e.status === "done" ? [[id, e.text]] : [])),
+    );
+
+  const handleDownload = async (mode: SheetMode, format: "pdf" | "txt" | "png") => {
+    const texts = doneExplanations();
+    try {
+      if (mode === "teacher") {
+        const missing = items.filter((it) => !texts[it.item_id]);
+        for (const [i, it] of missing.entries()) {
+          setExportMsg(`해설 준비 중 (${i + 1}/${missing.length})...`);
+          const text = await fetchExplanation(it);
+          if (text) texts[it.item_id] = text;
+        }
+      }
+      setExportMsg("파일을 만드는 중...");
+      const date = new Date().toISOString().slice(0, 10).replaceAll("-", "");
+      const filename = `분필_문항_${mode === "teacher" ? "교사용" : "학생용"}_${date}.${format}`;
+      if (format === "txt") {
+        downloadText(buildText(items, mode, texts), filename);
+        return;
+      }
+      setSheetMode(mode);
+      // 시트가 새 모드·해설로 다시 그려진 뒤 캡처한다
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      if (!sheetRef.current) return;
+      if (format === "png") await downloadPng(sheetRef.current, filename);
+      else await downloadPdf(sheetRef.current, filename);
+    } catch {
+      setError("파일을 만들지 못했습니다. 다시 시도해 주세요.");
+    } finally {
+      setExportMsg("");
     }
   };
 
@@ -386,10 +417,32 @@ export default function ExamTab() {
                 입력이 길어 앞부분만 반영되었습니다.
               </p>
             )}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
               <h2 className="text-[14px] font-semibold text-[#1C2620]">
                 생성된 문항 ({items.length}개)
               </h2>
+              <div className="flex flex-col gap-1 items-end">
+                {(["student", "teacher"] as const).map((mode) => (
+                  <div key={mode} className="flex items-center gap-1.5">
+                    <span className="text-[12px] text-[#6E7469]">
+                      {mode === "teacher" ? "교사용(정답·해설)" : "학생용"}
+                    </span>
+                    {(["pdf", "txt", "png"] as const).map((format) => (
+                      <Button
+                        key={format}
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        disabled={Boolean(exportMsg)}
+                        onClick={() => handleDownload(mode, format)}
+                      >
+                        {format.toUpperCase()}
+                      </Button>
+                    ))}
+                  </div>
+                ))}
+                {exportMsg && <span className="text-[12px] text-[#6E7469]">{exportMsg}</span>}
+              </div>
             </div>
             <div className="space-y-3">
               {items.map((item) => (
@@ -400,6 +453,10 @@ export default function ExamTab() {
                   onExplain={fetchExplanation}
                 />
               ))}
+            </div>
+            {/* 다운로드 캡처용 시트 — 화면 밖에 그린다 */}
+            <div aria-hidden style={{ position: "fixed", left: -10000, top: 0 }}>
+              <ExamSheet ref={sheetRef} items={items} mode={sheetMode} explanations={doneExplanations()} />
             </div>
           </div>
         )}
