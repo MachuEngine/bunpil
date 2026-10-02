@@ -98,16 +98,25 @@ _ANALYZE_PROMPT = (
 )
 
 
+def _parse_json_object(raw: str) -> dict:
+    """응답에서 첫 '{'부터 마지막 '}'까지를 JSON 객체로 읽는다. 실패하면 {}."""
+    s, e = raw.find("{"), raw.rfind("}") + 1
+    try:
+        data = json.loads(raw[s:e]) if s >= 0 and e > s else {}
+    except ValueError:
+        data = {}
+    return data if isinstance(data, dict) else {}
+
+
 def _parse_analysis(raw: str, masked_text: str) -> dict:
     """요청 분석 응답을 검증한다. 잘못된 필드는 필드별로 규칙 판정(rule_format)·기본값으로 대체한다.
 
     이전 `_extract_num_items`는 응답의 숫자를 모두 이어 붙여 "3~5문제"를 35(→20)로 읽었다 —
     이제 num_items는 JSON 정수 하나만 인정한다. 응답이 숫자 하나뿐이면 그 값을 쓴다(하위 호환)."""
-    from app.modules.exam.revise import _parse_response
     from app.modules.exam.tools import rule_format
 
     rule = rule_format(masked_text)
-    data = _parse_response(raw or "")
+    data = _parse_json_object(raw or "")
     if not data and (raw or "").strip().isdigit():
         data = {"num_items": int(raw.strip())}
 
@@ -374,7 +383,7 @@ async def exam_extract(
     return {"text": masked_text, "pii_found": pii_found}
 
 
-# ── 생성 문항을 다시 받는 경로 공통 (해설 /exam/explain, 수정 /exam/revise) ─────────────────────
+# ── 생성 문항을 다시 받는 경로 공통 (해설 /exam/explain) ─────────────────────
 # 서버는 생성 문항을 저장하지 않는다(하드룰 3) — 해설·수정은 브라우저가 문항을 다시
 # 보내는 방식이다. 브라우저가 보낸 값은 사용자가 편집할 수 있는 입력이므로 형태를 검증하고,
 # 모델 호출 전에 문자열 필드 전부를 mask_pii()로 마스킹한다(하드룰 2).
@@ -446,73 +455,6 @@ async def exam_explain(
             raise HTTPException(status_code=502, detail="해설을 생성하지 못했습니다.")
 
     return {"explanation": explanation, "pii_found": pii_found}
-
-
-# ── 챗봇 수정 ─────────────────────────────────────────────────────────────
-# 2026-09: 생성된 문항 일부를 대화로 고친다. 서버는 대화·문항을 저장하지 않는다(하드룰 3) —
-# 브라우저가 매 요청에 예시 문제·현재 문항·최근 대화를 함께 보내고, 여기서 전부 마스킹한 뒤
-# 모델에 넘긴다(하드룰 2). 수정 요청 문장은 마스킹 후 트레이싱을 허용한다(CLAUDE.md 하드룰 3 예외).
-_MAX_REVISE_ITEMS = 20
-_MAX_HISTORY_TURNS = 6
-_MAX_CHAT_LENGTH = 1000
-
-
-@app.post("/exam/revise")
-async def exam_revise(
-    passage_text: str = Form(...),
-    items: str = Form(...),
-    instruction: str = Form(...),
-    history: str = Form("[]"),
-    _: None = Depends(verify_api_key),
-):
-    """현재 문항 세트와 수정 요청을 받아 바뀐 문항만 돌려준다."""
-    from app.common.privacy import mask_pii
-
-    raw_items = _load_json_field(items, "문항")
-    raw_history = _load_json_field(history, "대화")
-    if (
-        not isinstance(raw_items, list)
-        or not 1 <= len(raw_items) <= _MAX_REVISE_ITEMS
-        or not isinstance(raw_history, list)
-        or len(raw_history) > _MAX_HISTORY_TURNS
-        or not all(
-            isinstance(t, dict)
-            and t.get("role") in ("user", "assistant")
-            and isinstance(t.get("content"), str)
-            and len(t["content"]) <= _MAX_CHAT_LENGTH
-            for t in raw_history
-        )
-        or not instruction.strip()
-        or len(instruction) > _MAX_CHAT_LENGTH
-    ):
-        raise HTTPException(status_code=400, detail="수정 요청 형식이 올바르지 않습니다.")
-
-    pii_found: list[str] = []
-
-    def mask(text: str) -> str:
-        masked, pii = mask_pii(text)
-        pii_found.extend(p for p in pii if p not in pii_found)
-        return masked
-
-    masked_items = []
-    for raw in raw_items:
-        masked_item, pii = _mask_item(_parse_item(raw))
-        pii_found.extend(p for p in pii if p not in pii_found)
-        masked_items.append(masked_item)
-    masked_passage = mask(passage_text[:MAX_PASSAGE_LENGTH])
-    masked_history = [{"role": t["role"], "content": mask(t["content"])} for t in raw_history]
-    masked_instruction = mask(instruction)
-
-    async with request_slot():
-        try:
-            from app.modules.exam.revise import revise_items
-
-            result = await revise_items(masked_passage, masked_items, masked_history, masked_instruction)
-        except Exception:
-            logger.exception("/exam/revise 오류")
-            raise HTTPException(status_code=502, detail="수정 요청을 처리하지 못했습니다.")
-
-    return {**result, "pii_found": pii_found}
 
 
 # ── 기존 JSON 엔드포인트 (하위 호환) ────────────────────────────────────

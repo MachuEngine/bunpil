@@ -290,6 +290,9 @@ def build_split(split: str, rng: random.Random) -> list[dict]:
 
 
 def _revise_requests(rng: random.Random, fmt: str) -> list[dict]:
+    # 2026-10 채팅(수정) 기능 원복 후에는 하네스가 이 필드를 쓰지 않는다. 그래도 생성은 남겨 둔다 —
+    # 지우면 난수 순서가 바뀌어 같은 시드로 다시 만든 pilot/test가 달라지고, 이미 실행한 결과·라벨링 배치
+    # b1이 가리키는 입력과 어긋난다.
     edit = rng.choice([
         ("1번 문항의 오답 선지를 더 헷갈리게 바꿔 주세요.", "edit_options", [1]),
         ("2번 문항의 난이도를 상으로 올려 주세요.", "edit_difficulty", [2]),

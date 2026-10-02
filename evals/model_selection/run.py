@@ -47,7 +47,6 @@ ESTIMATE = {
     "set": {"calls": 12, "input": 3000, "output": 170},
     "runtime_judge": {"calls": 2, "input": 3000, "output": 100},
     "explain": {"calls": 1, "input": 700, "output": 700},
-    "revise": {"calls": 1.5, "input": 3500, "output": 900},
     "judge_item": {"calls": 1, "input": 2500, "output": 600},
     "judge_solve": {"calls": 1, "input": 600, "output": 60},
     "judge_pair": {"calls": 2, "input": 3500, "output": 200},
@@ -101,16 +100,14 @@ def patched_models(gen, runtime_judge):
     import app.common.llm as common_llm
     import app.modules.exam.explain as explain_mod
     import app.modules.exam.graph as graph_mod
-    import app.modules.exam.revise as revise_mod
 
     saved = [(common_llm, "get_llm_backend"), (graph_mod, "get_langchain_model"), (graph_mod, "get_judge_backend"),
-             (explain_mod, "get_llm_backend"), (revise_mod, "get_llm_backend")]
+             (explain_mod, "get_llm_backend")]
     originals = [getattr(m, n) for m, n in saved]
     common_llm.get_llm_backend = lambda: gen
     graph_mod.get_langchain_model = lambda temperature=0.7: gen.chat_model()
     graph_mod.get_judge_backend = lambda: runtime_judge
     explain_mod.get_llm_backend = lambda: gen
-    revise_mod.get_llm_backend = lambda: gen
     try:
         yield
     finally:
@@ -176,7 +173,6 @@ def run_generate(args, cfg):
     from app.main import _build_spec, _mask_item, _parse_item
     from app.modules.exam import get_exam_graph
     from app.modules.exam.explain import explain_item
-    from app.modules.exam.revise import revise_items
     from app.modules.exam.tools import get_draft_items, init_session
 
     if not args.trace:
@@ -242,23 +238,6 @@ def run_generate(args, cfg):
                             except Exception as e:  # noqa: BLE001
                                 explains.append({"error": f"{type(e).__name__}: {str(e)[:200]}"})
                         result["explanations"] = explains
-
-                        revisions = []
-                        if items:
-                            masked_items = [_mask_item(_parse_item(it))[0] for it in items]
-                            for j, req in enumerate(row["revise_requests"]):
-                                current_task.set({**base, "task": "revise", "request_index": j})
-                                gen.active_task = {**base, "task": "revise", "request_index": j}
-                                t2 = time.perf_counter()
-                                try:
-                                    resp = asyncio.run(revise_items(spec_obj["passage_text"], masked_items, [], req["instruction"]))
-                                except Exception as e:  # noqa: BLE001
-                                    resp = None
-                                    revisions.append({"error": f"{type(e).__name__}: {str(e)[:200]}"})
-                                grade = graders.grade_revise(masked_items, resp, req)
-                                revisions.append({"request": req, "response": resp, "grade": grade,
-                                                  "latency_s": time.perf_counter() - t2})
-                        result["revisions"] = revisions
                 except Exception as e:  # noqa: BLE001 — 예산 초과는 전체 중단
                     from .recorder import BudgetExceeded
 
@@ -447,9 +426,9 @@ def run_summarize(args, cfg):
 
     summary, details = [], []
     for model, pairs in by_model.items():
-        succ, clusters, lat, cost, lat_exp, lat_rev = [], [], [], [], [], []
+        succ, clusters, lat, cost, lat_exp = [], [], [], [], []
         per_format, per_case = defaultdict(list), defaultdict(list)
-        revise_parse, revise_scope, revise_intent, inj = [], [], [], []
+        inj = []
         for t, tc in pairs:
             g = t.get("grade") or {}
             ok = bool(g) and not t.get("error") and g.get("R1_count_ok") and g.get("all_items_format_ok") \
@@ -462,14 +441,6 @@ def run_summarize(args, cfg):
                 lat.append(t["latency_s"])
             cost.append(sum(c.get("cost_usd") or 0 for c in tc))
             lat_exp += [e["latency_s"] for e in t.get("explanations", []) if "latency_s" in e]
-            for r in t.get("revisions", []):
-                if "grade" in r:
-                    revise_parse.append(r["grade"]["R6_parse_ok"])
-                    if r["grade"]["R7_scope_ok"] is not None:
-                        revise_scope.append(r["grade"]["R7_scope_ok"])
-                    if r["grade"].get("R11_intent_ok") is not None:
-                        revise_intent.append(r["grade"]["R11_intent_ok"])
-                    lat_rev.append(r["latency_s"])
             if "injection_followed" in g:
                 inj.append(g["injection_followed"])
             details.append({"model": model, "input_id": t["input_id"], "repeat": t["repeat"], "format": t["format"],
@@ -487,11 +458,9 @@ def run_summarize(args, cfg):
             "num_items_extract_acc": _mean([(t.get("grade") or {}).get("R8_num_items_ok") for t, _ in pairs]),
             "format_classify_acc": _mean([(t.get("grade") or {}).get("R9_format_ok") for t, _ in pairs]),
             "unsupported_notice_acc": _mean([(t.get("grade") or {}).get("R10_notice_ok") for t, _ in pairs]),
-            "revise_intent_acc": _mean(revise_intent),
             "injection_followed_rate": _mean(inj),
-            "revise_parse_ok": _mean(revise_parse), "revise_scope_ok": _mean(revise_scope),
             "set_latency_p50": metrics.percentile(lat, 50), "set_latency_p95": metrics.percentile(lat, 95),
-            "explain_latency_p95": metrics.percentile(lat_exp, 95), "revise_latency_p95": metrics.percentile(lat_rev, 95),
+            "explain_latency_p95": metrics.percentile(lat_exp, 95),
             "cost_per_set": _mean(cost), "cost_per_successful_set": (sum(cost) / n_succ) if n_succ else None,
             "api_failure_rate": _mean([bool(c.get("error")) for c in model_calls]),
             "retry_rate": _mean([(c.get("retries") or 0) > 0 for c in model_calls]),
@@ -603,12 +572,11 @@ def run_estimate(args, cfg):
     rows = load_rows(args.split, args.limit, args.sample, args.sample_seed)
     n_sets = len(rows) * args.repeats
     avg_items = sum(r["expected"]["num_items"] for r in rows) / len(rows)
-    n_revise = sum(len(r["revise_requests"]) for r in rows) / len(rows)
     judge = cfg["models"][cfg["runtime_judge"]]
     out, total = [], 0.0
     for key in args.models.split(","):
         spec = cfg["models"][key]
-        tasks = {"set": n_sets, "explain": n_sets * avg_items, "revise": n_sets * n_revise}
+        tasks = {"set": n_sets, "explain": n_sets * avg_items}
         calls = sum(ESTIMATE[t]["calls"] * n for t, n in tasks.items())
         cost = sum(ESTIMATE[t]["calls"] * n * _price(spec, ESTIMATE[t]) for t, n in tasks.items())
         rj_calls = ESTIMATE["runtime_judge"]["calls"] * n_sets

@@ -1,7 +1,7 @@
 """모델 adapter — 제공사 차이를 여기서 흡수한다.
 
 모든 adapter는 두 가지 얼굴을 가진다.
-- `generate(messages, **kw)` (async): 프로덕션 코드의 `LLMBackend`와 같은 모양. `explain_item`·`revise_items`·
+- `generate(messages, **kw)` (async): 프로덕션 코드의 `LLMBackend`와 같은 모양. `explain_item`·
   `_analyze_request`·`judge_node`에 그대로 끼운다.
 - `chat_model()`: 에이전트(`graph.py agent_node`)가 `bind_tools`로 쓰는 LangChain 채팅 모델.
 
@@ -258,8 +258,6 @@ class MockAdapter(BaseAdapter):
                               ensure_ascii=False)
         elif "해설을 한국어로" in system:
             text = "정답의 근거: 모의 해설입니다.\n나머지 선지는 개념 범주가 다릅니다."
-        elif "일부를 고쳐 달라고" in system:
-            text = json.dumps({"intent": "chat", "message": "모의 응답 — 변경 없음.", "changes": []}, ensure_ascii=False)
         elif "type_ratio_score" in system:
             text = json.dumps({"type_ratio_score": 1.0, "difficulty_match": True, "overall_score": 4})
         elif "JUDGE_TASK" in joined:
