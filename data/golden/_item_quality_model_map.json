@@ -1,0 +1,510 @@
+{
+  "_schema": {
+    "description": "item_quality_golden.json의 블라인드 id → 실제 모델/원본 매핑(라벨링 중 참조 금지).",
+    "map_fields": {
+      "model": "생성 모델",
+      "passage_id": "원본 입력 지문 id",
+      "run_item_id": "run 파일 내 item_id"
+    },
+    "missing": "(지문, 모델) 쌍 중 run 실패 또는 객관식 문항이 없어 골든셋에 포함되지 못한 조합."
+  },
+  "map": {
+    "iq_001": {
+      "model": "qwen2.5-14b",
+      "passage_id": "hard-003",
+      "run_item_id": "df1467ce"
+    },
+    "iq_002": {
+      "model": "gpt-6-luna",
+      "passage_id": "hard-003",
+      "run_item_id": "8066487d"
+    },
+    "iq_003": {
+      "model": "qwen2.5-14b",
+      "passage_id": "hard-001",
+      "run_item_id": "6c0105a6"
+    },
+    "iq_004": {
+      "model": "qwen2.5-14b",
+      "passage_id": "pilot-016",
+      "run_item_id": "4a247624"
+    },
+    "iq_005": {
+      "model": "gpt-6-luna",
+      "passage_id": "pilot-025",
+      "run_item_id": "3ca7ab14"
+    },
+    "iq_006": {
+      "model": "qwen2.5-14b",
+      "passage_id": "hard-004",
+      "run_item_id": "1ae3a065"
+    },
+    "iq_007": {
+      "model": "qwen2.5-14b",
+      "passage_id": "pilot-003",
+      "run_item_id": "aeecc8d3"
+    },
+    "iq_008": {
+      "model": "qwen2.5-14b",
+      "passage_id": "pilot-012",
+      "run_item_id": "b80528fa"
+    },
+    "iq_009": {
+      "model": "gpt-6-luna",
+      "passage_id": "hard-009",
+      "run_item_id": "f41925fc"
+    },
+    "iq_010": {
+      "model": "gpt-6-luna",
+      "passage_id": "hard-005",
+      "run_item_id": "89e636a8"
+    },
+    "iq_011": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "test-014",
+      "run_item_id": "38300e7e"
+    },
+    "iq_012": {
+      "model": "gpt-6-luna",
+      "passage_id": "test-012",
+      "run_item_id": "fbe455b7"
+    },
+    "iq_013": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "pilot-018",
+      "run_item_id": "3aa77706"
+    },
+    "iq_014": {
+      "model": "gpt-6-luna",
+      "passage_id": "pilot-003",
+      "run_item_id": "8c77347a"
+    },
+    "iq_015": {
+      "model": "gpt-6-luna",
+      "passage_id": "hard-001",
+      "run_item_id": "279632ac"
+    },
+    "iq_016": {
+      "model": "gpt-6-luna",
+      "passage_id": "test-025",
+      "run_item_id": "4e020a77"
+    },
+    "iq_017": {
+      "model": "qwen2.5-14b",
+      "passage_id": "hard-009",
+      "run_item_id": "b0d02fbb"
+    },
+    "iq_018": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "hard-008",
+      "run_item_id": "40defa91"
+    },
+    "iq_019": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "hard-003",
+      "run_item_id": "48c85bb2"
+    },
+    "iq_020": {
+      "model": "qwen2.5-14b",
+      "passage_id": "pilot-014",
+      "run_item_id": "a4b82112"
+    },
+    "iq_021": {
+      "model": "gpt-6-luna",
+      "passage_id": "hard-004",
+      "run_item_id": "f3d71b09"
+    },
+    "iq_022": {
+      "model": "gpt-6-luna",
+      "passage_id": "pilot-020",
+      "run_item_id": "b7b80dbe"
+    },
+    "iq_023": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "test-024",
+      "run_item_id": "6cfff004"
+    },
+    "iq_024": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "hard-009",
+      "run_item_id": "19a07fbb"
+    },
+    "iq_025": {
+      "model": "gpt-6-luna",
+      "passage_id": "test-029",
+      "run_item_id": "f8c9b678"
+    },
+    "iq_026": {
+      "model": "qwen2.5-14b",
+      "passage_id": "test-014",
+      "run_item_id": "367dde52"
+    },
+    "iq_027": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "pilot-021",
+      "run_item_id": "631ce1a7"
+    },
+    "iq_028": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "pilot-027",
+      "run_item_id": "8b42f254"
+    },
+    "iq_029": {
+      "model": "gpt-6-luna",
+      "passage_id": "pilot-007",
+      "run_item_id": "45a67b51"
+    },
+    "iq_030": {
+      "model": "qwen2.5-14b",
+      "passage_id": "test-006",
+      "run_item_id": "5e6c15f1"
+    },
+    "iq_031": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "pilot-025",
+      "run_item_id": "4d966cd1"
+    },
+    "iq_032": {
+      "model": "qwen2.5-14b",
+      "passage_id": "test-031",
+      "run_item_id": "8c108372"
+    },
+    "iq_033": {
+      "model": "qwen2.5-14b",
+      "passage_id": "test-018",
+      "run_item_id": "667b0cd1"
+    },
+    "iq_034": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "test-029",
+      "run_item_id": "e9a8572a"
+    },
+    "iq_035": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "pilot-003",
+      "run_item_id": "2389a222"
+    },
+    "iq_036": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "pilot-006",
+      "run_item_id": "90858281"
+    },
+    "iq_037": {
+      "model": "gpt-6-luna",
+      "passage_id": "test-007",
+      "run_item_id": "6c1bb4cd"
+    },
+    "iq_038": {
+      "model": "gpt-6-luna",
+      "passage_id": "pilot-014",
+      "run_item_id": "2599e430"
+    },
+    "iq_039": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "hard-006",
+      "run_item_id": "193e7cc4"
+    },
+    "iq_040": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "test-018",
+      "run_item_id": "d2c62475"
+    },
+    "iq_041": {
+      "model": "gpt-6-luna",
+      "passage_id": "test-006",
+      "run_item_id": "045a4510"
+    },
+    "iq_042": {
+      "model": "gpt-6-luna",
+      "passage_id": "hard-002",
+      "run_item_id": "f51cbf1e"
+    },
+    "iq_043": {
+      "model": "gpt-6-luna",
+      "passage_id": "hard-008",
+      "run_item_id": "61ddfdd9"
+    },
+    "iq_044": {
+      "model": "gpt-6-luna",
+      "passage_id": "hard-006",
+      "run_item_id": "3521209d"
+    },
+    "iq_045": {
+      "model": "qwen2.5-14b",
+      "passage_id": "hard-008",
+      "run_item_id": "611defeb"
+    },
+    "iq_046": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "pilot-005",
+      "run_item_id": "592dffbf"
+    },
+    "iq_047": {
+      "model": "gpt-6-luna",
+      "passage_id": "test-024",
+      "run_item_id": "89396401"
+    },
+    "iq_048": {
+      "model": "gpt-6-luna",
+      "passage_id": "test-001",
+      "run_item_id": "bfa986d1"
+    },
+    "iq_049": {
+      "model": "gpt-6-luna",
+      "passage_id": "test-002",
+      "run_item_id": "c1170a36"
+    },
+    "iq_050": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "test-007",
+      "run_item_id": "ed12d4d0"
+    },
+    "iq_051": {
+      "model": "qwen2.5-14b",
+      "passage_id": "pilot-018",
+      "run_item_id": "31ab3fae"
+    },
+    "iq_052": {
+      "model": "qwen2.5-14b",
+      "passage_id": "test-012",
+      "run_item_id": "376661e2"
+    },
+    "iq_053": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "hard-010",
+      "run_item_id": "0ea33af7"
+    },
+    "iq_054": {
+      "model": "gpt-6-luna",
+      "passage_id": "test-031",
+      "run_item_id": "28c27586"
+    },
+    "iq_055": {
+      "model": "gpt-6-luna",
+      "passage_id": "pilot-016",
+      "run_item_id": "3e4c719a"
+    },
+    "iq_056": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "test-031",
+      "run_item_id": "9f3a8922"
+    },
+    "iq_057": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "hard-001",
+      "run_item_id": "efe7ee8a"
+    },
+    "iq_058": {
+      "model": "gpt-6-luna",
+      "passage_id": "pilot-006",
+      "run_item_id": "b1ac104e"
+    },
+    "iq_059": {
+      "model": "qwen2.5-14b",
+      "passage_id": "test-025",
+      "run_item_id": "fdaa1a0b"
+    },
+    "iq_060": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "hard-002",
+      "run_item_id": "88233008"
+    },
+    "iq_061": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "hard-007",
+      "run_item_id": "03ad02d7"
+    },
+    "iq_062": {
+      "model": "qwen2.5-14b",
+      "passage_id": "test-029",
+      "run_item_id": "c9f04712"
+    },
+    "iq_063": {
+      "model": "qwen2.5-14b",
+      "passage_id": "test-002",
+      "run_item_id": "9cc83079"
+    },
+    "iq_064": {
+      "model": "qwen2.5-14b",
+      "passage_id": "pilot-021",
+      "run_item_id": "c9fc65a1"
+    },
+    "iq_065": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "test-025",
+      "run_item_id": "6ee1161d"
+    },
+    "iq_066": {
+      "model": "gpt-6-luna",
+      "passage_id": "hard-010",
+      "run_item_id": "a0e67401"
+    },
+    "iq_067": {
+      "model": "gpt-6-luna",
+      "passage_id": "pilot-012",
+      "run_item_id": "2996b2cb"
+    },
+    "iq_068": {
+      "model": "gpt-6-luna",
+      "passage_id": "pilot-021",
+      "run_item_id": "f958ca8e"
+    },
+    "iq_069": {
+      "model": "qwen2.5-14b",
+      "passage_id": "test-024",
+      "run_item_id": "df041fa4"
+    },
+    "iq_070": {
+      "model": "qwen2.5-14b",
+      "passage_id": "test-007",
+      "run_item_id": "465ea2db"
+    },
+    "iq_071": {
+      "model": "gpt-6-luna",
+      "passage_id": "pilot-027",
+      "run_item_id": "1b804420"
+    },
+    "iq_072": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "pilot-014",
+      "run_item_id": "d658d318"
+    },
+    "iq_073": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "hard-004",
+      "run_item_id": "e0b25759"
+    },
+    "iq_074": {
+      "model": "gpt-6-luna",
+      "passage_id": "test-014",
+      "run_item_id": "0cb57ea1"
+    },
+    "iq_075": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "pilot-012",
+      "run_item_id": "4416a34f"
+    },
+    "iq_076": {
+      "model": "qwen2.5-14b",
+      "passage_id": "hard-007",
+      "run_item_id": "a5119131"
+    },
+    "iq_077": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "test-006",
+      "run_item_id": "743da32c"
+    },
+    "iq_078": {
+      "model": "gpt-6-luna",
+      "passage_id": "pilot-005",
+      "run_item_id": "2f86e2e8"
+    },
+    "iq_079": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "hard-005",
+      "run_item_id": "8940a9e3"
+    },
+    "iq_080": {
+      "model": "gpt-6-luna",
+      "passage_id": "test-018",
+      "run_item_id": "4872a87b"
+    },
+    "iq_081": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "pilot-007",
+      "run_item_id": "3494b077"
+    },
+    "iq_082": {
+      "model": "gpt-6-luna",
+      "passage_id": "hard-007",
+      "run_item_id": "31a1ec65"
+    },
+    "iq_083": {
+      "model": "qwen2.5-14b",
+      "passage_id": "test-001",
+      "run_item_id": "171ec8bf"
+    },
+    "iq_084": {
+      "model": "qwen2.5-14b",
+      "passage_id": "hard-010",
+      "run_item_id": "e389ee2e"
+    },
+    "iq_085": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "test-012",
+      "run_item_id": "ae483498"
+    },
+    "iq_086": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "pilot-016",
+      "run_item_id": "c4464253"
+    },
+    "iq_087": {
+      "model": "qwen2.5-14b",
+      "passage_id": "pilot-027",
+      "run_item_id": "28b2af4e"
+    },
+    "iq_088": {
+      "model": "qwen2.5-14b",
+      "passage_id": "pilot-007",
+      "run_item_id": "d75f1a10"
+    },
+    "iq_089": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "pilot-020",
+      "run_item_id": "5457e86e"
+    },
+    "iq_090": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "test-001",
+      "run_item_id": "b8f22c1a"
+    },
+    "iq_091": {
+      "model": "gemini-3.8-flash",
+      "passage_id": "test-002",
+      "run_item_id": "e61f0a6e"
+    },
+    "iq_092": {
+      "model": "qwen2.5-14b",
+      "passage_id": "pilot-005",
+      "run_item_id": "aaea57f0"
+    },
+    "iq_093": {
+      "model": "qwen2.5-14b",
+      "passage_id": "hard-002",
+      "run_item_id": "d14a73aa"
+    },
+    "iq_094": {
+      "model": "qwen2.5-14b",
+      "passage_id": "pilot-020",
+      "run_item_id": "a31848f3"
+    },
+    "iq_095": {
+      "model": "gpt-6-luna",
+      "passage_id": "pilot-018",
+      "run_item_id": "c1bf8902"
+    }
+  },
+  "missing": [
+    {
+      "passage_id": "hard-005",
+      "model": "qwen2.5-14b",
+      "reason": "no_mc_item"
+    },
+    {
+      "passage_id": "hard-006",
+      "model": "qwen2.5-14b",
+      "reason": "no_mc_item"
+    },
+    {
+      "passage_id": "pilot-006",
+      "model": "qwen2.5-14b",
+      "reason": "no_mc_item"
+    },
+    {
+      "passage_id": "pilot-025",
+      "model": "qwen2.5-14b",
+      "reason": "no_mc_item"
+    }
+  ]
+}
