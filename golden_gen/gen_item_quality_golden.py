@@ -104,6 +104,27 @@ def load_run_records(path: str) -> list[dict]:
         return [json.loads(line) for line in f if line.strip()]
 
 
+def dedupe_run_records(records: list[dict]) -> list[dict]:
+    """같은 id가 여러 번 append된 run(실패 후 재실행 등, 예: gpt-6-luna pilot-006)을
+    id당 레코드 하나로 정리한다 — 그 id의 레코드 중 성공(error 없음)이 하나라도 있으면
+    그중 마지막 것을, 전부 실패면 마지막 레코드를 쓴다. 반환 순서는 각 id가 입력에서
+    처음 등장한 순서를 유지한다. cmd_summarize·evals/eval_item_quality_runs.py
+    compare-generators가 공유한다."""
+    groups: dict[str, list[dict]] = {}
+    order: list[str] = []
+    for r in records:
+        rid = r["id"]
+        if rid not in groups:
+            order.append(rid)
+        groups.setdefault(rid, []).append(r)
+    result = []
+    for rid in order:
+        group = groups[rid]
+        successes = [r for r in group if not r.get("error")]
+        result.append(successes[-1] if successes else group[-1])
+    return result
+
+
 # ── generate ─────────────────────────────────────────────────────────────
 
 def select_entries(
@@ -313,7 +334,11 @@ def cmd_generate(args: argparse.Namespace) -> None:
 # ── summarize ────────────────────────────────────────────────────────────
 
 def summarize_model(records: list[dict]) -> dict:
-    """run 레코드 리스트를 집계한다(LLM 호출 없음, 테스트 가능). 원문 미사용."""
+    """run 레코드 리스트를 집계한다(LLM 호출 없음, 테스트 가능). 원문 미사용.
+
+    같은 id가 중복으로 append된 경우(재실행) dedupe_run_records()로 먼저 정리한다 —
+    안 하면 지문 33개인데 n이 34건으로 집계되는 문제가 있었다."""
+    records = dedupe_run_records(records)
     n = len(records)
     ok = [r for r in records if not r.get("error")]
     n_errors = n - len(ok)

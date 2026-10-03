@@ -20,6 +20,7 @@ from golden_gen.gen_item_quality_golden import (
     build_label_sheet,
     build_label_sheet_entry,
     build_labelset,
+    dedupe_run_records,
     load_run_records,
     select_entries,
     summarize_model,
@@ -210,6 +211,74 @@ def test_summarize_model_empty_records_no_zero_division():
     assert s["count_match_rate"] == 0.0
     assert s["validate_rate"] == 0.0
     assert s["avg_cost_usd"] is None
+
+
+# ── dedupe_run_records ────────────────────────────────────────────────────
+# gpt-6-luna pilot-006처럼 같은 id가 실패 후 재실행으로 두 번 append된 run을 정리한다.
+
+def test_dedupe_run_records_keeps_last_success_when_failure_then_success():
+    records = [
+        {"id": "p1", "error": {"type": "BadRequestError"}},
+        {"id": "p1", "error": None, "items": [_mc_item()]},
+    ]
+    result = dedupe_run_records(records)
+    assert len(result) == 1
+    assert result[0]["error"] is None
+
+
+def test_dedupe_run_records_keeps_last_success_even_when_success_then_failure():
+    # 성공이 먼저, 그 뒤에 실패 재실행이 append된 순서도 "마지막 성공"을 쓴다(단순
+    # last-wins가 아님).
+    records = [
+        {"id": "p1", "error": None, "items": [_mc_item("a")]},
+        {"id": "p1", "error": {"type": "BadRequestError"}},
+    ]
+    result = dedupe_run_records(records)
+    assert len(result) == 1
+    assert result[0]["error"] is None
+    assert result[0]["items"][0]["question"] == "a"
+
+
+def test_dedupe_run_records_keeps_last_record_when_all_failed():
+    records = [
+        {"id": "p1", "error": {"type": "A"}},
+        {"id": "p1", "error": {"type": "B"}},
+    ]
+    result = dedupe_run_records(records)
+    assert len(result) == 1
+    assert result[0]["error"]["type"] == "B"
+
+
+def test_dedupe_run_records_preserves_first_seen_order_and_passes_through_unique_ids():
+    records = [
+        {"id": "p2", "error": None},
+        {"id": "p1", "error": None},
+        {"id": "p2", "error": {"type": "A"}},  # p2 재실행(실패) — 기존 성공을 유지
+    ]
+    result = dedupe_run_records(records)
+    assert [r["id"] for r in result] == ["p2", "p1"]
+    assert result[0]["error"] is None  # p2는 첫 성공 레코드를 유지
+
+
+def test_summarize_model_dedupes_duplicate_ids_before_counting():
+    records = [
+        {
+            "id": "p1", "error": {"type": "BadRequestError"}, "wall_clock_sec": 1.0,
+        },
+        {
+            "id": "p1", "error": None, "num_items": 1,
+            "items": [{"item_type": "객관식"}], "validation_passed": True, "attempts": 1,
+            "attempt_log": [{"malformed_retries": 0}], "wall_clock_sec": 5.0, "cost_usd_est": 0.01,
+        },
+        {
+            "id": "p2", "error": None, "num_items": 1,
+            "items": [{"item_type": "객관식"}], "validation_passed": True, "attempts": 1,
+            "attempt_log": [{"malformed_retries": 0}], "wall_clock_sec": 3.0, "cost_usd_est": 0.01,
+        },
+    ]
+    s = summarize_model(records)
+    assert s["n_runs"] == 2  # p1 중복 제거 후 2건(33개 지문 기준이면 34 -> 33과 같은 맥락)
+    assert s["n_errors"] == 0  # p1은 성공 레코드로 정리됨
 
 
 # ── build_labelset ────────────────────────────────────────────────────────

@@ -16,19 +16,32 @@ from evals.eval_item_quality_runs import (
     bias_by_generation_model,
     build_rows,
     classify_passage,
+    compute_generator_comparison,
     compute_metrics,
     compute_reliability_report,
+    compute_rule_metrics,
     coverage_passage_ids,
     group_judged_by_run,
+    human_case_type_means,
     human_label_distribution,
+    human_metrics_for_model,
+    human_rows_for_model,
+    human_score_by_passage,
     judge_avg_rounded,
     judge_avg_score,
+    judge_case_type_means,
+    judge_metrics_for_model,
     judged_keys,
     load_inputs_meta,
     load_labeled_keys,
     mc_items_for_run,
     paired_abs_error_diff,
+    paired_ci_verdict,
+    passage_level_final_pass,
+    passage_level_judge_overall,
+    passage_level_latency,
     per_repeat_kappas,
+    quality_stats_by_criteria,
     repeats_for_item,
     score_distribution,
     usable_human_labels,
@@ -507,3 +520,262 @@ def test_compute_reliability_report_end_to_end_with_fake_data():
     for row in report["rows"]:
         assert "question" not in row
         assert "passage_text" not in row
+
+
+# ── compare-generators: 규칙 지표 ──────────────────────────────────────────
+
+def test_compute_rule_metrics_basic():
+    records = [
+        {
+            "id": "p1", "error": None, "num_items": 2, "items": [_mc("it1"), _mc("it2")],
+            "validation_passed": True, "attempts": 1,
+            "attempt_log": [{"validation_passed": True, "malformed_retries": 0}],
+            "wall_clock_sec": 10.0, "cost_usd_est": 0.01,
+        },
+        {
+            "id": "p2", "error": None, "num_items": 2, "items": [_mc("it3")],  # 개수 불일치
+            "validation_passed": False, "attempts": 3,
+            "attempt_log": [
+                {"validation_passed": False, "malformed_retries": 1},
+                {"validation_passed": False, "malformed_retries": 0},
+                {"validation_passed": True, "malformed_retries": 0},
+            ],
+            "wall_clock_sec": 30.0, "cost_usd_est": 0.03,
+        },
+        {"id": "p3", "error": {"type": "RuntimeError"}, "wall_clock_sec": 1.0},  # 실패(객관식 0개)
+    ]
+    m = compute_rule_metrics(records)
+    assert m["n"] == 3
+    # 분모는 전체 지문 수(3) — run 실패·개수 불일치도 실패로 포함
+    assert m["count_ok_rate"] == pytest.approx(1 / 3, abs=1e-3)
+    assert m["first_pass_rate"] == pytest.approx(1 / 3, abs=1e-3)
+    assert m["final_gate_pass_rate"] == pytest.approx(1 / 3, abs=1e-3)
+    assert m["avg_attempts"] == pytest.approx(2.0)  # 성공 케이스(p1,p2)만: (1+3)/2
+    assert m["malformed_retries_total"] == 1
+    assert m["avg_wall_clock_sec"] == pytest.approx((10 + 30 + 1) / 3, abs=1e-3)
+    assert m["median_wall_clock_sec"] == pytest.approx(10.0)
+    assert m["avg_cost_usd"] == pytest.approx(0.02)
+    assert m["n_zero_mc_passages"] == 1  # p3만 객관식 0개
+
+
+def test_compute_rule_metrics_empty_records_no_zero_division():
+    m = compute_rule_metrics([])
+    assert m["n"] == 0
+    assert m["count_ok_rate"] == 0.0
+    assert m["avg_cost_usd"] is None
+    assert m["n_zero_mc_passages"] == 0
+
+
+# ── compare-generators: Judge/사람 지표(quality_stats_by_criteria 공유) ──────
+
+def test_quality_stats_by_criteria_computes_mean_and_low_quality_rate():
+    rows = [
+        ("p1", _score(5, 5, 5)),
+        ("p1", _score(1, 1, 1)),
+        ("p2", _score(3, 3, 3)),
+    ]
+    stats = quality_stats_by_criteria(rows)
+    assert stats["정답유일성"]["n"] == 3
+    assert stats["정답유일성"]["mean"] == pytest.approx(3.0)
+    assert stats["정답유일성"]["low_quality_rate"] == pytest.approx(1 / 3, abs=1e-3)
+    # 정답유일성 치명적 실패율은 정답유일성.low_quality_rate와 같은 값의 별도 노출
+    assert stats["uniqueness_critical_fail_rate"] == stats["정답유일성"]["low_quality_rate"]
+    assert stats["uniqueness_critical_fail_ci"] == stats["정답유일성"]["low_quality_ci"]
+
+
+def test_judge_metrics_for_model_uses_run_id_as_cluster():
+    judged_records = [
+        {"run_id": "p1", "scores": _score(5, 5, 5)},
+        {"run_id": "p1", "scores": _score(1, 1, 1)},
+        {"run_id": "p2", "scores": _score(3, 3, 3)},
+    ]
+    jm = judge_metrics_for_model(judged_records)
+    assert jm["정답유일성"]["n"] == 3
+
+
+def test_human_rows_for_model_filters_by_model_and_usable():
+    rows = human_rows_for_model(_RELIABILITY_GOLDEN_ENTRIES, _RELIABILITY_MODEL_MAP, "qwen2.5-14b")
+    assert len(rows) == 1  # iq_001만(iq_003은 cannot_judge라 usable에서 제외)
+    assert rows[0]["passage_id"] == "p1"
+    assert rows[0]["human"]["정답유일성"] == 5
+
+
+def test_human_metrics_for_model_uses_passage_id_as_cluster():
+    rows = human_rows_for_model(_RELIABILITY_GOLDEN_ENTRIES, _RELIABILITY_MODEL_MAP, "gpt-6-luna")
+    hm = human_metrics_for_model(rows)
+    assert hm["정답유일성"]["n"] == 1  # iq_002만(iq_004는 정답유일성 null이라 제외)
+    assert hm["정답유일성"]["mean"] == pytest.approx(3.0)
+
+
+# ── compare-generators: 짝지은 비교 재료(패시지 단위 값 dict) ────────────────
+
+def test_passage_level_judge_overall_averages_per_passage():
+    judged_records = [
+        _rec("p1", "it1", 0, _judge_scores(5, 5, 5)),
+        _rec("p1", "it1", 1, _judge_scores(3, 3, 3)),
+        _rec("p2", "it9", 0, _judge_scores(4, 4, 4)),
+    ]
+    overall = passage_level_judge_overall(judged_records)
+    assert overall["p1"] == pytest.approx((5.0 + 3.0) / 2)
+    assert overall["p2"] == pytest.approx(4.0)
+
+
+def test_passage_level_final_pass_maps_id_to_int_and_treats_error_as_fail():
+    records = [
+        {"id": "p1", "validation_passed": True, "error": None},
+        {"id": "p2", "validation_passed": False, "error": None},
+        {"id": "p3", "error": {"type": "X"}},
+    ]
+    assert passage_level_final_pass(records) == {"p1": 1, "p2": 0, "p3": 0}
+
+
+def test_passage_level_latency_maps_id_to_wall_clock():
+    records = [{"id": "p1", "wall_clock_sec": 5.0}, {"id": "p2", "wall_clock_sec": 2.0}]
+    assert passage_level_latency(records) == {"p1": 5.0, "p2": 2.0}
+
+
+def test_human_score_by_passage_extracts_single_criterion():
+    rows = [{"passage_id": "p1", "human": {"정답유일성": 5, "오답매력도": 4, "근거성": 3}}]
+    assert human_score_by_passage(rows, "오답매력도") == {"p1": 4}
+
+
+# ── compare-generators: paired_ci_verdict(짝지은 비교의 부호·판정 불가 분기) ──
+
+def test_paired_ci_verdict_b_better_when_higher_is_better_and_diff_positive():
+    values_a = {"p1": 3.0, "p2": 3.0, "p3": 3.0, "p4": 3.0}
+    values_b = {"p1": 5.0, "p2": 5.0, "p3": 5.0, "p4": 5.0}
+    result = paired_ci_verdict(values_a, values_b, higher_is_better=True, label_a="A", label_b="B")
+    assert result["n"] == 4
+    assert result["mean_diff"] == pytest.approx(2.0)
+    assert result["verdict"] == "B가 더 우수"
+
+
+def test_paired_ci_verdict_a_better_when_lower_is_better_and_diff_positive():
+    # 지연처럼 작을수록 좋은 지표 — b가 더 크면(느리면) a가 더 우수
+    values_a = {"p1": 1.0, "p2": 1.0, "p3": 1.0, "p4": 1.0}
+    values_b = {"p1": 3.0, "p2": 3.0, "p3": 3.0, "p4": 3.0}
+    result = paired_ci_verdict(values_a, values_b, higher_is_better=False, label_a="A", label_b="B")
+    assert result["verdict"] == "A가 더 우수"
+
+
+def test_paired_ci_verdict_inconclusive_when_ci_spans_zero():
+    values_a = {"p1": 3.0, "p2": 5.0, "p3": 2.0, "p4": 4.0}
+    values_b = {"p1": 3.5, "p2": 2.0, "p3": 5.0, "p4": 3.0}
+    result = paired_ci_verdict(values_a, values_b, higher_is_better=True, label_a="A", label_b="B")
+    assert "판정 불가" in result["verdict"]
+
+
+def test_paired_ci_verdict_only_uses_common_passages():
+    values_a = {"p1": 3.0, "p2": 3.0}
+    values_b = {"p2": 5.0, "p3": 5.0}  # p1은 b에 없음(missing), p3는 a에 없음 — 공통은 p2뿐
+    result = paired_ci_verdict(values_a, values_b, higher_is_better=True, label_a="A", label_b="B")
+    assert result["n"] == 1
+
+
+def test_paired_ci_verdict_empty_common_returns_no_sample():
+    result = paired_ci_verdict({"p1": 1.0}, {"p2": 2.0}, higher_is_better=True, label_a="A", label_b="B")
+    assert result["n"] == 0
+    assert result["mean_diff"] is None
+    assert "표본 없음" in result["verdict"]
+
+
+# ── compare-generators: case_type별 평균(참고용) ────────────────────────────
+
+def test_judge_case_type_means_groups_by_case_type_simple_average():
+    judged_records = [
+        {"run_id": "p1", "scores": _score(5, 4, 3)},
+        {"run_id": "p2", "scores": _score(3, 2, 1)},
+    ]
+    inputs_meta = {"p1": {"case_type": "normal"}, "p2": {"case_type": "hard"}}
+    result = judge_case_type_means(judged_records, inputs_meta)
+    assert result["normal"]["정답유일성"] == pytest.approx(5.0)
+    assert result["hard"]["정답유일성"] == pytest.approx(3.0)
+
+
+def test_human_case_type_means_groups_by_case_type_simple_average():
+    rows = [
+        {"passage_id": "p1", "human": {"정답유일성": 5, "오답매력도": 4, "근거성": 3}},
+        {"passage_id": "p2", "human": {"정답유일성": 1, "오답매력도": 1, "근거성": 1}},
+    ]
+    inputs_meta = {"p1": {"case_type": "normal"}, "p2": {"case_type": "normal"}}
+    result = human_case_type_means(rows, inputs_meta)
+    assert result["normal"]["정답유일성"] == pytest.approx(3.0)
+
+
+# ── compare-generators: compute_generator_comparison 통합(쌍 구성 + missing 처리) ──
+#
+# 모델 3개(qwen2.5-14b 기준/gpt-6-luna/gemini-3.8-flash), 지문 2개(p1, p2).
+# gpt-6-luna는 p2에서 run이 실패한다(= 객관식 0개, missing) — 규칙 지표에는 실패로
+# 잡히지만, Judge·사람 점수 짝지은 비교에서는 그 지문이 자연히 제외돼야 한다(값 dict에
+# 키 자체가 없으므로 공통 지문 교집합에서 빠짐).
+
+def _gen_cmp_record(pid, ok=True, wall_clock=10.0):
+    if not ok:
+        return {"id": pid, "error": {"type": "X"}, "wall_clock_sec": wall_clock}
+    return {
+        "id": pid, "error": None, "num_items": 1, "items": [_mc(f"{pid}-it1")],
+        "validation_passed": True, "attempts": 1,
+        "attempt_log": [{"validation_passed": True, "malformed_retries": 0}],
+        "wall_clock_sec": wall_clock, "cost_usd_est": 0.0,
+    }
+
+
+def test_compute_generator_comparison_pairs_and_missing_passage_handling():
+    records_by_model = {
+        "qwen2.5-14b": [_gen_cmp_record("p1", wall_clock=10.0), _gen_cmp_record("p2", wall_clock=10.0)],
+        "gpt-6-luna": [_gen_cmp_record("p1", wall_clock=5.0), _gen_cmp_record("p2", ok=False, wall_clock=2.0)],
+        "gemini-3.8-flash": [_gen_cmp_record("p1", wall_clock=7.0), _gen_cmp_record("p2", wall_clock=7.0)],
+    }
+    judged_by_model = {
+        "qwen2.5-14b": [_rec("p1", "it1", 0, _judge_scores(3, 3, 3)), _rec("p2", "it1", 0, _judge_scores(3, 3, 3))],
+        "gpt-6-luna": [_rec("p1", "it1", 0, _judge_scores(5, 5, 5))],  # p2는 run 실패라 judged 캐시도 없음
+        "gemini-3.8-flash": [_rec("p1", "it1", 0, _judge_scores(4, 4, 4)), _rec("p2", "it1", 0, _judge_scores(4, 4, 4))],
+    }
+    golden_entries = [
+        {"id": "iq_001", "human_label": _human_label(5, 4, 5, "상")},  # p1, qwen
+        {"id": "iq_002", "human_label": _human_label(3, 3, 4, "중")},  # p1, gpt-6-luna
+        {"id": "iq_003", "human_label": _human_label(4, 4, 4, "중")},  # p1, gemini
+        {"id": "iq_004", "human_label": _human_label(5, 4, 5, "상")},  # p2, qwen
+        {"id": "iq_005", "human_label": _human_label(4, 4, 4, "중")},  # p2, gemini(gpt-6-luna는 p2 missing)
+    ]
+    model_map = {
+        "iq_001": {"model": "qwen2.5-14b", "passage_id": "p1", "run_item_id": "it1"},
+        "iq_002": {"model": "gpt-6-luna", "passage_id": "p1", "run_item_id": "it1"},
+        "iq_003": {"model": "gemini-3.8-flash", "passage_id": "p1", "run_item_id": "it1"},
+        "iq_004": {"model": "qwen2.5-14b", "passage_id": "p2", "run_item_id": "it1"},
+        "iq_005": {"model": "gemini-3.8-flash", "passage_id": "p2", "run_item_id": "it1"},
+    }
+    inputs_meta = {"p1": {"case_type": "normal", "format": "mc4"}, "p2": {"case_type": "hard", "format": "mc4"}}
+
+    report = compute_generator_comparison(
+        ["qwen2.5-14b", "gpt-6-luna", "gemini-3.8-flash"], "qwen2.5-14b", "anthropic/claude-sonnet-5.5",
+        records_by_model, judged_by_model, golden_entries, model_map, inputs_meta, "abc1234",
+    )
+
+    # 규칙 지표에는 gpt-6-luna의 p2 실패가 객관식 0개로 잡힌다.
+    assert report["rule_metrics"]["gpt-6-luna"]["n_zero_mc_passages"] == 1
+    assert report["rule_metrics"]["gpt-6-luna"]["final_gate_pass_rate"] == pytest.approx(0.5)  # p1만 통과
+
+    # 쌍 구성: 기준(qwen) vs 나머지 2개 + gpt-6-luna vs gemini-3.8-flash 명시 쌍 = 3개.
+    assert set(report["pairwise"]) == {
+        "qwen2.5-14b_vs_gpt-6-luna", "qwen2.5-14b_vs_gemini-3.8-flash", "gpt-6-luna_vs_gemini-3.8-flash",
+    }
+
+    qwen_vs_gpt = report["pairwise"]["qwen2.5-14b_vs_gpt-6-luna"]
+    # Judge·사람 점수 쌍은 p2가 gpt-6-luna에 없어 공통 지문이 p1 하나뿐 — missing이 빠진다.
+    assert qwen_vs_gpt["judge_overall_diff"]["n"] == 1
+    assert qwen_vs_gpt["human_diff"]["정답유일성"]["n"] == 1
+    # 규칙 성격의 최종 게이트·지연 차이는 run 레코드가 있는 지문 전부(p1, p2) 기준 —
+    # gpt-6-luna의 p2 실패가 "통과 못함(0)"으로 그대로 들어간다.
+    assert qwen_vs_gpt["final_gate_diff"]["n"] == 2
+    assert qwen_vs_gpt["latency_diff"]["n"] == 2
+
+    gpt_vs_gemini = report["pairwise"]["gpt-6-luna_vs_gemini-3.8-flash"]
+    assert gpt_vs_gemini["judge_overall_diff"]["n"] == 1  # p1만 공통
+
+    assert report["missing_bias_note"]
+    assert report["gate_dependency_note"]
+    assert report["code_version"] == "abc1234"
+    # 콘솔/저장 출력에 문항 원문이 섞이지 않는다(하드룰 4) — report 전체를 문자열로
+    # 직렬화해도 question 키 자체가 어디에도 없어야 한다.
+    assert "question" not in json.dumps(report, ensure_ascii=False)

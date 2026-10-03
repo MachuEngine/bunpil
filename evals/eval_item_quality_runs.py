@@ -14,6 +14,9 @@
   reliability     item_quality_golden.json 사람 라벨과 judged 캐시(여러 Judge 후보)를 대조해
                   기준별 가중 κ·MAE·편향·짝지은 비교·생성 모델별 편향을 계산하고
                   data/golden/_judge_selection_round2.json에 저장(재분석이 API 재호출 없이 가능)
+  compare-generators  생성 모델 3종(qwen2.5-14b 기준/gpt-6-luna/gemini-3.8-flash)을
+                  규칙 지표(run)·Judge 지표(judged 캐시)·사람 지표(라벨셋)·짝지은 비교로
+                  종합 비교하고 data/golden/_generator_comparison.json에 저장
 
 하드룰 2(마스킹은 모델 호출 이전): run 파일은 이미 그 순서로 생성된 결과물이고, 이 스크립트는
 run을 다시 생성하지 않는다(채점만) — 새로 모델을 호출하는 지점은 judge_one() 하나뿐이고,
@@ -25,6 +28,8 @@ run을 다시 생성하지 않는다(채점만) — 새로 모델을 호출하�
 import argparse
 import json
 import os
+import statistics
+import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -32,10 +37,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dotenv import load_dotenv
 load_dotenv()
 
-# golden_gen/gen_item_quality_golden.py는 수정하지 않고 공개 헬퍼(load_run_records, 언더스코어
-# 없음)만 가져다 쓴다 — jsonl 한 줄 = 한 dict인 범용 로더라 judged 캐시 파일을 읽는 데도 그대로
-# 쓸 수 있다(이름은 run 전용처럼 보이지만 구현은 범용).
-from golden_gen.gen_item_quality_golden import load_run_records
+# golden_gen/gen_item_quality_golden.py는 수정하지 않고 공개 헬퍼(load_run_records,
+# dedupe_run_records, 언더스코어 없음)만 가져다 쓴다 — jsonl 한 줄 = 한 dict인 범용
+# 로더라 judged 캐시 파일을 읽는 데도 그대로 쓸 수 있다(이름은 run 전용처럼 보이지만
+# 구현은 범용).
+from golden_gen.gen_item_quality_golden import dedupe_run_records, load_run_records
 from evals.stats import cluster_bootstrap_ci, mean_ci, weighted_kappa
 
 _GOLDEN_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "golden")
@@ -68,6 +74,18 @@ def _run_path(model: str) -> str:
 
 def _judged_path(judge_model: str, model: str) -> str:
     return os.path.join(_JUDGED_DIR, _judge_slug(judge_model), f"{model}.jsonl")
+
+
+def _code_version() -> str:
+    """golden_gen/gen_item_quality_golden.py `_code_version()`과 같은 값을 내는 로직을
+    여기도 둔다(그 함수는 언더스코어 프라이빗이라 모듈 경계를 넘어 직접 가져오지 않음)."""
+    try:
+        return subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"], cwd=os.path.dirname(__file__),
+            capture_output=True, text=True, check=True,
+        ).stdout.strip()
+    except Exception:
+        return "unknown"
 
 
 # ── judge: 채점 대상 선정 + 캐시 스킵 ────────────────────────────────────
@@ -679,6 +697,393 @@ def cmd_reliability(args: argparse.Namespace) -> None:
     print(f"\n문항별 상세는 {out_path}에 저장했습니다(재분석은 이 파일만으로 가능, API 재호출 불필요).")
 
 
+# ── compare-generators: 생성 모델 3종 종합 비교 ───────────────────────────
+#
+# 규칙 지표(run 파일) + Judge 지표(judged 캐시, 모델의 모든 객관식 문항) + 사람 지표
+# (item_quality_golden.json 라벨셋, 모델당 ≤33건) + 짝지은 비교(지문 단위)를 모은다.
+# 핵심 계산은 전부 순수 함수(LLM 호출 없음) — cmd_compare_generators와 테스트가 공유.
+
+def compute_rule_metrics(records: list[dict]) -> dict:
+    """모델 1개의 run 레코드(지문당 1개, dedupe_run_records() 적용 후)로 지문 단위 규칙
+    지표를 계산한다.
+
+    분모: 목표 개수 달성률·첫 시도 통과율·최종 게이트 통과율은 전체 지문 수(len(records))
+    — run 실패나 객관식 0개 지문도 실패로 포함한다(품질 지표에서는 빠지는 지문이 여기서는
+    실패로 잡혀야 모델 간 비교가 공정하다). 평균 시도 횟수·malformed 재요청 합은 run이
+    실패하지 않은 케이스 기준(실패 run은 시도 자체가 집계 대상 밖). 지연(초 평균·중앙값)과
+    객관식 0개 지문 수는 전체 지문 기준. 비용 추정 평균은 토큰 사용량이 기록된(성공) 케이스
+    평균이다.
+
+    최종 게이트 통과율(final_gate_pass_rate)은 런타임 Judge(gpt-5.6-luna, generate 시
+    JUDGE_BACKEND로 고정)의 구조 검증 결과(validation_passed)에 의존한다 — 이 스크립트의
+    --judge-model(문항 품질 평가용 Judge, 기본 claude-sonnet-5.5)과는 다른 모델이다."""
+    n = len(records)
+    ok = [r for r in records if not r.get("error")]
+
+    count_ok = sum(
+        1 for r in records
+        if not r.get("error") and r.get("num_items") is not None and len(r.get("items", [])) == r["num_items"]
+    )
+    first_pass = sum(
+        1 for r in records
+        if not r.get("error") and (r.get("attempt_log") or []) and r["attempt_log"][0].get("validation_passed")
+    )
+    final_pass = sum(1 for r in records if not r.get("error") and r.get("validation_passed"))
+
+    avg_attempts = (sum(r.get("attempts", 0) for r in ok) / len(ok)) if ok else 0.0
+    malformed_total = sum(
+        sum(a.get("malformed_retries", 0) for a in r.get("attempt_log", [])) for r in ok
+    )
+
+    wall_clocks = [r.get("wall_clock_sec", 0.0) for r in records]
+    avg_wall_clock = (sum(wall_clocks) / n) if n else 0.0
+    median_wall_clock = statistics.median(wall_clocks) if wall_clocks else 0.0
+
+    costs = [r["cost_usd_est"] for r in ok if r.get("cost_usd_est") is not None]
+    avg_cost = (sum(costs) / len(costs)) if costs else None
+
+    zero_mc = sum(1 for r in records if len(mc_items_for_run(r)) == 0)
+
+    return {
+        "n": n,
+        "count_ok_rate": round(count_ok / n, 3) if n else 0.0,
+        "first_pass_rate": round(first_pass / n, 3) if n else 0.0,
+        "final_gate_pass_rate": round(final_pass / n, 3) if n else 0.0,
+        "avg_attempts": round(avg_attempts, 3),
+        "malformed_retries_total": malformed_total,
+        "avg_wall_clock_sec": round(avg_wall_clock, 3),
+        "median_wall_clock_sec": round(median_wall_clock, 3),
+        "avg_cost_usd": round(avg_cost, 5) if avg_cost is not None else None,
+        "n_zero_mc_passages": zero_mc,
+    }
+
+
+def quality_stats_by_criteria(scored_rows: list[tuple[str, dict]]) -> dict:
+    """(클러스터 id, {기준: 점수}) 튜플 리스트로 기준별 평균·저품질 비율(≤2점)을 클러스터
+    부트스트랩 CI와 함께 계산한다. judge_metrics_for_model·human_metrics_for_model이 공유
+    — Judge는 클러스터가 지문(run_id), 사람 라벨은 클러스터가 원본 지문(passage_id)이라는
+    차이만 있고 계산 자체는 같다."""
+    result = {}
+    for c in _CRITERIA:
+        clusters = [cid for cid, _ in scored_rows]
+        values = [scores[c] for _, scores in scored_rows]
+        mean_point, mean_lo, mean_hi = mean_ci(values, clusters)
+        low_flags = [1 if v <= 2 else 0 for v in values]
+        low_point, low_lo, low_hi = mean_ci(low_flags, clusters)
+        result[c] = {
+            "n": len(values),
+            "mean": _round3(mean_point), "mean_ci": [_round3(mean_lo), _round3(mean_hi)],
+            "low_quality_rate": _round3(low_point), "low_quality_ci": [_round3(low_lo), _round3(low_hi)],
+        }
+    # 정답유일성의 저품질 비율을 "치명적 실패율"로 별도 노출(정답유일성이 셋 중 가장
+    # 치명적인 기준이라 설계에서 따로 요구) — 값 자체는 위 정답유일성.low_quality_rate와 같다.
+    result["uniqueness_critical_fail_rate"] = result["정답유일성"]["low_quality_rate"]
+    result["uniqueness_critical_fail_ci"] = result["정답유일성"]["low_quality_ci"]
+    return result
+
+
+def judge_metrics_for_model(judged_records: list[dict]) -> dict:
+    """모델 1개의 judged 캐시(모든 객관식 문항, 반복 포함)로 기준별 평균·저품질 비율을
+    지문(run_id) 단위 클러스터 CI와 함께 계산한다."""
+    return quality_stats_by_criteria([(r["run_id"], r["scores"]) for r in judged_records])
+
+
+def human_rows_for_model(golden_entries: list[dict], model_map: dict[str, dict], model: str) -> list[dict]:
+    """usable_human_labels() + model_map으로 특정 생성 모델에 해당하는 (passage_id, human
+    점수) 행만 추린다(cannot_judge·점수 null 제외, 모델당 최대 33건)."""
+    usable, _ = usable_human_labels(golden_entries)
+    rows = []
+    for blind_id, hl in usable.items():
+        mapping = model_map.get(blind_id)
+        if mapping is None or mapping["model"] != model:
+            continue
+        rows.append({"passage_id": mapping["passage_id"], "human": hl})
+    return rows
+
+
+def human_metrics_for_model(rows_for_model: list[dict]) -> dict:
+    """특정 모델의 사람 라벨 행(usable, 최대 ≤33)으로 기준별 평균·저품질 비율을 계산한다.
+    표본이 작아 참고용이다(human_rows_for_model 문서 참고)."""
+    return quality_stats_by_criteria([(r["passage_id"], r["human"]) for r in rows_for_model])
+
+
+def passage_level_judge_overall(judged_records: list[dict]) -> dict[str, float]:
+    """모델 1개의 judged 레코드(여러 지문·반복 섞여 있음)에서 지문(run_id)별 overall
+    평균 — 짝지은 비교(파생 (a))의 재료."""
+    grouped = group_judged_by_run(judged_records)
+    return {pid: sum(s["overall"] for s in scores) / len(scores) for pid, scores in grouped.items()}
+
+
+def passage_level_final_pass(records: list[dict]) -> dict[str, int]:
+    """dedupe된 run 레코드(지문당 1개)에서 지문별 최종 게이트 통과(1/0, error면 0) —
+    짝지은 비교 (c)의 재료."""
+    return {r["id"]: int(bool(r.get("validation_passed"))) for r in records}
+
+
+def passage_level_latency(records: list[dict]) -> dict[str, float]:
+    """dedupe된 run 레코드에서 지문별 wall_clock_sec — 짝지은 비교 (d)의 재료."""
+    return {r["id"]: r.get("wall_clock_sec", 0.0) for r in records}
+
+
+def human_score_by_passage(rows_for_model: list[dict], criterion: str) -> dict[str, float]:
+    """human_rows_for_model() 결과에서 기준 1개의 지문별 점수만 뽑는다 — 짝지은 비교
+    (b)의 재료."""
+    return {r["passage_id"]: r["human"][criterion] for r in rows_for_model}
+
+
+def paired_ci_verdict(
+    values_a: dict[str, float], values_b: dict[str, float],
+    higher_is_better: bool, label_a: str, label_b: str,
+) -> dict:
+    """passage_id -> 값 dict 두 개를 받아, 두 모델 모두 값이 있는 지문만으로 차이
+    (b−a)의 평균과 클러스터(=지문) 부트스트랩 95% CI, 판정을 계산한다. 쌍 수(n)는
+    공통 지문 수 — 호출부가 그대로 출력/저장해 분모를 명시한다.
+
+    higher_is_better=True면 값이 클수록 좋다는 뜻(품질 점수·게이트 통과 등) — 그 경우
+    diff>0(CI가 0을 포함하지 않을 때)이면 b가 더 우수. False면 값이 작을수록 좋다는 뜻
+    (지연 등) — diff>0이면 b가 더 오래 걸려 a가 더 우수."""
+    common = sorted(set(values_a) & set(values_b))
+    if not common:
+        return {"n": 0, "mean_diff": None, "ci": [None, None], "verdict": "표본 없음(공통 지문 없음)"}
+
+    diffs = [values_b[p] - values_a[p] for p in common]
+    point, lo, hi = mean_ci(diffs, common)
+    if lo is None or hi is None:
+        verdict = "판정 불가(표본 부족)"
+    elif lo <= 0 <= hi:
+        verdict = "판정 불가(CI가 0을 포함)"
+    else:
+        better = label_b if (point > 0) == higher_is_better else label_a
+        verdict = f"{better}가 더 우수"
+
+    return {
+        "n": len(common), "mean_diff": _round3(point), "ci": [_round3(lo), _round3(hi)], "verdict": verdict,
+    }
+
+
+def judge_case_type_means(judged_records: list[dict], inputs_meta: dict) -> dict:
+    """참고용 — case_type별 기준 평균(item 단위 단순 평균, CI 없음). inputs_meta는
+    load_inputs_meta()의 반환값(id -> case_type/format)."""
+    buckets: dict[str, dict[str, list[float]]] = {}
+    for r in judged_records:
+        ct = (inputs_meta.get(r["run_id"]) or {}).get("case_type")
+        if ct is None:
+            continue
+        bucket = buckets.setdefault(ct, {c: [] for c in _CRITERIA})
+        for c in _CRITERIA:
+            bucket[c].append(r["scores"][c])
+    return {
+        ct: {c: (round(sum(vals) / len(vals), 3) if vals else None) for c, vals in crit.items()}
+        for ct, crit in buckets.items()
+    }
+
+
+def human_case_type_means(rows_for_model: list[dict], inputs_meta: dict) -> dict:
+    """참고용 — case_type별 사람 점수 기준 평균(단순 평균, CI 없음)."""
+    buckets: dict[str, dict[str, list[float]]] = {}
+    for r in rows_for_model:
+        ct = (inputs_meta.get(r["passage_id"]) or {}).get("case_type")
+        if ct is None:
+            continue
+        bucket = buckets.setdefault(ct, {c: [] for c in _CRITERIA})
+        for c in _CRITERIA:
+            bucket[c].append(r["human"][c])
+    return {
+        ct: {c: (round(sum(vals) / len(vals), 3) if vals else None) for c, vals in crit.items()}
+        for ct, crit in buckets.items()
+    }
+
+
+_MISSING_BIAS_NOTE = (
+    "객관식 0개(run 실패 포함) 지문은 Judge·사람 점수 쌍에서는 빠지지만, 규칙 지표"
+    "(목표 개수 달성률·통과율)에는 실패로 포함된다 — 품질 지표만 보면 해당 모델이 "
+    "유리하게 보일 수 있다는 점에 주의."
+)
+_GATE_DEPENDENCY_NOTE = (
+    "최종 게이트 통과율(final_gate_pass_rate)은 런타임 Judge(gpt-5.6-luna, 생성 시 고정)의 "
+    "구조 검증 결과에 의존한다 — 이 커맨드의 --judge-model(문항 품질 평가용)과는 다른 모델."
+)
+_HUMAN_METRICS_NOTE = "표본이 작아(모델당 최대 33건) 참고용입니다."
+
+
+def compute_generator_comparison(
+    models: list[str],
+    baseline: str,
+    judge_model: str,
+    records_by_model: dict[str, list[dict]],
+    judged_by_model: dict[str, list[dict]],
+    golden_entries: list[dict],
+    model_map: dict[str, dict],
+    inputs_meta: dict,
+    code_version: str,
+) -> dict:
+    """compare-generators의 핵심 계산 전체(LLM 호출 없음) — cmd_compare_generators와
+    테스트가 공유. records_by_model은 이미 dedupe_run_records()가 적용된 값이어야 한다."""
+    rule_metrics = {m: compute_rule_metrics(records_by_model[m]) for m in models}
+    judge_metrics = {m: judge_metrics_for_model(judged_by_model.get(m, [])) for m in models}
+
+    human_rows = {m: human_rows_for_model(golden_entries, model_map, m) for m in models}
+    human_metrics = {m: human_metrics_for_model(human_rows[m]) for m in models}
+
+    judge_overall_by_model = {m: passage_level_judge_overall(judged_by_model.get(m, [])) for m in models}
+    final_pass_by_model = {m: passage_level_final_pass(records_by_model[m]) for m in models}
+    latency_by_model = {m: passage_level_latency(records_by_model[m]) for m in models}
+
+    pairs = [(baseline, m) for m in models if m != baseline]
+    extra_pair = ("gpt-6-luna", "gemini-3.8-flash")
+    if (
+        extra_pair[0] in models and extra_pair[1] in models
+        and baseline not in extra_pair
+    ):
+        pairs.append(extra_pair)
+
+    pairwise = {}
+    for a, b in pairs:
+        human_diff = {
+            c: paired_ci_verdict(
+                human_score_by_passage(human_rows[a], c), human_score_by_passage(human_rows[b], c),
+                higher_is_better=True, label_a=a, label_b=b,
+            )
+            for c in _CRITERIA
+        }
+        pairwise[f"{a}_vs_{b}"] = {
+            "judge_overall_diff": paired_ci_verdict(
+                judge_overall_by_model[a], judge_overall_by_model[b],
+                higher_is_better=True, label_a=a, label_b=b,
+            ),
+            "human_diff": human_diff,
+            "final_gate_diff": paired_ci_verdict(
+                final_pass_by_model[a], final_pass_by_model[b],
+                higher_is_better=True, label_a=a, label_b=b,
+            ),
+            "latency_diff": paired_ci_verdict(
+                latency_by_model[a], latency_by_model[b],
+                higher_is_better=False, label_a=a, label_b=b,
+            ),
+        }
+
+    case_type_table = {
+        "human": {m: human_case_type_means(human_rows[m], inputs_meta) for m in models},
+        "judge": {m: judge_case_type_means(judged_by_model.get(m, []), inputs_meta) for m in models},
+    }
+
+    return {
+        "code_version": code_version,
+        "judge_model": judge_model,
+        "baseline": baseline,
+        "models": models,
+        "rule_metrics": rule_metrics,
+        "judge_metrics": judge_metrics,
+        "human_metrics": human_metrics,
+        "human_metrics_note": _HUMAN_METRICS_NOTE,
+        "pairwise": pairwise,
+        "case_type_table": case_type_table,
+        "gate_dependency_note": _GATE_DEPENDENCY_NOTE,
+        "missing_bias_note": _MISSING_BIAS_NOTE,
+    }
+
+
+def _print_paired(label: str, pw: dict) -> None:
+    print(f"    {label}: n={pw['n']} mean_diff={pw['mean_diff']} CI={pw['ci']} → {pw['verdict']}")
+
+
+def _print_generator_comparison(report: dict) -> None:
+    """콘솔 출력 — 문항 원문은 절대 출력하지 않는다(하드룰 4). 지표 이름 옆에 짧은 설명을 붙인다."""
+    print(f"Judge: {report['judge_model']} / 기준 모델(baseline): {report['baseline']}")
+    print(f"[주의] {report['gate_dependency_note']}")
+    print(f"[주의] {report['missing_bias_note']}")
+
+    print("\n[규칙 지표] (분모는 전체 지문 수 — run 실패·객관식 0개도 실패로 포함)")
+    for m in report["models"]:
+        rm = report["rule_metrics"][m]
+        print(
+            f"  {m} (n={rm['n']})\n"
+            f"    목표 개수 달성률={rm['count_ok_rate']*100:.1f}%  "
+            f"첫 시도 통과율={rm['first_pass_rate']*100:.1f}%  "
+            f"최종 게이트 통과율={rm['final_gate_pass_rate']*100:.1f}%\n"
+            f"    평균 시도 횟수={rm['avg_attempts']}  malformed 재요청 합={rm['malformed_retries_total']}\n"
+            f"    지연(초) 평균/중앙값={rm['avg_wall_clock_sec']}/{rm['median_wall_clock_sec']}  "
+            f"세트당 비용 추정 평균(USD)={rm['avg_cost_usd']}\n"
+            f"    객관식 0개 지문 수={rm['n_zero_mc_passages']}"
+        )
+
+    print(f"\n[Judge 지표(Judge: {report['judge_model']}, 모델의 모든 객관식 문항, 지문 단위 클러스터 CI)]")
+    for m in report["models"]:
+        jm = report["judge_metrics"][m]
+        print(f"  {m}")
+        for c in _CRITERIA:
+            s = jm[c]
+            print(
+                f"    {c:<10}n={s['n']:<4}평균={s['mean']} CI={s['mean_ci']}  "
+                f"저품질(≤2점) 비율={s['low_quality_rate']} CI={s['low_quality_ci']}"
+            )
+        print(
+            f"    정답유일성 치명적 실패율(≤2점)={jm['uniqueness_critical_fail_rate']} "
+            f"CI={jm['uniqueness_critical_fail_ci']}"
+        )
+
+    print(f"\n[사람 지표] {report['human_metrics_note']}")
+    for m in report["models"]:
+        hm = report["human_metrics"][m]
+        print(f"  {m}")
+        for c in _CRITERIA:
+            s = hm[c]
+            print(
+                f"    {c:<10}n={s['n']:<4}평균={s['mean']} CI={s['mean_ci']}  "
+                f"저품질(≤2점) 비율={s['low_quality_rate']} CI={s['low_quality_ci']}"
+            )
+        print(
+            f"    정답유일성 치명적 실패율(≤2점)={hm['uniqueness_critical_fail_rate']} "
+            f"CI={hm['uniqueness_critical_fail_ci']}"
+        )
+
+    print("\n[짝지은 비교] (같은 지문에 두 모델 모두 값이 있는 경우만, n=쌍 수, CI가 0을 포함하면 판정 불가)")
+    for label, pw in report["pairwise"].items():
+        print(f"  {label}")
+        print("    Judge 지문 평균 overall 차이:")
+        _print_paired("overall", pw["judge_overall_diff"])
+        print("    사람 점수 기준별 차이:")
+        for c in _CRITERIA:
+            _print_paired(c, pw["human_diff"][c])
+        print("    최종 게이트 통과 차이:")
+        _print_paired("final_gate", pw["final_gate_diff"])
+        print("    지연(초) 차이(양수면 b가 더 오래 걸림):")
+        _print_paired("latency", pw["latency_diff"])
+
+    print("\n[case_type별 평균] (참고용, CI 없음)")
+    for kind, label in (("human", "사람"), ("judge", "Judge")):
+        print(f"  [{label}]")
+        for m in report["models"]:
+            print(f"    {m}: {report['case_type_table'][kind].get(m)}")
+
+
+def cmd_compare_generators(args: argparse.Namespace) -> None:
+    models = list(_MODELS)
+    baseline = args.baseline
+    judge_model = args.judge_model
+
+    records_by_model = {m: dedupe_run_records(load_run_records(_run_path(m))) for m in models}
+    judged_by_model = {m: load_run_records(_judged_path(judge_model, m)) for m in models}
+
+    with open(_ITEM_QUALITY_GOLDEN_PATH, encoding="utf-8") as f:
+        golden_entries = json.load(f)["entries"]
+    with open(_MODEL_MAP_PATH, encoding="utf-8") as f:
+        model_map = json.load(f)["map"]
+    inputs_meta = load_inputs_meta(_INPUTS_PATH)
+
+    report = compute_generator_comparison(
+        models, baseline, judge_model, records_by_model, judged_by_model,
+        golden_entries, model_map, inputs_meta, _code_version(),
+    )
+
+    out_path = os.path.join(_GOLDEN_DIR, "_generator_comparison.json")
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(report, f, ensure_ascii=False, indent=2)
+
+    _print_generator_comparison(report)
+    print(f"\n상세는 {out_path}에 저장했습니다.")
+
+
 # ── CLI ──────────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -709,6 +1114,14 @@ def main() -> None:
         help="비교할 Judge 후보 모델 id (예: anthropic/claude-sonnet-5.5 openai/gpt-5.6-luna)",
     )
     p_rel.set_defaults(func=cmd_reliability)
+
+    p_cmp = sub.add_parser(
+        "compare-generators",
+        help="생성 모델 3종을 규칙 지표·Judge 지표·사람 지표·짝지은 비교로 종합 비교",
+    )
+    p_cmp.add_argument("--judge-model", default="anthropic/claude-sonnet-5.5")
+    p_cmp.add_argument("--baseline", default="qwen2.5-14b", choices=_MODELS)
+    p_cmp.set_defaults(func=cmd_compare_generators)
 
     args = parser.parse_args()
     args.func(args)
