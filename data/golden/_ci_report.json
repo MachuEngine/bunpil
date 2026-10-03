@@ -1,0 +1,140 @@
+{
+  "sources": {
+    "ragas": {
+      "file": "data/golden/_ragas_eval_results.json",
+      "ci": {
+        "faithfulness": {
+          "n": 7,
+          "point": 0.0476,
+          "ci": [
+            0.0,
+            0.1427
+          ]
+        },
+        "answer_relevancy": {
+          "n": 7,
+          "point": 0.3743,
+          "ci": [
+            0.321,
+            0.4368
+          ]
+        },
+        "item_quality_정답유일성": {
+          "n": 24,
+          "point": 2.6667,
+          "ci": [
+            2.0833,
+            3.3333
+          ]
+        },
+        "item_quality_오답매력도": {
+          "n": 24,
+          "point": 3.2917,
+          "ci": [
+            2.7917,
+            3.75
+          ]
+        },
+        "item_quality_근거성": {
+          "n": 24,
+          "point": 3.4583,
+          "ci": [
+            3.0,
+            3.9167
+          ]
+        },
+        "item_quality_overall": {
+          "n": 24,
+          "point": 3.1383,
+          "ci": [
+            2.735,
+            3.5825
+          ]
+        }
+      },
+      "note": null
+    },
+    "structure_judge_eval": {
+      "file": "data/golden/_structure_judge_eval_results.json",
+      "ci": {
+        "overall_score_mae": {
+          "n": 45,
+          "point": 1.1778,
+          "ci": [
+            0.9333,
+            1.4672
+          ]
+        },
+        "bias_judge_minus_human": {
+          "n": 45,
+          "point": 1.0,
+          "ci": [
+            0.6889,
+            1.3556
+          ]
+        },
+        "difficulty_match_agreement": {
+          "n": 45,
+          "point": 0.8444,
+          "ci": [
+            0.7333,
+            0.9333
+          ]
+        }
+      },
+      "note": null
+    },
+    "validate_gate_calibration": {
+      "file": "data/golden/_validate_gate_calibration.json",
+      "ci": {
+        "overall_score_mae": {
+          "n": 45,
+          "point": 0.7556,
+          "ci": [
+            0.5111,
+            1.0
+          ]
+        },
+        "bias_judge_minus_human": {
+          "n": 45,
+          "point": 0.2222,
+          "ci": [
+            -0.1333,
+            0.5111
+          ]
+        },
+        "difficulty_match_agreement": {
+          "n": 45,
+          "point": 0.9333,
+          "ci": [
+            0.8444,
+            1.0
+          ]
+        }
+      },
+      "note": null
+    },
+    "vlm": {
+      "file": null,
+      "ci": null,
+      "note": "원자료 없음 — evals/eval_vlm.py는 리포트를 콘솔에만 출력하고 파일로 저장하지 않음"
+    }
+  },
+  "no_raw_data": [
+    {
+      "metric": "Judge 모델 비교 kappa/MAE(qwen2.5:7b vs gpt-5.6-luna, EVAL_SUMMARY 4.1절)",
+      "file": "data/golden/_judge_comparison_results.json",
+      "reason": "Judge별 집계된 reliability dict만 저장돼 있고 항목 단위 원점수가 없음"
+    },
+    {
+      "metric": "생성 모델 비교 실패율·생성시간(Qwen2.5 7B/14B 등, EVAL_SUMMARY 4.2절)",
+      "file": "data/golden/_model_comparison_results.json",
+      "reason": "모델별 집계값만 저장돼 있고 지문 단위 원시 실행 로그가 없음"
+    },
+    {
+      "metric": "VLM 추출 정확도(CER/WER·자료 서술 Judge 점수, EVAL_SUMMARY 3.3절(4)/MODEL_SELECTION.md §7)",
+      "file": "evals/eval_vlm.py 실행 결과(저장 안 함)",
+      "reason": "eval_vlm.py가 리포트만 콘솔에 출력하고 결과를 파일로 저장하지 않음(확인함, main() 참고)"
+    }
+  ]
+}

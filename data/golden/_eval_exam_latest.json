@@ -1,0 +1,111 @@
+{
+  "run_at": "2026-10-03T16:34:22.352133+00:00",
+  "code_version": "da8b48d",
+  "offline_judge_model": "anthropic/claude-sonnet-5.5",
+  "retrieval": {
+    "n": 22,
+    "recall_at_5": 1.0,
+    "recall_at_5_ci": [
+      1.0,
+      1.0
+    ],
+    "recall_at_5_verdict": "확정",
+    "mrr": 0.8537878787878787,
+    "mrr_ci": [
+      0.732,
+      0.955
+    ]
+  },
+  "item_quality_golden_reliability": {
+    "n": 91,
+    "criteria": {
+      "정답유일성": {
+        "weighted_kappa": 0.861,
+        "kappa_ci": [
+          0.738,
+          0.939
+        ],
+        "mae": 0.33,
+        "mae_ci": [
+          0.22,
+          0.453
+        ],
+        "bias": 0.11,
+        "bias_ci": [
+          -0.033,
+          0.264
+        ],
+        "human_avg": 4.03,
+        "llm_avg": 4.14,
+        "kappa_verdict": "확정",
+        "bias_verdict": "판정 불가(CI가 0을 포함)"
+      },
+      "오답매력도": {
+        "weighted_kappa": 0.695,
+        "kappa_ci": [
+          0.599,
+          0.773
+        ],
+        "mae": 0.44,
+        "mae_ci": [
+          0.326,
+          0.547
+        ],
+        "bias": 0.066,
+        "bias_ci": [
+          -0.077,
+          0.198
+        ],
+        "human_avg": 3.55,
+        "llm_avg": 3.62,
+        "kappa_verdict": "확정",
+        "bias_verdict": "판정 불가(CI가 0을 포함)"
+      },
+      "근거성": {
+        "weighted_kappa": 0.561,
+        "kappa_ci": [
+          0.347,
+          0.73
+        ],
+        "mae": 0.56,
+        "mae_ci": [
+          0.42,
+          0.703
+        ],
+        "bias": 0.165,
+        "bias_ci": [
+          -0.011,
+          0.356
+        ],
+        "human_avg": 4.23,
+        "llm_avg": 4.4,
+        "kappa_verdict": "미확정(CI 하한이 임계값 미만)",
+        "bias_verdict": "판정 불가(CI가 0을 포함)"
+      }
+    }
+  },
+  "item_quality_golden_judge_score": {
+    "avg_overall": 4.05,
+    "pass_rate": 0.7
+  },
+  "structure_golden_reliability": {
+    "n": 45,
+    "difficulty_match_agreement": {
+      "point": 0.867,
+      "ci_lo": 0.756,
+      "ci_hi": 0.956
+    },
+    "overall_score_mae": {
+      "point": 0.467,
+      "ci_lo": 0.311,
+      "ci_hi": 0.644
+    },
+    "bias_judge_minus_human": {
+      "point": -0.022,
+      "ci_lo": -0.244,
+      "ci_hi": 0.2
+    },
+    "bias_verdict": "판정 불가(CI가 0을 포함)",
+    "count_match_code_rate": 0.222
+  }
+}
