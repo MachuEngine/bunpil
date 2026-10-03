@@ -1,14 +1,16 @@
 # data/golden/ 파일 가이드
 
-## 1. 정기 평가용 골든셋 (5개) — 2026-08-20 VLM 골든셋 추가
+## 1. 정기 평가용 골든셋 (6개) — 2026-10 문항 품질 골든셋 교체
 
 | 파일 | 로드하는 스크립트 | 사람 라벨 필드 | 용도 |
 |---|---|---|---|
 | retrieval_golden_final.json | eval_exam.py | expected_chunk_id + reviewed | RAG 검색 Recall@5 평가 |
-| item_golden.json | eval_exam.py | human_score | 문항 품질(오답매력도 등) Judge 신뢰도 검증 |
-| structure_golden.json | eval_exam.py | human_label | 구조 유사도 Judge 신뢰도 검증 — 2026-07-23부터 이 Judge(`get_judge_backend()`)가 런타임 `judge` 노드와 동일 코드이므로, 이 수치가 곧 배포된 judge의 신뢰도(자세한 내용은 MODEL_SELECTION.md 2.5절) |
+| item_golden.json | — | human_score | **합성(Claude가 문항·점수 모두 합성), 2026-10 정기 평가 기준에서 item_quality_golden.json으로 대체됨(이력 보존, EVAL.md 28절) — eval_exam.py의 정기 평가는 더 이상 이 파일을 쓰지 않는다** |
+| item_quality_golden.json | eval_exam.py, eval_item_quality_runs.py | human_label(기준별 1~5점, 사람 라벨 1인) | 문항 품질(정답유일성·오답매력도·근거성) Judge 신뢰도 검증. 실제 생성 모델 3종(qwen2.5-14b/gpt-6-luna/gemini-3.8-flash) 출력에서 (지문, 모델)마다 객관식 1개씩 뽑아 모델 정보를 블라인드 처리했다(매핑은 `_item_quality_model_map.json`). 95건 중 cannot_judge 4건 제외한 91건이 평가 대상. 2026-10부터 item_golden.json을 대체(EVAL.md 28절) |
+| structure_golden.json | eval_exam.py | human_label | 구조 유사도 Judge 신뢰도 검증 — 2026-07-23부터 이 Judge(`get_judge_backend()`)가 런타임 `judge` 노드와 동일 코드이므로, 이 수치가 곧 배포된 judge의 신뢰도(자세한 내용은 MODEL_SELECTION.md 2.5절). 사람 라벨은 qwen 출력 45건 기준(API 모델 출력에서의 구조 Judge 정확도는 미검증) |
 | masking_golden.json | `tests/test_masker.py` | pii | PII 마스킹 평가(FN=0 강제). **2026-08-03**: 채점 스크립트였던 `eval_record.py`가 생기부 모듈과 함께 삭제되면서, 이 골든셋은 pytest 파라미터화 테스트로 흡수됐다 — `mask_pii()`는 출제 경로(`app/main.py` `_build_spec()`)가 계속 쓰므로 커버리지는 유지 |
-| vlm_extraction_golden.json | evals/eval_vlm.py | figure_summary(**Claude 초안, 2026-08-20 사람 검수 완료 — 전부 reviewed=true**) | 이미지→텍스트 추출(`/exam/extract`) 정확도 평가. text_only 20 + figure 15 + adversarial 5 = 40건, 이미지는 `vlm_golden_images/`(`golden_gen/gen_vlm_golden.py`로 생성, 전부 합성 — 실제 스크린샷 미사용). 채점 기준(figure_summary)은 검수됐지만 Judge 채점 자체의 신뢰도(kappa 등)는 미측정 — MODEL_SELECTION.md 7절 |
+| vlm_extraction_golden.json | evals/eval_vlm.py | figure_summary(**Claude 초안, 2026-08-20 사람 검수 완료 — 전부 reviewed=true**) | 이미지→텍스트 추출(`/exam/extract`) 정확도 평가. text_only 20 + figure 15 + adversarial 5 = 40건, 이미지는 `vlm_golden_images/`(`golden_gen/gen_vlm_golden.py`로 생성, 전부 합성 — 실제 스크린샷 미사용). 채점 기준(figure_summary)은 검수됐지만 Judge 채점 자체의 신뢰도(kappa 등)는 미측정 — 아래 vlm_figure_judge_golden.json 참고, MODEL_SELECTION.md 7절 |
+| vlm_figure_judge_golden.json | evals/eval_vlm_judge_reliability.py | human_label(null — **라벨링 보류**) | vlm_extraction_golden.json의 figure 15건을 고쳐 재생성해 (VLM 출력, Judge 점수)를 고정해 둔 것. structure_golden.json과 같은 목적(Judge 신뢰도 검증용)이나, 15건으로는 kappa의 신뢰구간이 너무 넓어 **라벨링을 보류**했다(2026-10, 45건으로 확대 후 진행 예정, MODEL_SELECTION.md §7) |
 
 > `hallucination_golden.json`/`violation_golden.json`(생기부 전용)은 모듈과 함께
 > **2026-08-03 삭제됨** — 더 이상 이 디렉토리에 존재하지 않는다(EVAL.md 14절).
@@ -43,6 +45,25 @@
 | _near_copy_diagnosis.json | diagnose_near_copy.py | **(신규 2026-08-07)** 게이트 실패의 성격 진단 — 생성 문항별 containment·임베딩 코사인과 Judge 점수 대조. 어휘·의미 가설이 모두 반증된 근거 데이터(EVAL.md 20절), 재실행 시 덮어씀 |
 | _budget_effect.json | measure_budget_effect.py | **(신규 2026-08-07)** budget=5(프로덕션 조건) 통과율·재시도 소모량 측정. 개선 작업 없이 0.833 달성을 보인 근거 데이터(EVAL.md 21절), 재실행 시 덮어씀 |
 | _distractor_diagnosis.json | diagnose_distractor.py | **(신규 2026-08-07)** 현재 스택 생성물의 문항 품질 3기준(정답유일성·오답매력도·근거성) 분해와 선지 원문. 타깃을 오답매력도→정답유일성으로 전환한 근거(EVAL.md 22절), 재실행 시 덮어씀 |
+
+## 3. 2026-10 문항 품질·Judge 재선정 작업 기록 — `golden_gen/gen_item_quality_golden.py`, `evals/eval_item_quality_runs.py`, `evals/ci_report.py` 전용
+
+item_quality_golden.json(위 1절)을 만들고 Judge·생성 모델을 재선정하는 과정에서 생긴
+입력·중간·결과 파일. 상세 경위는 EVAL.md 28절.
+
+| 파일/디렉토리 | 관련 스크립트 | 사람 라벨 | 성격 |
+|---|---|---|---|
+| item_quality_inputs.json | gen_item_quality_golden.py | 없음(review 필드는 지문 자체의 사람 검토 상태) | 합성 지문 33개(입력) — 2026-09 합성 입력에서 가져와 2026-10-03에 재구성(변별력 확보를 위해 normal 10개를 hard_content 10개로 교체, 28.1절) |
+| item_quality_labeling_sheet.json | gen_item_quality_golden.py export-sheet/import-sheet | 작업 중간 포맷(최종 반영 대상은 item_quality_golden.json) | JSON 직접 편집용 라벨링 작업 시트. 라벨링은 이 시트를 편집한 뒤 import-sheet로 골든셋에 반영 |
+| _item_quality_model_map.json | gen_item_quality_golden.py build-labelset | 없음(모델/지문 매핑표) | item_quality_golden.json의 블라인드 id(iq_001…) → 실제 모델/원본 지문 매핑. **라벨링 중에는 참조 금지**(블라인드 유지) |
+| _item_quality_runs/*.jsonl | gen_item_quality_golden.py generate | 없음(모델 생성물) | 지문별로 운영 경로를 그대로 실행한 생성 결과, 모델별 1파일(`{model}.jsonl`, smoke 변형 별도). item_quality_golden.json의 원재료 |
+| _item_quality_judged/\<judge-slug\>/\<model\>.jsonl | eval_item_quality_runs.py judge | 없음(Judge 채점 결과만, 문항 원문 미포함) | run의 객관식 문항을 Judge 후보별로 채점해 이어서 쌓는 캐시(재호출 없이 재분석 가능) |
+| _item_quality_struct_judged/\<judge-slug\>/\<model\>.jsonl | eval_item_quality_runs.py structure-judge | 없음 | run을 `judge_structure()`(런타임 judge_node와 같은 함수)로 재채점한 캐시 — 런타임 게이트 Judge(gpt-5.6-luna)와 다른 Judge의 같은 계열 편향을 대조하는 재료 |
+| _judge_selection_round1.json | experiments/compare_judge_models.py | 사람 라벨 1인(structure_golden 45건, qwen 출력만) | Judge 1차 선별 — 5개 후보를 구조 유사도로 2회씩 비교(28.3절) |
+| _judge_selection_round2.json | eval_item_quality_runs.py reliability | **사람 라벨 1인, 91건** | Judge 2차 선별 — item_quality_golden.json 라벨과 sonnet/luna 3회 채점을 대조한 기준별 가중 κ·MAE·편향·짝지은 비교(28.4절) |
+| _generator_comparison.json | eval_item_quality_runs.py compare-generators | 사람 라벨 포함(위 골든셋에서 조인) | 생성 모델 3종(qwen2.5-14b/gpt-6-luna/gemini-3.8-flash) 규칙·Judge·사람 지표·짝지은 비교 종합(28.6절) |
+| _eval_exam_latest.json | evals/eval_exam.py | 사람 라벨 포함(위 골든셋에서 조인) | 정기 평가(`eval_exam.py`) 최신 실행 결과 스냅샷 — `ci_report.py`가 이 파일은 직접 읽지 않고 콘솔 출력만 남김(재현 명령은 EVAL.md 28.11절) |
+| _ci_report.json | evals/ci_report.py | 없음(여러 raw 파일을 모아 재계산) | 재실행 없이 저장된 raw 결과(RAGAS·구조 Judge·게이트 재보정 등)만으로 95% 신뢰구간을 다시 계산한 리포트. 원자료가 집계값만 남아 CI를 못 낸 항목(2026-07 Judge/생성 모델 비교, VLM)도 `no_raw_data`에 명시 |
 
 ## 명명 규칙
 

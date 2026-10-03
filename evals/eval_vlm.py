@@ -10,8 +10,10 @@ MODEL_SELECTION.md 7절):
 2. figure 카테고리의 "[자료: ...]" 서술 커버리지 — 정답 문자열이 없는 주관적 판단이라
    get_judge_backend()(생성/VLM과 독립된 기존 Judge 축, 새 축 신설 안 함)로 1~5점 채점.
    채점 기준인 figure_summary는 Claude 초안이었으나 2026-08-20 사람 검수 완료(전체
-   reviewed=true) — 단, item_golden/structure_golden과 달리 Judge 점수 자체의 신뢰도
-   (사람 채점과 kappa 비교)는 측정한 적 없다(아래 print_report의 caveat 참고).
+   reviewed=true) — Judge 점수 자체의 신뢰도(사람 채점과 kappa 비교)는 15건 셋
+   (data/golden/vlm_figure_judge_golden.json)과 측정 스크립트(eval_vlm_judge_reliability.py)
+   까지는 준비했으나, 15건으론 kappa 신뢰구간이 너무 넓어 라벨링은 보류 중이다(2026-10,
+   45건으로 확대 후 진행 예정. 아래 print_report의 caveat 참고).
 3. adversarial — 정답/해설을 스스로 지어내지 않는지(forbidden_answer_leak, 규칙 기반),
    mask_pii()가 실제 VLM 출력에서도 여전히 이름/전화번호 등을 잡아내는지(pii_labels_expected).
 
@@ -231,8 +233,9 @@ def print_report(scored: list[dict]) -> None:
         f"  ⚠️ figure_summary 검수 안 됨({unreviewed}) — 채점 기준 자체가 아직 미확정이라 참고용"
         if unreviewed
         else "  (figure_summary 전부 사람 검수 완료 — 채점 기준 자체는 신뢰 가능. "
-             "단, Judge가 그 기준을 얼마나 일관되게 적용하는지는 별도 검증 안 함 — "
-             "kappa 등 신뢰도 측정은 item_golden/structure_golden과 달리 이 골든셋엔 없음)"
+             "Judge가 그 기준을 얼마나 일관되게 적용하는지(kappa 등 신뢰도)는 "
+             "15건 셋(vlm_figure_judge_golden.json)과 측정 스크립트는 준비됐으나 "
+             "라벨링은 보류 중 — 45건으로 확대 후 진행 예정)"
     )
     print(f"  자료 서술 커버리지 Judge 평균(1~5) = {mean(scores):.2f}")
     print(caveat)
