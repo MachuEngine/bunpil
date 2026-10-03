@@ -20,7 +20,11 @@ from evals.eval_item_quality_runs import (
     compute_metrics,
     compute_reliability_report,
     compute_rule_metrics,
+    compute_structure_section,
     coverage_passage_ids,
+    gate_judge_contrast,
+    gate_judge_diff_by_passage,
+    generator_pairs,
     group_judged_by_run,
     human_case_type_means,
     human_label_distribution,
@@ -34,8 +38,10 @@ from evals.eval_item_quality_runs import (
     judged_keys,
     load_inputs_meta,
     load_labeled_keys,
+    load_passage_texts,
     mc_items_for_run,
     paired_abs_error_diff,
+    paired_bias_diff_ci,
     paired_ci_verdict,
     passage_level_final_pass,
     passage_level_judge_overall,
@@ -43,7 +49,13 @@ from evals.eval_item_quality_runs import (
     per_repeat_kappas,
     quality_stats_by_criteria,
     repeats_for_item,
+    runtime_luna_overall_by_passage,
     score_distribution,
+    struct_judge_mean_by_run,
+    struct_judge_targets,
+    struct_judged_keys,
+    structure_gate_pass_rate,
+    structure_quality_stats,
     usable_human_labels,
 )
 
@@ -779,3 +791,232 @@ def test_compute_generator_comparison_pairs_and_missing_passage_handling():
     # 콘솔/저장 출력에 문항 원문이 섞이지 않는다(하드룰 4) — report 전체를 문자열로
     # 직렬화해도 question 키 자체가 어디에도 없어야 한다.
     assert "question" not in json.dumps(report, ensure_ascii=False)
+
+
+# ── structure-judge: 캐시 대상 선정/스킵 ──────────────────────────────────
+
+def test_load_passage_texts_reads_id_to_passage_text(tmp_path):
+    path = tmp_path / "inputs.json"
+    data = {"entries": [{"id": "p1", "passage_text": "지문1"}, {"id": "p2", "passage_text": "지문2"}]}
+    path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    assert load_passage_texts(str(path)) == {"p1": "지문1", "p2": "지문2"}
+
+
+def test_struct_judge_targets_excludes_runs_without_items():
+    records = [
+        {"id": "p1", "items": [_mc("it1")]},
+        {"id": "p2", "items": []},  # run 실패 등 — 제외
+        {"id": "p3"},  # items 키 자체가 없는 경우도 제외
+    ]
+    targets = struct_judge_targets(records)
+    assert [r["id"] for r in targets] == ["p1"]
+
+
+def test_struct_judged_keys_builds_skip_set():
+    records = [
+        {"run_id": "p1", "repeat": 0, "result": {}},
+        {"run_id": "p1", "repeat": 1, "result": {}},
+        {"run_id": "p2", "repeat": 0, "result": {}},
+    ]
+    keys = struct_judged_keys(records)
+    assert keys == {("p1", 0), ("p1", 1), ("p2", 0)}
+    assert ("p1", 2) not in keys
+
+
+# ── structure-judge 재채점 캐시 집계/대조 ──────────────────────────────────
+
+def _struct_rec(run_id, repeat, type_ratio=1.0, difficulty_match=True, overall=5):
+    return {
+        "run_id": run_id, "model": "m", "repeat": repeat,
+        "result": {"type_ratio_score": type_ratio, "difficulty_match": difficulty_match, "overall_score": overall},
+        "judge_model": "anthropic/claude-sonnet-5.5",
+    }
+
+
+def test_struct_judge_mean_by_run_averages_repeats():
+    records = [_struct_rec("p1", 0, 1.0, True, 5), _struct_rec("p1", 1, 0.5, True, 3)]
+    mean_by_run = struct_judge_mean_by_run(records)
+    assert mean_by_run["p1"]["type_ratio_score"] == pytest.approx(0.75)
+    assert mean_by_run["p1"]["overall_score"] == pytest.approx(4.0)
+    assert mean_by_run["p1"]["difficulty_match"] is True
+    assert mean_by_run["p1"]["n_repeats"] == 2
+
+
+def test_struct_judge_mean_by_run_difficulty_match_majority_tie_counts_as_true():
+    # 반복 2회 중 1회만 true — 0.5 >= 0.5라 True로 판정(동점은 true 쪽).
+    records = [_struct_rec("p1", 0, 1.0, True, 5), _struct_rec("p1", 1, 1.0, False, 5)]
+    mean_by_run = struct_judge_mean_by_run(records)
+    assert mean_by_run["p1"]["difficulty_match"] is True
+
+
+def test_struct_judge_mean_by_run_difficulty_match_minority_false():
+    records = [
+        _struct_rec("p1", 0, 1.0, False, 5),
+        _struct_rec("p1", 1, 1.0, False, 5),
+        _struct_rec("p1", 2, 1.0, True, 5),
+    ]
+    mean_by_run = struct_judge_mean_by_run(records)
+    assert mean_by_run["p1"]["difficulty_match"] is False
+
+
+def test_structure_quality_stats_computes_mean_ci_and_rates():
+    mean_by_run = {
+        "p1": {"type_ratio_score": 1.0, "overall_score": 5, "difficulty_match": True, "n_repeats": 1},
+        "p2": {"type_ratio_score": 0.5, "overall_score": 3, "difficulty_match": False, "n_repeats": 1},
+    }
+    stats = structure_quality_stats(mean_by_run)
+    assert stats["n"] == 2
+    assert stats["overall_mean"] == pytest.approx(4.0)
+    assert stats["type_ratio_mean"] == pytest.approx(0.75)
+    assert stats["difficulty_match_rate"] == pytest.approx(0.5)
+
+
+def test_structure_quality_stats_empty_returns_none_without_crashing():
+    stats = structure_quality_stats({})
+    assert stats["n"] == 0
+    assert stats["overall_mean"] is None
+
+
+# 런타임 게이트 조건(graph.py validate_node와 동일): count_match and type_ratio>=0.5
+# and difficulty_match and overall>=3. structure_gate_pass_rate가 sonnet 점수에 이 조건을
+# 그대로 재적용하는지 경계값으로 확인한다.
+def test_structure_gate_pass_rate_reapplies_runtime_gate_condition():
+    mean_by_run = {
+        "p1": {"type_ratio_score": 0.5, "overall_score": 3, "difficulty_match": True},  # 경계값 — 통과
+        "p2": {"type_ratio_score": 0.4, "overall_score": 5, "difficulty_match": True},  # type_ratio 미달
+        "p3": {"type_ratio_score": 1.0, "overall_score": 5, "difficulty_match": True},  # count_match 불일치
+    }
+    records_by_id = {
+        "p1": {"num_items": 1, "items": [_mc("it1")]},
+        "p2": {"num_items": 1, "items": [_mc("it1")]},
+        "p3": {"num_items": 2, "items": [_mc("it1")]},  # 목표 2개인데 1개만 저장됨
+    }
+    result = structure_gate_pass_rate(mean_by_run, records_by_id)
+    assert result["n"] == 3
+    assert result["pass_rate"] == pytest.approx(round(1 / 3, 3))
+
+
+def test_structure_gate_pass_rate_empty_returns_none_without_crashing():
+    assert structure_gate_pass_rate({}, {}) == {"n": 0, "pass_rate": None}
+
+
+def test_runtime_luna_overall_by_passage_uses_last_attempt_and_skips_missing():
+    records = [
+        {"id": "p1", "attempt_log": [{"judge_result": {"overall_score": 2}}, {"judge_result": {"overall_score": 4}}]},
+        {"id": "p2", "attempt_log": []},  # run 실패 등 — 제외
+        {"id": "p3", "attempt_log": [{"validation_feedback": "x"}]},  # judge_result 자체가 없음 — 제외
+    ]
+    overall = runtime_luna_overall_by_passage(records)
+    assert overall == {"p1": 4}  # 최종(마지막) 시도 점수만
+
+
+def test_gate_judge_contrast_only_common_passages_and_sign():
+    records = [
+        {"id": "p1", "attempt_log": [{"judge_result": {"overall_score": 5}}]},
+        {"id": "p2", "attempt_log": [{"judge_result": {"overall_score": 3}}]},  # struct_mean에 없음
+    ]
+    struct_mean_by_run = {
+        "p1": {"overall_score": 3, "type_ratio_score": 1.0, "difficulty_match": True},
+        "p3": {"overall_score": 1, "type_ratio_score": 1.0, "difficulty_match": True},  # luna 쪽에 없음
+    }
+    result = gate_judge_contrast(records, struct_mean_by_run)
+    assert result["n"] == 1  # p1만 공통
+    assert result["mean_diff"] == pytest.approx(2.0)  # luna(5) - sonnet(3) = 2, 양수면 luna가 더 후함
+
+
+def test_gate_judge_diff_by_passage_matches_contrast_values():
+    records = [{"id": "p1", "attempt_log": [{"judge_result": {"overall_score": 5}}]}]
+    struct_mean_by_run = {"p1": {"overall_score": 3, "type_ratio_score": 1.0, "difficulty_match": True}}
+    assert gate_judge_diff_by_passage(records, struct_mean_by_run) == {"p1": pytest.approx(2.0)}
+
+
+def test_paired_bias_diff_ci_positive_when_b_more_biased():
+    diff_a = {"p1": 0.0, "p2": 0.0, "p3": 0.0, "p4": 0.0}
+    diff_b = {"p1": 2.0, "p2": 2.0, "p3": 2.0, "p4": 2.0}
+    result = paired_bias_diff_ci(diff_a, diff_b)
+    assert result["n"] == 4
+    assert result["mean_diff"] == pytest.approx(2.0)
+
+
+def test_paired_bias_diff_ci_negative_when_a_more_biased():
+    diff_a = {"p1": 2.0, "p2": 2.0, "p3": 2.0, "p4": 2.0}
+    diff_b = {"p1": 0.0, "p2": 0.0, "p3": 0.0, "p4": 0.0}
+    result = paired_bias_diff_ci(diff_a, diff_b)
+    assert result["mean_diff"] == pytest.approx(-2.0)
+
+
+def test_paired_bias_diff_ci_no_common_passages_returns_no_sample():
+    result = paired_bias_diff_ci({"p1": 1.0}, {"p2": 1.0})
+    assert result == {"n": 0, "mean_diff": None, "ci": [None, None]}
+
+
+# ── compare-generators: 구조 절(compute_structure_section) ────────────────
+
+def test_compute_structure_section_returns_none_when_no_struct_cache_anywhere():
+    result = compute_structure_section(
+        ["qwen2.5-14b", "gpt-6-luna"], "qwen2.5-14b", "anthropic/claude-sonnet-5.5",
+        {}, {"qwen2.5-14b": [], "gpt-6-luna": []},
+    )
+    assert result is None
+
+
+def _structure_run(pid, overall_luna, num_items=1, n_items=1, validation_passed=True):
+    return {
+        "id": pid, "num_items": num_items, "items": [_mc(f"{pid}-it{i}") for i in range(n_items)],
+        "validation_passed": validation_passed, "error": None,
+        "attempt_log": [{"validation_passed": validation_passed, "judge_result": {"overall_score": overall_luna}}],
+    }
+
+
+def test_compute_structure_section_end_to_end_with_fake_cache():
+    models = ["qwen2.5-14b", "gpt-6-luna"]
+    records_by_model = {
+        "qwen2.5-14b": [_structure_run("p1", overall_luna=2), _structure_run("p2", overall_luna=5)],
+        "gpt-6-luna": [_structure_run("p1", overall_luna=5), _structure_run("p2", overall_luna=5)],
+    }
+    struct_judged_by_model = {
+        "qwen2.5-14b": [_struct_rec("p1", 0, 1.0, True, 3), _struct_rec("p2", 0, 1.0, True, 4)],
+        "gpt-6-luna": [_struct_rec("p1", 0, 1.0, True, 5), _struct_rec("p2", 0, 1.0, True, 5)],
+    }
+
+    report = compute_structure_section(
+        models, "qwen2.5-14b", "anthropic/claude-sonnet-5.5", records_by_model, struct_judged_by_model,
+    )
+
+    assert report is not None
+    assert report["judge_model"] == "anthropic/claude-sonnet-5.5"
+
+    assert report["quality"]["qwen2.5-14b"]["n"] == 2
+    assert report["quality"]["qwen2.5-14b"]["overall_mean"] == pytest.approx(3.5)
+    assert report["quality"]["gpt-6-luna"]["overall_mean"] == pytest.approx(5.0)
+
+    # sonnet 게이트 재적용: 둘 다 count_match·type_ratio·difficulty_match·overall(>=3) 충족 → 전부 통과.
+    assert report["gate"]["qwen2.5-14b"]["sonnet_gate"]["pass_rate"] == pytest.approx(1.0)
+    assert report["gate"]["gpt-6-luna"]["sonnet_gate"]["pass_rate"] == pytest.approx(1.0)
+    # 런타임 luna 최종 게이트 통과율도 함께 노출(비교 대조용) — validation_passed=True 전부.
+    assert report["gate"]["qwen2.5-14b"]["runtime_luna_final_gate_pass_rate"] == pytest.approx(1.0)
+
+    assert "qwen2.5-14b_vs_gpt-6-luna" in report["pairwise_overall_diff"]
+    pw = report["pairwise_overall_diff"]["qwen2.5-14b_vs_gpt-6-luna"]
+    assert pw["n"] == 2
+    assert pw["mean_diff"] == pytest.approx(1.5)  # gpt-6-luna(5.0) - qwen(3.5)
+
+    assert report["gate_judge_diff_by_model"]["qwen2.5-14b"]["n"] == 2
+    assert report["gate_judge_diff_by_model"]["gpt-6-luna"]["mean_diff"] == pytest.approx(0.0)
+    assert "qwen2.5-14b_vs_gpt-6-luna" in report["gate_judge_diff_contrast"]
+
+    assert report["gate_judge_diff_note"]
+    assert report["no_human_baseline_note"]
+
+    # 문항 원문은 어디에도 없어야 한다(하드룰 4).
+    assert "question" not in json.dumps(report, ensure_ascii=False)
+
+
+def test_generator_pairs_includes_extra_pair_only_when_both_present_and_not_baseline():
+    assert generator_pairs(["qwen2.5-14b", "gpt-6-luna", "gemini-3.8-flash"], "qwen2.5-14b") == [
+        ("qwen2.5-14b", "gpt-6-luna"), ("qwen2.5-14b", "gemini-3.8-flash"), ("gpt-6-luna", "gemini-3.8-flash"),
+    ]
+    # 기준 모델이 extra pair 중 하나면 중복 추가하지 않는다.
+    assert generator_pairs(["qwen2.5-14b", "gpt-6-luna", "gemini-3.8-flash"], "gpt-6-luna") == [
+        ("gpt-6-luna", "qwen2.5-14b"), ("gpt-6-luna", "gemini-3.8-flash"),
+    ]

@@ -14,9 +14,16 @@
   reliability     item_quality_golden.json 사람 라벨과 judged 캐시(여러 Judge 후보)를 대조해
                   기준별 가중 κ·MAE·편향·짝지은 비교·생성 모델별 편향을 계산하고
                   data/golden/_judge_selection_round2.json에 저장(재분석이 API 재호출 없이 가능)
+  structure-judge  dedupe한 run(items가 있는 세트만)을 app/modules/exam/judge.py
+                  judge_structure()(런타임 judge_node와 같은 함수)로 재채점 →
+                  data/golden/_item_quality_struct_judged/<judge-slug>/<model>.jsonl에
+                  append(이어서 실행). 런타임 게이트 Judge(gpt-5.6-luna)와 다른 Judge(기본
+                  anthropic/claude-sonnet-5.5)로 구조 유사도를 다시 매겨, 같은 계열 편향을
+                  compare-generators의 구조 절에서 대조하기 위한 재료다.
   compare-generators  생성 모델 3종(qwen2.5-14b 기준/gpt-6-luna/gemini-3.8-flash)을
                   규칙 지표(run)·Judge 지표(judged 캐시)·사람 지표(라벨셋)·짝지은 비교로
-                  종합 비교하고 data/golden/_generator_comparison.json에 저장
+                  종합 비교하고, structure-judge 캐시가 있으면 구조 절(오프라인 Judge 재채점·
+                  런타임 게이트 Judge와의 대조)도 더해 data/golden/_generator_comparison.json에 저장
 
 하드룰 2(마스킹은 모델 호출 이전): run 파일은 이미 그 순서로 생성된 결과물이고, 이 스크립트는
 run을 다시 생성하지 않는다(채점만) — 새로 모델을 호출하는 지점은 judge_one() 하나뿐이고,
@@ -44,10 +51,19 @@ load_dotenv()
 from golden_gen.gen_item_quality_golden import dedupe_run_records, load_run_records
 from evals.stats import cluster_bootstrap_ci, mean_ci, weighted_kappa
 
+# validate_node의 게이트 임계값 — structure-judge로 재채점한 sonnet 점수에도 같은 조건을
+# 적용해 통과율을 비교한다(graph.py는 수정하지 않고, 설계 승인에 따라 import만 공유).
+# 이 모듈은 app.* import 전에 env를 설정해야 하는 다른 서브커맨드(judge 등)와 달리
+# 이 상수들은 백엔드 선택과 무관해 모듈 로드 시점에 바로 가져와도 안전하다.
+from app.modules.exam.graph import _MIN_OVERALL_SCORE, _MIN_TYPE_RATIO_SCORE
+
 _GOLDEN_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "golden")
 _INPUTS_PATH = os.path.join(_GOLDEN_DIR, "item_quality_inputs.json")
 _RUNS_DIR = os.path.join(_GOLDEN_DIR, "_item_quality_runs")
 _JUDGED_DIR = os.path.join(_GOLDEN_DIR, "_item_quality_judged")
+# structure-judge 캐시(오프라인 Judge로 재채점한 구조 유사도) — judge 캐시(_JUDGED_DIR, 문항
+# 품질 3기준)와 별개 디렉터리. 결과(result)만 적고 문항 원문은 적지 않는다(하드룰 4).
+_STRUCT_JUDGED_DIR = os.path.join(_GOLDEN_DIR, "_item_quality_struct_judged")
 # reliability·judge --only-labeled가 함께 쓰는 라벨셋 경로 — golden_gen/gen_item_quality_golden.py
 # build-labelset이 만든 산출물(해당 스크립트는 수정하지 않음, 경로만 공유).
 _ITEM_QUALITY_GOLDEN_PATH = os.path.join(_GOLDEN_DIR, "item_quality_golden.json")
@@ -74,6 +90,10 @@ def _run_path(model: str) -> str:
 
 def _judged_path(judge_model: str, model: str) -> str:
     return os.path.join(_JUDGED_DIR, _judge_slug(judge_model), f"{model}.jsonl")
+
+
+def _struct_judged_path(judge_model: str, model: str) -> str:
+    return os.path.join(_STRUCT_JUDGED_DIR, _judge_slug(judge_model), f"{model}.jsonl")
 
 
 def _code_version() -> str:
@@ -179,6 +199,83 @@ def cmd_judge(args: argparse.Namespace) -> None:
                         f.flush()
                         n_judged += 1
         print(f"[{model}] 신규 채점 {n_judged}건, 캐시 스킵 {n_skipped}건 → {out_path}")
+
+
+# ── structure-judge: 오프라인 Judge로 구조 유사도 재채점 ─────────────────
+
+def load_passage_texts(path: str) -> dict[str, str]:
+    """id -> passage_text — item_quality_inputs.json 전체 로드. judge_structure() 호출에
+    넘기는 용도로만 쓰고, 캐시 파일에는 저장하지 않는다(하드룰 4)."""
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    return {e["id"]: e["passage_text"] for e in data["entries"]}
+
+
+def struct_judge_targets(records: list[dict]) -> list[dict]:
+    """structure-judge 채점 대상 run만 고른다 — items가 비어 있는 세트(run 실패 포함)는
+    judge_structure()에 넘길 것이 없어 제외한다."""
+    return [r for r in records if r.get("items")]
+
+
+def struct_judged_keys(records: list[dict]) -> set[tuple]:
+    """이미 채점 완료된 (run_id, repeat) 키 집합 — structure-judge 이어서 실행 시 스킵 판정에 사용."""
+    return {(r["run_id"], r["repeat"]) for r in records}
+
+
+def cmd_structure_judge(args: argparse.Namespace) -> None:
+    # app.* import 전에 env를 설정한다(cmd_judge와 같은 관례) — get_judge_backend()가
+    # 이 두 값을 읽어 백엔드를 고른다.
+    os.environ["JUDGE_BACKEND"] = "openrouter"
+    os.environ["OPENROUTER_JUDGE_MODEL"] = args.judge_model
+
+    from app.common.llm import get_judge_backend
+    from app.modules.exam.judge import judge_structure
+
+    judge_llm = get_judge_backend()
+    models = args.models or list(_MODELS)
+    passage_texts = load_passage_texts(_INPUTS_PATH)
+    out_dir = os.path.join(_STRUCT_JUDGED_DIR, _judge_slug(args.judge_model))
+    os.makedirs(out_dir, exist_ok=True)
+
+    print(
+        f"=== 구조 유사도 오프라인 재채점 Judge: {args.judge_model} / "
+        f"대상 모델: {', '.join(models)} / repeat={args.repeat} ==="
+    )
+
+    for model in models:
+        # dedupe — run이 재실행으로 여러 번 append됐다면 id당 하나만 채점 대상.
+        records = dedupe_run_records(load_run_records(_run_path(model)))
+        targets = struct_judge_targets(records)
+        n_empty = len(records) - len(targets)
+        out_path = _struct_judged_path(args.judge_model, model)
+        done = struct_judged_keys(load_run_records(out_path))
+
+        n_judged = 0
+        n_skipped = 0
+        with open(out_path, "a", encoding="utf-8") as f:
+            for run in targets:
+                items = run["items"]
+                passage_text = passage_texts.get(run["id"], "")
+                for rep in range(args.repeat):
+                    key = (run["id"], rep)
+                    if key in done:
+                        n_skipped += 1
+                        continue
+                    result = judge_structure(passage_text, items, judge_llm)
+                    record = {
+                        "run_id": run["id"],
+                        "model": model,
+                        "repeat": rep,
+                        "result": result,
+                        "judge_model": args.judge_model,
+                    }
+                    f.write(json.dumps(record, ensure_ascii=False) + "\n")
+                    f.flush()
+                    n_judged += 1
+        print(
+            f"[{model}] 신규 채점 {n_judged}건, 캐시 스킵 {n_skipped}건, "
+            f"items 없음(제외) {n_empty}건 → {out_path}"
+        )
 
 
 # ── discrimination: 지문×모델 지표 + 변별력 집계 ─────────────────────────
@@ -894,6 +991,17 @@ def human_case_type_means(rows_for_model: list[dict], inputs_meta: dict) -> dict
     }
 
 
+def generator_pairs(models: list[str], baseline: str) -> list[tuple[str, str]]:
+    """비교할 모델 쌍 — 기준 모델 vs 나머지 + (gpt-6-luna, gemini-3.8-flash) 명시 쌍(둘 다
+    기준이 아닐 때만 추가). compute_generator_comparison의 짝지은 비교와 구조 절
+    (compute_structure_section)이 같은 쌍 구성을 공유한다."""
+    pairs = [(baseline, m) for m in models if m != baseline]
+    extra_pair = ("gpt-6-luna", "gemini-3.8-flash")
+    if extra_pair[0] in models and extra_pair[1] in models and baseline not in extra_pair:
+        pairs.append(extra_pair)
+    return pairs
+
+
 _MISSING_BIAS_NOTE = (
     "객관식 0개(run 실패 포함) 지문은 Judge·사람 점수 쌍에서는 빠지지만, 규칙 지표"
     "(목표 개수 달성률·통과율)에는 실패로 포함된다 — 품질 지표만 보면 해당 모델이 "
@@ -929,13 +1037,7 @@ def compute_generator_comparison(
     final_pass_by_model = {m: passage_level_final_pass(records_by_model[m]) for m in models}
     latency_by_model = {m: passage_level_latency(records_by_model[m]) for m in models}
 
-    pairs = [(baseline, m) for m in models if m != baseline]
-    extra_pair = ("gpt-6-luna", "gemini-3.8-flash")
-    if (
-        extra_pair[0] in models and extra_pair[1] in models
-        and baseline not in extra_pair
-    ):
-        pairs.append(extra_pair)
+    pairs = generator_pairs(models, baseline)
 
     pairwise = {}
     for a, b in pairs:
@@ -980,6 +1082,192 @@ def compute_generator_comparison(
         "case_type_table": case_type_table,
         "gate_dependency_note": _GATE_DEPENDENCY_NOTE,
         "missing_bias_note": _MISSING_BIAS_NOTE,
+    }
+
+
+# ── compare-generators: 구조 유사도 오프라인 재채점 + 런타임 게이트 Judge 대조 ────
+#
+# structure-judge 캐시(오프라인 Judge, 기본 claude-sonnet-5.5)와 run의 attempt_log(런타임
+# Judge gpt-5.6-luna 구조 점수)를 대조한다. 핵심 계산은 전부 순수 함수(LLM 호출 없음) —
+# compute_structure_section과 테스트가 공유. 캐시가 없으면 compute_structure_section이
+# None을 반환해 cmd_compare_generators가 이 절을 건너뛰고 안내만 출력한다.
+
+def runtime_luna_overall_by_passage(records: list[dict]) -> dict[str, float]:
+    """dedupe된 run 레코드에서 지문별 런타임 Judge(gpt-5.6-luna, 생성 시 고정) 구조
+    overall_score — attempt_log[-1]["judge_result"]가 최종 시도의 점수다. attempt_log가
+    비어 있거나 judge_result에 overall_score가 없는 run(run 실패 등)은 제외한다."""
+    result = {}
+    for r in records:
+        attempt_log = r.get("attempt_log") or []
+        if not attempt_log:
+            continue
+        judge_result = attempt_log[-1].get("judge_result") or {}
+        if "overall_score" in judge_result:
+            result[r["id"]] = judge_result["overall_score"]
+    return result
+
+
+def struct_judge_mean_by_run(struct_records: list[dict]) -> dict[str, dict]:
+    """모델 1개의 structure-judge 캐시(반복 포함)를 run_id별 평균으로 묶는다.
+    type_ratio_score·overall_score는 반복 평균, difficulty_match는 반복 중 과반수가
+    true인지로 판정한다(기본 --repeat 1이면 그 반복 값 그대로)."""
+    grouped: dict[str, list[dict]] = {}
+    for r in struct_records:
+        grouped.setdefault(r["run_id"], []).append(r["result"])
+    out = {}
+    for run_id, results in grouped.items():
+        n = len(results)
+        out[run_id] = {
+            "type_ratio_score": sum(r["type_ratio_score"] for r in results) / n,
+            "overall_score": sum(r["overall_score"] for r in results) / n,
+            "difficulty_match": sum(1 for r in results if r["difficulty_match"]) / n >= 0.5,
+            "n_repeats": n,
+        }
+    return out
+
+
+def structure_quality_stats(struct_mean_by_run: dict[str, dict]) -> dict:
+    """sonnet overall 평균[지문 단위 클러스터 CI], type_ratio 평균, difficulty_match
+    비율(둘 다 참고용, CI 없음) — 지문(run_id) 단위."""
+    run_ids = list(struct_mean_by_run)
+    if not run_ids:
+        return {"n": 0, "overall_mean": None, "overall_ci": [None, None], "type_ratio_mean": None, "difficulty_match_rate": None}
+    overalls = [struct_mean_by_run[r]["overall_score"] for r in run_ids]
+    overall_point, overall_lo, overall_hi = mean_ci(overalls, run_ids)
+    type_ratio_mean = sum(struct_mean_by_run[r]["type_ratio_score"] for r in run_ids) / len(run_ids)
+    difficulty_match_rate = sum(1 for r in run_ids if struct_mean_by_run[r]["difficulty_match"]) / len(run_ids)
+    return {
+        "n": len(run_ids),
+        "overall_mean": _round3(overall_point), "overall_ci": [_round3(overall_lo), _round3(overall_hi)],
+        "type_ratio_mean": _round3(type_ratio_mean),
+        "difficulty_match_rate": _round3(difficulty_match_rate),
+    }
+
+
+def structure_gate_pass_rate(struct_mean_by_run: dict[str, dict], records_by_id: dict[str, dict]) -> dict:
+    """sonnet 점수에 런타임 게이트 조건(graph.py validate_node와 동일 — count_match·
+    type_ratio_score·difficulty_match·overall_score)을 적용했을 때의 통과율.
+
+    분모는 structure-judge 캐시가 있는 지문 수다(run 실패·items 빈 세트는 캐시 자체가
+    없어 애초에 제외됨) — rule_metrics의 final_gate_pass_rate(분모가 전체 지문 수)와
+    분모가 다르므로 그 값과 직접 비교할 때 주의가 필요하다."""
+    run_ids = list(struct_mean_by_run)
+    if not run_ids:
+        return {"n": 0, "pass_rate": None}
+    passed = 0
+    for rid in run_ids:
+        rec = records_by_id.get(rid) or {}
+        count_match = rec.get("num_items") is not None and len(rec.get("items", [])) == rec["num_items"]
+        s = struct_mean_by_run[rid]
+        if (
+            count_match
+            and s["type_ratio_score"] >= _MIN_TYPE_RATIO_SCORE
+            and s["difficulty_match"]
+            and s["overall_score"] >= _MIN_OVERALL_SCORE
+        ):
+            passed += 1
+    return {"n": len(run_ids), "pass_rate": round(passed / len(run_ids), 3)}
+
+
+def gate_judge_contrast(records: list[dict], struct_mean_by_run: dict[str, dict]) -> dict:
+    """같은 지문·세트에서 (런타임 luna overall − sonnet overall) 평균 — 둘 다 점수가 있는
+    지문만, 지문 단위 클러스터 부트스트랩 CI. 양수면 런타임 luna가 sonnet보다 후하다는 뜻."""
+    luna = runtime_luna_overall_by_passage(records)
+    common = sorted(set(luna) & set(struct_mean_by_run))
+    if not common:
+        return {"n": 0, "mean_diff": None, "ci": [None, None]}
+    diffs = [luna[rid] - struct_mean_by_run[rid]["overall_score"] for rid in common]
+    point, lo, hi = mean_ci(diffs, common)
+    return {"n": len(common), "mean_diff": _round3(point), "ci": [_round3(lo), _round3(hi)]}
+
+
+def gate_judge_diff_by_passage(records: list[dict], struct_mean_by_run: dict[str, dict]) -> dict[str, float]:
+    """gate_judge_contrast와 같은 (luna overall − sonnet overall) 값을 지문 id별로
+    풀어서 반환한다 — paired_bias_diff_ci(모델 간 차이의 차이)의 재료."""
+    luna = runtime_luna_overall_by_passage(records)
+    return {
+        rid: luna[rid] - struct_mean_by_run[rid]["overall_score"]
+        for rid in luna
+        if rid in struct_mean_by_run
+    }
+
+
+def paired_bias_diff_ci(diff_a: dict[str, float], diff_b: dict[str, float]) -> dict:
+    """두 모델의 게이트 Judge 대조 diff(지문별 luna-sonnet)를 지문 단위로 짝지어
+    (diff_b − diff_a)의 평균과 클러스터 부트스트랩 CI를 낸다 — 모델 간 "차이의 차이".
+    양수면 b 모델의 세트에서 런타임 luna가 sonnet보다 상대적으로 더 후하다는(그 모델
+    출력에 특별히 후하다는) 신호. 사람 라벨이 없어 어느 Judge가 맞는지는 이 데이터로
+    알 수 없다는 점은 호출부(cmd_compare_generators)가 출력 시 함께 안내한다."""
+    common = sorted(set(diff_a) & set(diff_b))
+    if not common:
+        return {"n": 0, "mean_diff": None, "ci": [None, None]}
+    deltas = [diff_b[p] - diff_a[p] for p in common]
+    point, lo, hi = mean_ci(deltas, common)
+    return {"n": len(common), "mean_diff": _round3(point), "ci": [_round3(lo), _round3(hi)]}
+
+
+_GATE_JUDGE_DIFF_NOTE = (
+    "양수면 런타임 luna가 sonnet보다 후함, 모델 간 차이가 유의하면 그 모델 출력에 "
+    "특별히 후하다는 신호(같은 계열 편향 의심)."
+)
+_NO_HUMAN_BASELINE_NOTE = "사람 라벨이 없으므로 어느 Judge가 맞는지는 이 데이터로 알 수 없습니다."
+
+
+def compute_structure_section(
+    models: list[str],
+    baseline: str,
+    struct_judge_model: str,
+    records_by_model: dict[str, list[dict]],
+    struct_judged_by_model: dict[str, list[dict]],
+) -> dict | None:
+    """compare-generators의 구조 유사도 재채점 절. structure-judge 캐시가 어느 모델에도
+    없으면(아직 실행 전) None을 반환해 cmd_compare_generators가 이 절을 건너뛰고
+    안내만 출력하게 한다. records_by_model은 dedupe_run_records() 적용된 값이어야 한다."""
+    if not any(struct_judged_by_model.get(m) for m in models):
+        return None
+
+    struct_mean_by_model = {m: struct_judge_mean_by_run(struct_judged_by_model.get(m, [])) for m in models}
+    quality = {m: structure_quality_stats(struct_mean_by_model[m]) for m in models}
+
+    records_by_id_by_model = {m: {r["id"]: r for r in records_by_model[m]} for m in models}
+    gate = {
+        m: {
+            "sonnet_gate": structure_gate_pass_rate(struct_mean_by_model[m], records_by_id_by_model[m]),
+            "runtime_luna_final_gate_pass_rate": compute_rule_metrics(records_by_model[m])["final_gate_pass_rate"],
+        }
+        for m in models
+    }
+
+    pairs = generator_pairs(models, baseline)
+    pairwise_overall_diff = {
+        f"{a}_vs_{b}": paired_ci_verdict(
+            {rid: s["overall_score"] for rid, s in struct_mean_by_model[a].items()},
+            {rid: s["overall_score"] for rid, s in struct_mean_by_model[b].items()},
+            higher_is_better=True, label_a=a, label_b=b,
+        )
+        for a, b in pairs
+    }
+
+    gate_judge_diff_by_model = {
+        m: gate_judge_contrast(records_by_model[m], struct_mean_by_model[m]) for m in models
+    }
+    diff_by_passage_by_model = {
+        m: gate_judge_diff_by_passage(records_by_model[m], struct_mean_by_model[m]) for m in models
+    }
+    gate_judge_diff_contrast = {
+        f"{a}_vs_{b}": paired_bias_diff_ci(diff_by_passage_by_model[a], diff_by_passage_by_model[b])
+        for a, b in pairs
+    }
+
+    return {
+        "judge_model": struct_judge_model,
+        "quality": quality,
+        "gate": gate,
+        "pairwise_overall_diff": pairwise_overall_diff,
+        "gate_judge_diff_by_model": gate_judge_diff_by_model,
+        "gate_judge_diff_contrast": gate_judge_diff_contrast,
+        "gate_judge_diff_note": _GATE_JUDGE_DIFF_NOTE,
+        "no_human_baseline_note": _NO_HUMAN_BASELINE_NOTE,
     }
 
 
@@ -1057,13 +1345,51 @@ def _print_generator_comparison(report: dict) -> None:
             print(f"    {m}: {report['case_type_table'][kind].get(m)}")
 
 
+def _print_structure_section(structure: dict, models: list[str]) -> None:
+    """구조 절(구조 유사도 오프라인 재채점 + 런타임 게이트 Judge 대조) 콘솔 출력.
+    문항 원문은 출력하지 않는다(하드룰 4)."""
+    print(f"\n[구조 유사도 오프라인 재채점] Judge: {structure['judge_model']}")
+    for m in models:
+        q = structure["quality"][m]
+        print(
+            f"  {m} (n={q['n']})\n"
+            f"    overall 평균={q['overall_mean']} CI={q['overall_ci']}  "
+            f"type_ratio 평균={q['type_ratio_mean']}  difficulty_match 비율={q['difficulty_match_rate']}"
+        )
+
+    print("\n[구조 게이트 통과율] sonnet 기준 재적용 vs 런타임 luna 기준(생성 시 고정)")
+    for m in models:
+        g = structure["gate"][m]
+        print(
+            f"  {m}: sonnet 기준 통과율={g['sonnet_gate']['pass_rate']} (n={g['sonnet_gate']['n']})  "
+            f"런타임 luna 최종 게이트 통과율={g['runtime_luna_final_gate_pass_rate']}"
+        )
+
+    print("\n[구조 짝지은 비교] sonnet overall 차이(같은 지문, CI가 0을 포함하면 판정 불가)")
+    for label, pw in structure["pairwise_overall_diff"].items():
+        print(f"  {label}")
+        _print_paired("overall", pw)
+
+    print(f"\n[게이트 Judge 대조] {structure['gate_judge_diff_note']}")
+    print(f"  [주의] {structure['no_human_baseline_note']}")
+    print("  모델별 (런타임 luna overall − sonnet overall) 평균:")
+    for m in models:
+        d = structure["gate_judge_diff_by_model"][m]
+        print(f"    {m}: n={d['n']} mean_diff={d['mean_diff']} CI={d['ci']}")
+    print("  모델 간 차이의 차이(짝지은 지문 부트스트랩):")
+    for label, d in structure["gate_judge_diff_contrast"].items():
+        print(f"    {label}: n={d['n']} mean_diff={d['mean_diff']} CI={d['ci']}")
+
+
 def cmd_compare_generators(args: argparse.Namespace) -> None:
     models = list(_MODELS)
     baseline = args.baseline
     judge_model = args.judge_model
+    struct_judge_model = args.struct_judge_model
 
     records_by_model = {m: dedupe_run_records(load_run_records(_run_path(m))) for m in models}
     judged_by_model = {m: load_run_records(_judged_path(judge_model, m)) for m in models}
+    struct_judged_by_model = {m: load_run_records(_struct_judged_path(struct_judge_model, m)) for m in models}
 
     with open(_ITEM_QUALITY_GOLDEN_PATH, encoding="utf-8") as f:
         golden_entries = json.load(f)["entries"]
@@ -1075,12 +1401,23 @@ def cmd_compare_generators(args: argparse.Namespace) -> None:
         models, baseline, judge_model, records_by_model, judged_by_model,
         golden_entries, model_map, inputs_meta, _code_version(),
     )
+    structure = compute_structure_section(
+        models, baseline, struct_judge_model, records_by_model, struct_judged_by_model,
+    )
+    report["structure"] = structure
 
     out_path = os.path.join(_GOLDEN_DIR, "_generator_comparison.json")
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(report, f, ensure_ascii=False, indent=2)
 
     _print_generator_comparison(report)
+    if structure is None:
+        print(
+            f"\n[구조 절] structure-judge 캐시가 없어 건너뜁니다 — 먼저 "
+            f"`structure-judge --judge-model {struct_judge_model}`을 실행하세요."
+        )
+    else:
+        _print_structure_section(structure, models)
     print(f"\n상세는 {out_path}에 저장했습니다.")
 
 
@@ -1115,12 +1452,25 @@ def main() -> None:
     )
     p_rel.set_defaults(func=cmd_reliability)
 
+    p_struct = sub.add_parser(
+        "structure-judge",
+        help="dedupe한 run(items가 있는 세트만)을 judge_structure()로 재채점해 캐시에 append(이어서 실행)",
+    )
+    p_struct.add_argument("--judge-model", default="anthropic/claude-sonnet-5.5")
+    p_struct.add_argument("--models", nargs="+", choices=_MODELS, default=None)
+    p_struct.add_argument("--repeat", type=int, default=1)
+    p_struct.set_defaults(func=cmd_structure_judge)
+
     p_cmp = sub.add_parser(
         "compare-generators",
         help="생성 모델 3종을 규칙 지표·Judge 지표·사람 지표·짝지은 비교로 종합 비교",
     )
     p_cmp.add_argument("--judge-model", default="anthropic/claude-sonnet-5.5")
     p_cmp.add_argument("--baseline", default="qwen2.5-14b", choices=_MODELS)
+    p_cmp.add_argument(
+        "--struct-judge-model", default="anthropic/claude-sonnet-5.5",
+        help="구조 절(structure-judge 캐시) 조회용 Judge — 캐시가 없으면 구조 절은 건너뛴다",
+    )
     p_cmp.set_defaults(func=cmd_compare_generators)
 
     args = parser.parse_args()
