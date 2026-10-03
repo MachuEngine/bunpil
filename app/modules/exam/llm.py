@@ -30,4 +30,7 @@ def get_langchain_model(temperature: float = 0.7):
     if backend == "openai":
         from app.common.llm.backends.chat_openai import ChatOpenAIBackend
         return ChatOpenAIBackend(temperature=temperature)
+    if backend == "openrouter":
+        from app.common.llm.backends.chat_openrouter import ChatOpenRouterBackend
+        return ChatOpenRouterBackend(temperature=temperature)
     raise NotImplementedError(f"지원하지 않는 LLM_BACKEND: '{backend}'")

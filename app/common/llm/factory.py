@@ -3,6 +3,7 @@ import os
 from .backends.ollama import OllamaBackend
 from .backends.openai import OpenAIBackend
 from .backends.openai_vlm import OpenAIVLMBackend
+from .backends.openrouter import OpenRouterBackend
 from .backends.runpod import RunPodBackend
 from .base import LLMBackend, VLMBackend
 
@@ -15,9 +16,11 @@ def get_llm_backend() -> LLMBackend:
         return RunPodBackend()
     if backend == "openai":
         return OpenAIBackend()
+    if backend == "openrouter":
+        return OpenRouterBackend()  # 평가(모델 비교) 전용 — gemini-3.8-flash 등
     if backend != "local":
         raise ValueError(
-            f"LLM_BACKEND={backend!r}은 지원하지 않는 값입니다 (local|runpod|openai)."
+            f"LLM_BACKEND={backend!r}은 지원하지 않는 값입니다 (local|runpod|openai|openrouter)."
         )
     return OllamaBackend()
 
@@ -32,9 +35,22 @@ def get_judge_backend() -> LLMBackend:
     judge_backend = os.getenv("JUDGE_BACKEND", "local")
     if judge_backend == "openai":
         return OpenAIBackend(model=os.getenv("OPENAI_JUDGE_MODEL"))
+    if judge_backend == "openrouter":
+        # OpenRouterBackend(OpenAIBackend 상속)는 model=None이면 OPENROUTER_MODEL(생성 모델)로
+        # 폴백한다 — openai 경로의 OPENAI_JUDGE_MODEL→OPENAI_MODEL 폴백과 같은 코드지만,
+        # 평가에서 생성·Judge 모델을 분리하는 목적과 반대 결과가 나오므로 여기서는 미설정을
+        # 조용히 넘기지 않고 즉시 실패시킨다.
+        judge_model = os.getenv("OPENROUTER_JUDGE_MODEL")
+        if not judge_model:
+            raise ValueError(
+                "OPENROUTER_JUDGE_MODEL이 설정되지 않았습니다 — "
+                "JUDGE_BACKEND=openrouter에서 생성 모델(OPENROUTER_MODEL)로 조용히 "
+                "폴백하지 않도록 명시값이 필요합니다(생성·Judge 모델 분리 원칙)."
+            )
+        return OpenRouterBackend(model=judge_model)  # 평가(모델 비교) 전용 — Claude/gemini Judge
     if judge_backend != "local":
         raise ValueError(
-            f"JUDGE_BACKEND={judge_backend!r}은 지원하지 않는 값입니다 (local 또는 openai)."
+            f"JUDGE_BACKEND={judge_backend!r}은 지원하지 않는 값입니다 (local|openai|openrouter)."
         )
     judge_model = os.getenv("OLLAMA_JUDGE_MODEL")
     if judge_model:
