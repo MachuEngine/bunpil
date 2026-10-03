@@ -129,24 +129,40 @@ async def extract_all(entries: list[dict]) -> list[dict]:
     return results
 
 
+def _parse_judge_score(raw: str) -> int | None:
+    """Judge 응답에서 1~5점을 뽑는다. 응답에 숫자가 여러 개 있어도(예: "3~4점")
+    처음 나오는 1~5 범위 숫자 하나만 쓴다 — 전과 달리 모든 숫자를 이어붙이지 않는다
+    (이전 방식은 "3~4"가 "34"가 되어 5점으로 잘리는 버그가 있었음)."""
+    for ch in raw:
+        if ch in "12345":
+            return int(ch)
+    return None
+
+
+async def score_figure_entry(summary: str, vlm_output: str, judge, call_with_retry=_call_with_retry) -> dict:
+    """자료 서술 Judge 채점 — eval_vlm.py와 golden_gen/gen_vlm_judge_reliability_golden.py가
+    공유. [자료: ...] 블록(또는 마크다운 표)이 출력에 없으면 Judge를 부르지 않고 1점을
+    매긴다(빈 문자열로 Judge를 호출하지 않음 — 자료 설명 자체가 없었다는 뜻이라 하드 실패)."""
+    _, fig_text = strip_figure_block(vlm_output)
+    if fig_text is None:
+        return {"judge_score": 1, "judge_note": "[자료: ...] 블록 자체가 출력에 없음", "fig_text": None}
+    prompt = _JUDGE_PROMPT.format(summary=summary, description=fig_text)
+    try:
+        raw = await call_with_retry(lambda: judge.generate([{"role": "user", "content": prompt}]))
+        return {"judge_score": _parse_judge_score(raw), "fig_text": fig_text, "judge_raw": raw}
+    except Exception as exc:  # noqa: BLE001
+        return {"judge_score": None, "judge_note": f"judge 호출 실패: {exc}", "fig_text": fig_text}
+
+
 async def score_figure_judges(scored: list[dict]) -> None:
     judge = get_judge_backend()
     for e in scored:
         if e["category"] != "figure":
             continue
-        _, fig_text = strip_figure_block(e["vlm_output"])
-        if fig_text is None:
-            e["judge_score"] = 1
-            e["judge_note"] = "[자료: ...] 블록 자체가 출력에 없음"
-            continue
-        prompt = _JUDGE_PROMPT.format(summary=e["figure_summary"], description=fig_text)
-        try:
-            raw = await _call_with_retry(lambda: judge.generate([{"role": "user", "content": prompt}]))
-            digits = "".join(ch for ch in raw if ch.isdigit())
-            e["judge_score"] = max(1, min(5, int(digits))) if digits else None
-        except Exception as exc:  # noqa: BLE001
-            e["judge_score"] = None
-            e["judge_note"] = f"judge 호출 실패: {exc}"
+        result = await score_figure_entry(e["figure_summary"], e["vlm_output"], judge)
+        e["judge_score"] = result["judge_score"]
+        if "judge_note" in result:
+            e["judge_note"] = result["judge_note"]
 
 
 def score_text_metrics(scored: list[dict]) -> None:
