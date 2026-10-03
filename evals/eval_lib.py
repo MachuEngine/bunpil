@@ -145,17 +145,27 @@ JUDGE_TPL = PromptTemplate(
 
 @traceable(name="judge_one", run_type="llm", metadata=_TRACE_META)
 def judge_one(item: dict, llm) -> dict:
-    item_str = json.dumps(
-        {"question": item["question"], "options": item.get("options", []), "answer": item.get("answer", "")},
-        ensure_ascii=False,
-    )
+    item_dict = {"question": item["question"], "options": item.get("options", []), "answer": item.get("answer", "")}
+    # 2026-10-03: stimulus(<보기>·자료 제시문)가 있으면 포함한다 — 합답형·자료형 문항은
+    # <보기>를 봐야 정답유일성을 판단할 수 있다. 없거나 빈 문자열이면 기존과 완전히 같은
+    # JSON(ITEM_GOLDEN이 이 조건으로 이미 측정돼 있어 바꾸지 않음).
+    stimulus = item.get("stimulus")
+    if stimulus:
+        item_dict["stimulus"] = stimulus
+    item_str = json.dumps(item_dict, ensure_ascii=False)
     messages = JUDGE_TPL.build(item_str)
     raw = _run_async(llm.generate(messages))
     try:
         s, e = raw.find("{"), raw.rfind("}") + 1
-        scores = json.loads(raw[s:e]) if s >= 0 and e > s else {}
+        if s >= 0 and e > s:
+            scores = json.loads(raw[s:e])
+            parse_failed = False
+        else:
+            scores = {}
+            parse_failed = True
     except Exception:
         scores = {}
+        parse_failed = True
     return {
         "정답유일성": int(scores.get("정답유일성", 3)),
         "오답매력도": int(scores.get("오답매력도", 3)),
@@ -164,6 +174,7 @@ def judge_one(item: dict, llm) -> dict:
             (int(scores.get("정답유일성", 3)) + int(scores.get("오답매력도", 3)) + int(scores.get("근거성", 3))) / 3,
             2,
         ),
+        "parse_failed": parse_failed,
     }
 
 
