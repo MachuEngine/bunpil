@@ -25,7 +25,7 @@
 
   <!-- Exam graph card: x 305-735 (중앙 정렬) -->
   <rect x="305" y="246" width="430" height="290" rx="20" fill="#241C10" stroke="#4A3B1C"/>
-  <text x="520" y="278" text-anchor="middle" font-size="14" font-weight="700" fill="#E8C468">📝 출제 그래프 · LangGraph (ReAct)</text>
+  <text x="520" y="278" text-anchor="middle" font-size="14" font-weight="700" fill="#E8C468">📝 출제 그래프 · LangGraph 워크플로</text>
 
   <rect x="340" y="300" width="360" height="36" rx="12" fill="#1B1F27" stroke="#3D3218"/>
   <text x="520" y="323" text-anchor="middle" font-size="13" fill="#EFE0AE">plan · 세션 초기화</text>

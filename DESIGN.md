@@ -17,7 +17,7 @@
 
 ## 2. 아키텍처
 
-### 모듈 ② 출제 도우미 — ReAct Agent (LangGraph)
+### 모듈 ② 출제 도우미 — LangGraph 평가-수정 루프 워크플로
 
 과제 정의: *"교사가 붙여넣은 예시 문제의 구성(개수·유형·난이도)을 그대로 반영한 새 문항 세트 작성"*.
 (2026.07 리디자인, `docs/history/FEEDBACK_DRIVEN_REDESIGN_v2.md` — 실사용 교사 피드백: PDF 업로드+유형/난이도/개수
@@ -25,7 +25,7 @@
 구조가 곧 무의미해질 `past_exams`/`check_duplicate`도 이때 완전히 제거)
 
 ```
-예시 문제 붙여넣기(passage_text) → Agent(ReAct) ↔ 도구 → submit_for_review로 제출
+예시 문제 붙여넣기(passage_text) → agent 노드(도구 호출 루프) ↔ 도구 → submit_for_review로 제출
   → judge_node(외부 Judge 백엔드)가 구조 유사도 채점 → 코드가 threshold 판정
   → 미달 시 세트 전체 재시도(budget) → 교사 검토 세트
 ```
@@ -173,7 +173,7 @@ PII 마스킹(`app/common/privacy.py`)은 출제 경로가 계속 쓰므로 유�
 
 **골든셋 현황**: 출제 검색 22개(standards 12 + regulations 10, 전량 검수 완료) + STRUCTURE_GOLDEN 45개(사람 라벨링 전량 완료) + ITEM_GOLDEN 30개 + 마스킹 20개. 모든 골든셋은 `data/golden/*.json`으로 외부화(하드코딩 금지).
 
-> **2026-07-09 num_ctx 발견**: STRUCTURE_GOLDEN 재생성 중 로컬 Ollama가 기본 `num_ctx=4096`으로 돌고 있어(모델은 32K 네이티브 지원) 멀티턴 ReAct 루프의 검색 결과 누적이 몇 턴 만에 컨텍스트를 초과시키고, 컨텍스트가 잘리며 모델이 시스템 프롬프트를 잃고 응답이 깨지는 문제를 확인함 → `app/modules/exam/llm.py`의 `ChatOllama`에 `num_ctx=16384` 명시로 수정. 동일 passage 재현 테스트로 확인(4096: 0/5문항 → 16384: 5/5문항). RunPod(vLLM)는 `max_model_len` 미지정 시 모델 네이티브 값을 쓰므로 로컬 개발 환경에만 있던 격차로 추정.
+> **2026-07-09 num_ctx 발견**: STRUCTURE_GOLDEN 재생성 중 로컬 Ollama가 기본 `num_ctx=4096`으로 돌고 있어(모델은 32K 네이티브 지원) 멀티턴 도구 호출 루프(당시 ReAct로 부름)의 검색 결과 누적이 몇 턴 만에 컨텍스트를 초과시키고, 컨텍스트가 잘리며 모델이 시스템 프롬프트를 잃고 응답이 깨지는 문제를 확인함 → `app/modules/exam/llm.py`의 `ChatOllama`에 `num_ctx=16384` 명시로 수정. 동일 passage 재현 테스트로 확인(4096: 0/5문항 → 16384: 5/5문항). RunPod(vLLM)는 `max_model_len` 미지정 시 모델 네이티브 값을 쓰므로 로컬 개발 환경에만 있던 격차로 추정.
 
 ---
 
@@ -227,7 +227,7 @@ PII 마스킹(`app/common/privacy.py`)은 출제 경로가 계속 쓰므로 유�
 - **HTTPS**: Caddy 리버스 프록시로 자동 발급(+도메인) → 표준 배포 실습 포함.
 - 요청 흐름: 브라우저 → EC2(마스킹·오케스트레이션) → RunPod 서버리스 호출 → 응답. 앱 로직 stateless, Chroma만 EBS 영구.
 - **billing alarm 필수**: EC2 종량제라 예산 알람 설정. t3는 CPU burst throttle 있으니 임베딩 인덱싱은 한 번에 몰아서.
-- **에이전트×서버리스 주의**: 출제 ReAct는 한 요청에 LLM을 여러 번 호출 → 첫 호출만 콜드스타트, 세션 중 워커 warm 유지로 후속 호출은 빠름. 긴 세션은 GPU 워밍 고려.
+- **에이전트×서버리스 주의**: 출제 그래프는 한 요청에 LLM을 여러 번 호출(생성 단계의 도구 호출 루프) → 첫 호출만 콜드스타트, 세션 중 워커 warm 유지로 후속 호출은 빠름. 긴 세션은 GPU 워밍 고려.
 
 **운영비 (1인 사용 추정 / 월)**
 
