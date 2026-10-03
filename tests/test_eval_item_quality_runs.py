@@ -2,17 +2,36 @@
 
 가짜 run 레코드(golden_gen/gen_item_quality_golden.py `_run_passage()`가 만드는 형태)와
 가짜 judged 캐시 레코드(evals/eval_item_quality_runs.py `judge` 서브커맨드가 쓰는 형태)만
-사용한다. requirements.txt 의존성만 필요(이 모듈 자체는 app.* 모듈 레벨 import가 없어 가볍다)."""
+사용한다. requirements.txt 의존성만 필요(이 모듈 자체는 app.* 모듈 레벨 import가 없어 가볍다).
+
+reliability(2차 선별 분석) 테스트는 사람 라벨도 전부 가짜다 — 실제 라벨링은 아직 이뤄지지
+않았고(iq_golden.json의 human_label은 전부 null), 조인·제외·반복 평균·짝지은 비교·생성
+모델별 편향 로직이 올바른지를 가짜 숫자로 미리 검증한다."""
+import json
+
+import pytest
+
 from evals.eval_item_quality_runs import (
     aggregate_ceiling_discrimination,
+    bias_by_generation_model,
+    build_rows,
     classify_passage,
     compute_metrics,
+    compute_reliability_report,
     coverage_passage_ids,
     group_judged_by_run,
+    human_label_distribution,
+    judge_avg_rounded,
+    judge_avg_score,
     judged_keys,
     load_inputs_meta,
+    load_labeled_keys,
     mc_items_for_run,
+    paired_abs_error_diff,
+    per_repeat_kappas,
+    repeats_for_item,
     score_distribution,
+    usable_human_labels,
 )
 
 
@@ -243,7 +262,6 @@ def test_group_judged_by_run_groups_scores_by_run_id():
 
 
 def test_load_inputs_meta_reads_case_type_and_format(tmp_path):
-    import json
     path = tmp_path / "inputs.json"
     data = {
         "entries": [
@@ -257,3 +275,235 @@ def test_load_inputs_meta_reads_case_type_and_format(tmp_path):
         "p1": {"case_type": "normal", "format": "mc4"},
         "p2": {"case_type": "hard", "format": "data"},
     }
+
+
+# ── judge --only-labeled: labeled_keys 필터 ───────────────────────────────
+
+def test_mc_items_for_run_filters_by_labeled_keys_when_given():
+    run = {"id": "p1", "items": [_mc("it1"), _mc("it2"), _mc("it3")], "error": None}
+    labeled_keys = {("p1", "it1"), ("p1", "it3")}
+    result = mc_items_for_run(run, labeled_keys)
+    assert [it["item_id"] for it in result] == ["it1", "it3"]
+
+
+def test_mc_items_for_run_none_labeled_keys_keeps_all_mc_items():
+    run = {"id": "p1", "items": [_mc("it1"), _mc("it2")], "error": None}
+    result = mc_items_for_run(run, None)
+    assert [it["item_id"] for it in result] == ["it1", "it2"]
+
+
+def test_load_labeled_keys_groups_by_model_and_drops_entries_outside_golden(tmp_path):
+    golden_path = tmp_path / "golden.json"
+    model_map_path = tmp_path / "model_map.json"
+    golden_path.write_text(
+        json.dumps({"entries": [{"id": "iq_001"}, {"id": "iq_002"}]}, ensure_ascii=False), encoding="utf-8"
+    )
+    model_map_path.write_text(
+        json.dumps(
+            {
+                "map": {
+                    "iq_001": {"model": "qwen2.5-14b", "passage_id": "p1", "run_item_id": "it1"},
+                    "iq_002": {"model": "gpt-6-luna", "passage_id": "p1", "run_item_id": "it9"},
+                    # golden.json entries에 없는 블라인드 id — missing 조합이라 제외돼야 함
+                    "iq_999": {"model": "qwen2.5-14b", "passage_id": "p9", "run_item_id": "it9"},
+                }
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    keys = load_labeled_keys(str(golden_path), str(model_map_path))
+    assert keys == {
+        "qwen2.5-14b": {("p1", "it1")},
+        "gpt-6-luna": {("p1", "it9")},
+    }
+
+
+# ── reliability: 조인·제외·반복 평균·짝지은 비교·생성 모델별 편향 ──────────
+#
+# 가짜 사람 라벨 + 가짜 judged 캐시로 검증한다. 실제 사람 라벨은 아직 없다(라벨링 전).
+#
+# 블라인드 id   passage  생성모델         human(정답유일성,오답매력도,근거성)  비고
+# iq_001       p1       qwen2.5-14b      (5, 4, 5)                           정상(사용)
+# iq_002       p1       gpt-6-luna       (3, 3, 4)                           정상(사용)
+# iq_003       p2       qwen2.5-14b      cannot_judge=True                   제외
+# iq_004       p2       gpt-6-luna       정답유일성=None                      제외(점수 null)
+
+def _human_label(정답유일성=5, 오답매력도=4, 근거성=5, 학생난이도="상", cannot_judge=False):
+    return {
+        "정답유일성": 정답유일성, "오답매력도": 오답매력도, "근거성": 근거성,
+        "학생난이도": 학생난이도, "cannot_judge": cannot_judge, "reason": "",
+    }
+
+
+_RELIABILITY_GOLDEN_ENTRIES = [
+    {"id": "iq_001", "human_label": _human_label(5, 4, 5, "상")},
+    {"id": "iq_002", "human_label": _human_label(3, 3, 4, "중")},
+    {"id": "iq_003", "human_label": _human_label(cannot_judge=True)},
+    {"id": "iq_004", "human_label": {**_human_label(오답매력도=3, 근거성=4, 학생난이도="하"), "정답유일성": None}},
+]
+
+_RELIABILITY_MODEL_MAP = {
+    "iq_001": {"model": "qwen2.5-14b", "passage_id": "p1", "run_item_id": "it1"},
+    "iq_002": {"model": "gpt-6-luna", "passage_id": "p1", "run_item_id": "it9"},
+    "iq_003": {"model": "qwen2.5-14b", "passage_id": "p2", "run_item_id": "it2"},
+    "iq_004": {"model": "gpt-6-luna", "passage_id": "p2", "run_item_id": "it8"},
+}
+
+
+def _judge_scores(정답유일성=4, 오답매력도=4, 근거성=4):
+    return {
+        "정답유일성": 정답유일성, "오답매력도": 오답매력도, "근거성": 근거성,
+        "overall": round((정답유일성 + 오답매력도 + 근거성) / 3, 2), "parse_failed": False,
+    }
+
+
+def _rec(run_id, item_id, repeat, scores):
+    return {"run_id": run_id, "item_id": item_id, "repeat": repeat, "scores": scores}
+
+
+def _reliability_judged_by_judge():
+    """judgeA: iq_001(2회 반복)·iq_002(1회) 모두 캐시 있음.
+    judgeB: iq_001만(1회) 캐시 있음 — gpt-6-luna 캐시가 없어 iq_002는 judgeB 없음."""
+    return {
+        "judgeA": {
+            "qwen2.5-14b": [
+                _rec("p1", "it1", 0, _judge_scores(5, 4, 5)),
+                _rec("p1", "it1", 1, _judge_scores(4, 4, 5)),
+            ],
+            "gpt-6-luna": [
+                _rec("p1", "it9", 0, _judge_scores(3, 3, 4)),
+            ],
+        },
+        "judgeB": {
+            "qwen2.5-14b": [
+                _rec("p1", "it1", 0, _judge_scores(4, 4, 4)),
+            ],
+            "gpt-6-luna": [],
+        },
+    }
+
+
+def test_usable_human_labels_excludes_cannot_judge_and_null_scores():
+    usable, excluded = usable_human_labels(_RELIABILITY_GOLDEN_ENTRIES)
+    assert set(usable.keys()) == {"iq_001", "iq_002"}
+    assert excluded == 2
+
+
+def test_repeats_for_item_sorts_by_repeat_and_returns_scores_only():
+    records = [
+        _rec("p1", "it1", 1, _judge_scores(4, 4, 5)),
+        _rec("p1", "it1", 0, _judge_scores(5, 4, 5)),
+        _rec("p1", "it9", 0, _judge_scores(3, 3, 4)),  # 다른 item — 매칭 안 됨
+    ]
+    scores_list = repeats_for_item(records, "p1", "it1")
+    assert [s["정답유일성"] for s in scores_list] == [5, 4]
+
+
+def test_repeats_for_item_no_match_returns_empty():
+    assert repeats_for_item([_rec("p1", "it1", 0, _judge_scores())], "p1", "it9") == []
+
+
+def test_build_rows_joins_and_reports_excluded_count():
+    rows, excluded = build_rows(
+        _RELIABILITY_GOLDEN_ENTRIES, _RELIABILITY_MODEL_MAP, _reliability_judged_by_judge()
+    )
+    assert excluded == 2
+    by_id = {r["id"]: r for r in rows}
+    assert set(by_id) == {"iq_001", "iq_002"}
+
+    row1 = by_id["iq_001"]
+    assert row1["passage_id"] == "p1"
+    assert row1["model"] == "qwen2.5-14b"
+    assert row1["human"] == {"정답유일성": 5, "오답매력도": 4, "근거성": 5}
+    assert [s["정답유일성"] for s in row1["judges"]["judgeA"]] == [5, 4]
+    assert [s["정답유일성"] for s in row1["judges"]["judgeB"]] == [4]
+
+    row2 = by_id["iq_002"]
+    assert row2["model"] == "gpt-6-luna"
+    assert "judgeA" in row2["judges"]
+    assert "judgeB" not in row2["judges"]  # gpt-6-luna 캐시가 judgeB엔 없음
+
+
+def test_judge_avg_score_and_rounded():
+    scores_list = [_judge_scores(정답유일성=4), _judge_scores(정답유일성=5), _judge_scores(정답유일성=5)]
+    avg = judge_avg_score(scores_list, "정답유일성")
+    assert avg == pytest.approx(14 / 3)
+    assert judge_avg_rounded(scores_list, "정답유일성") == round(14 / 3)  # == 5
+
+
+def test_per_repeat_kappas_none_when_repeat_index_has_fewer_than_two_pairs():
+    rows_with_judge = [
+        {
+            "human": {"정답유일성": 5}, "passage_id": "p1",
+            "judges": {"judgeA": [_judge_scores(정답유일성=5), _judge_scores(정답유일성=4)]},
+        },
+        {
+            "human": {"정답유일성": 3}, "passage_id": "p1-2",
+            "judges": {"judgeA": [_judge_scores(정답유일성=3)]},  # repeat 1 없음
+        },
+    ]
+    kappas = per_repeat_kappas(rows_with_judge, "judgeA", "정답유일성")
+    assert len(kappas) == 2
+    assert kappas[0] is not None  # repeat 0: 두 행 모두 있음 → 계산 가능
+    assert kappas[1] is None  # repeat 1: 표본 1건뿐 → None
+
+
+def test_paired_abs_error_diff_only_includes_items_with_both_judges():
+    rows, _ = build_rows(
+        _RELIABILITY_GOLDEN_ENTRIES, _RELIABILITY_MODEL_MAP, _reliability_judged_by_judge()
+    )
+    diff_pairs = paired_abs_error_diff(rows, "judgeA", "judgeB", "정답유일성")
+    # iq_002는 judgeB 캐시가 없어 짝지은 비교에서 제외 — iq_001만 남는다.
+    assert len(diff_pairs) == 1
+    passage_id, diff = diff_pairs[0]
+    assert passage_id == "p1"
+    # judgeA 평균=(5+4)/2=4.5, human=5 → err_a=0.5 / judgeB=4, human=5 → err_b=1.0
+    assert diff == pytest.approx(0.5 - 1.0)
+    assert diff < 0  # 음수면 judgeA가 이 문항에서 더 정확(오차가 더 작음)
+
+
+def test_bias_by_generation_model_splits_by_model():
+    rows, _ = build_rows(
+        _RELIABILITY_GOLDEN_ENTRIES, _RELIABILITY_MODEL_MAP, _reliability_judged_by_judge()
+    )
+    bias = bias_by_generation_model(rows, "judgeA", "정답유일성")
+    assert bias["qwen2.5-14b"]["n"] == 1
+    assert bias["qwen2.5-14b"]["bias"] == pytest.approx(4.5 - 5)  # iq_001
+    assert bias["gpt-6-luna"]["n"] == 1
+    assert bias["gpt-6-luna"]["bias"] == pytest.approx(3 - 3)  # iq_002
+
+
+def test_human_label_distribution_excludes_cannot_judge_but_keeps_partial_null_entry():
+    dist = human_label_distribution(_RELIABILITY_GOLDEN_ENTRIES, _RELIABILITY_MODEL_MAP)
+    assert dist["cannot_judge_n"] == 1
+    # iq_003(cannot_judge)만 제외 — iq_004는 정답유일성만 null이라 다른 기준·난이도는 집계된다.
+    assert dist["score_dist"]["정답유일성"] == {1: 0, 2: 0, 3: 1, 4: 0, 5: 1}  # iq_001(5), iq_002(3)
+    assert dist["score_dist"]["오답매력도"][4] == 1  # iq_001
+    assert dist["score_dist"]["오답매력도"][3] == 2  # iq_002, iq_004
+    assert dist["difficulty_overall"] == {"상": 1, "중": 1, "하": 1}
+    assert dist["difficulty_by_model"]["gpt-6-luna"] == {"상": 0, "중": 1, "하": 1}  # iq_002, iq_004
+    assert dist["difficulty_by_model"]["qwen2.5-14b"] == {"상": 1, "중": 0, "하": 0}  # iq_001
+
+
+def test_compute_reliability_report_end_to_end_with_fake_data():
+    report = compute_reliability_report(
+        _RELIABILITY_GOLDEN_ENTRIES, _RELIABILITY_MODEL_MAP, _reliability_judged_by_judge(),
+        ["judgeA", "judgeB"],
+    )
+    assert report["n_usable"] == 2
+    assert report["n_excluded"] == 2
+
+    criterion_report = report["criteria"]["정답유일성"]
+    assert criterion_report["per_judge"]["judgeA"]["n"] == 2
+    # judgeB는 iq_001만 있어 n=1 — 표본 부족으로 note만 남고 κ 등은 계산하지 않는다.
+    assert criterion_report["per_judge"]["judgeB"]["n"] == 1
+    assert "note" in criterion_report["per_judge"]["judgeB"]
+
+    pairwise = criterion_report["pairwise"]["judgeA vs judgeB"]
+    assert "note" in pairwise  # 짝지은 비교도 표본 1건이라 판정 불가 note
+
+    # 문항별 행이 원문 없이 저장돼 재분석(재호출 없이)이 가능해야 한다.
+    for row in report["rows"]:
+        assert "question" not in row
+        assert "passage_text" not in row
