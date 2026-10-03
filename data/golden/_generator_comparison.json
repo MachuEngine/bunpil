@@ -1,5 +1,5 @@
 {
-  "code_version": "e7c72c4",
+  "code_version": "2d009d8",
   "judge_model": "anthropic/claude-sonnet-5.5",
   "baseline": "qwen2.5-14b",
   "models": [
@@ -611,5 +611,146 @@
     }
   },
   "gate_dependency_note": "최종 게이트 통과율(final_gate_pass_rate)은 런타임 Judge(gpt-5.6-luna, 생성 시 고정)의 구조 검증 결과에 의존한다 — 이 커맨드의 --judge-model(문항 품질 평가용)과는 다른 모델.",
-  "missing_bias_note": "객관식 0개(run 실패 포함) 지문은 Judge·사람 점수 쌍에서는 빠지지만, 규칙 지표(목표 개수 달성률·통과율)에는 실패로 포함된다 — 품질 지표만 보면 해당 모델이 유리하게 보일 수 있다는 점에 주의."
+  "missing_bias_note": "객관식 0개(run 실패 포함) 지문은 Judge·사람 점수 쌍에서는 빠지지만, 규칙 지표(목표 개수 달성률·통과율)에는 실패로 포함된다 — 품질 지표만 보면 해당 모델이 유리하게 보일 수 있다는 점에 주의.",
+  "structure": {
+    "judge_model": "anthropic/claude-sonnet-5.5",
+    "quality": {
+      "qwen2.5-14b": {
+        "n": 29,
+        "overall_mean": 1.724,
+        "overall_ci": [
+          1.414,
+          2.034
+        ],
+        "type_ratio_mean": 0.869,
+        "difficulty_match_rate": 0.862
+      },
+      "gpt-6-luna": {
+        "n": 33,
+        "overall_mean": 4.03,
+        "overall_ci": [
+          3.788,
+          4.273
+        ],
+        "type_ratio_mean": 0.933,
+        "difficulty_match_rate": 1.0
+      },
+      "gemini-3.8-flash": {
+        "n": 33,
+        "overall_mean": 4.152,
+        "overall_ci": [
+          3.939,
+          4.364
+        ],
+        "type_ratio_mean": 0.962,
+        "difficulty_match_rate": 1.0
+      }
+    },
+    "gate": {
+      "qwen2.5-14b": {
+        "sonnet_gate": {
+          "n": 29,
+          "pass_rate": 0.069
+        },
+        "runtime_luna_final_gate_pass_rate": 0.152
+      },
+      "gpt-6-luna": {
+        "sonnet_gate": {
+          "n": 33,
+          "pass_rate": 1.0
+        },
+        "runtime_luna_final_gate_pass_rate": 1.0
+      },
+      "gemini-3.8-flash": {
+        "sonnet_gate": {
+          "n": 33,
+          "pass_rate": 1.0
+        },
+        "runtime_luna_final_gate_pass_rate": 1.0
+      }
+    },
+    "pairwise_overall_diff": {
+      "qwen2.5-14b_vs_gpt-6-luna": {
+        "n": 29,
+        "mean_diff": 2.276,
+        "ci": [
+          1.897,
+          2.69
+        ],
+        "verdict": "gpt-6-luna가 더 우수"
+      },
+      "qwen2.5-14b_vs_gemini-3.8-flash": {
+        "n": 29,
+        "mean_diff": 2.483,
+        "ci": [
+          2.103,
+          2.863
+        ],
+        "verdict": "gemini-3.8-flash가 더 우수"
+      },
+      "gpt-6-luna_vs_gemini-3.8-flash": {
+        "n": 33,
+        "mean_diff": 0.121,
+        "ci": [
+          -0.182,
+          0.424
+        ],
+        "verdict": "판정 불가(CI가 0을 포함)"
+      }
+    },
+    "gate_judge_diff_by_model": {
+      "qwen2.5-14b": {
+        "n": 29,
+        "mean_diff": 0.414,
+        "ci": [
+          0.138,
+          0.69
+        ]
+      },
+      "gpt-6-luna": {
+        "n": 33,
+        "mean_diff": 0.303,
+        "ci": [
+          0.091,
+          0.576
+        ]
+      },
+      "gemini-3.8-flash": {
+        "n": 33,
+        "mean_diff": 0.303,
+        "ci": [
+          0.0,
+          0.576
+        ]
+      }
+    },
+    "gate_judge_diff_contrast": {
+      "qwen2.5-14b_vs_gpt-6-luna": {
+        "n": 29,
+        "mean_diff": -0.069,
+        "ci": [
+          -0.448,
+          0.345
+        ]
+      },
+      "qwen2.5-14b_vs_gemini-3.8-flash": {
+        "n": 29,
+        "mean_diff": -0.138,
+        "ci": [
+          -0.586,
+          0.31
+        ]
+      },
+      "gpt-6-luna_vs_gemini-3.8-flash": {
+        "n": 33,
+        "mean_diff": 0.0,
+        "ci": [
+          -0.394,
+          0.333
+        ]
+      }
+    },
+    "gate_judge_diff_note": "양수면 런타임 luna가 sonnet보다 후함, 모델 간 차이가 유의하면 그 모델 출력에 특별히 후하다는 신호(같은 계열 편향 의심).",
+    "no_human_baseline_note": "사람 라벨이 없으므로 어느 Judge가 맞는지는 이 데이터로 알 수 없습니다."
+  }
 }
