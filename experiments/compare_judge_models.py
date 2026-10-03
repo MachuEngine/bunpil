@@ -65,8 +65,9 @@ from eval_lib import (  # noqa: E402
     eval_structure_judge,
     score_items,
     score_structure,
+    structure_ci as _structure_ci,
+    structure_item_rows as _structure_item_rows,
 )
-from stats import cluster_bootstrap_ci  # noqa: E402
 
 # 후보 judge마다 필요한 환경변수 조합 — get_judge_backend()(factory.py)가 이 값으로 분기한다.
 JUDGE_ENVS = {
@@ -133,37 +134,6 @@ def _restore_env(prev: dict) -> None:
             os.environ[k] = v
 
 
-def _structure_item_rows(scored: list[dict]) -> list[dict]:
-    """score_structure() 결과 1회분을 항목별 (id, judge/human overall·difficulty_match)
-    dict 리스트로 변환 — eval_structure_judge()는 집계만 내므로, CI 계산에 필요한
-    항목 단위 쌍은 score_structure()가 이미 들고 있는 entry/judge를 그대로 꺼내 쓴다
-    (eval_lib.py 반환값은 바꾸지 않음).
-
-    likely_parse_failed: judge_structure()는 judge_one()과 달리 parse_failed 플래그를
-    노출하지 않는다(app/modules/exam/judge.py — 파싱 실패 시 조용히 전부 기본값으로
-    채운다). type_ratio_score=0.0·overall_score=0·difficulty_match=False가 동시에
-    나온 경우를 "파싱 실패로 추정"하는 근사치로만 쓴다 — 진짜로 0점을 준 경우와
-    구분할 수 없으므로 집계 시 반드시 '추정'으로 표기한다."""
-    rows = []
-    for s in scored:
-        entry, judge = s["entry"], s["judge"]
-        human = entry["human_label"]
-        likely_parse_failed = (
-            judge["type_ratio_score"] == 0.0
-            and judge["overall_score"] == 0
-            and judge["difficulty_match"] is False
-        )
-        rows.append({
-            "id": entry["id"],
-            "judge_overall": judge["overall_score"],
-            "judge_difficulty_match": judge["difficulty_match"],
-            "human_overall": human["overall_score"],
-            "human_difficulty_match": human["difficulty_match"],
-            "likely_parse_failed": likely_parse_failed,
-        })
-    return rows
-
-
 def _average_repeats(repeat_rows: list[list[dict]]) -> list[dict]:
     """같은 항목(id)의 회차별 row를 평균 낸다.
 
@@ -188,35 +158,6 @@ def _average_repeats(repeat_rows: list[list[dict]]) -> list[dict]:
             "difficulty_hit": sum(hits) / len(hits),
         })
     return averaged
-
-
-def _ci_round(value: float | None, ndigits: int = 3) -> float | None:
-    return round(value, ndigits) if value is not None else None
-
-
-def _structure_ci(averaged_rows: list[dict], n_boot: int = 1000, seed: int = 0) -> dict:
-    """항목 단위로 평균된 rows에 클러스터(=항목 id) 부트스트랩 CI를 적용.
-
-    rows 하나가 항목 하나(회차 평균까지 끝낸 상태)이므로 클러스터 부트스트랩은
-    사실상 항목 단위 일반 부트스트랩과 같다 — structure_golden은 항목마다 지문이
-    달라 다른 클러스터링 기준이 없다."""
-    ids = [r["id"] for r in averaged_rows]
-
-    def _mean_of(key):
-        def fn(rows: list[dict]) -> float | None:
-            vals = [r[key] for r in rows]
-            return sum(vals) / len(vals) if vals else None
-        return fn
-
-    out = {}
-    for key, label in (
-        ("mae", "overall_mae"),
-        ("difficulty_hit", "difficulty_match_agreement"),
-        ("bias", "bias_judge_minus_human"),
-    ):
-        point, lo, hi = cluster_bootstrap_ci(averaged_rows, ids, _mean_of(key), n_boot=n_boot, seed=seed)
-        out[label] = {"point": _ci_round(point), "ci_lo": _ci_round(lo), "ci_hi": _ci_round(hi)}
-    return out
 
 
 def _estimate_cost_usd(judge_key: str, n_structure_calls: int, n_item_calls: int) -> float | None:

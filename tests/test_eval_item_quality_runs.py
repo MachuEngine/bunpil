@@ -1020,3 +1020,25 @@ def test_generator_pairs_includes_extra_pair_only_when_both_present_and_not_base
     assert generator_pairs(["qwen2.5-14b", "gpt-6-luna", "gemini-3.8-flash"], "gpt-6-luna") == [
         ("gpt-6-luna", "qwen2.5-14b"), ("gpt-6-luna", "gemini-3.8-flash"),
     ]
+
+
+def test_judge_discrimination_default_judge_model_follows_offline_env(monkeypatch):
+    """judge/discrimination 서브커맨드의 --judge-model 기본값이 OFFLINE_JUDGE_MODEL
+    (미설정 시 anthropic/claude-sonnet-5.5)을 따른다 — compare-generators·structure-judge와
+    일관시킨 2026-10 결정(evals/eval_lib.py get_offline_judge_backend()와 같은 기본값).
+    env는 모듈 import 시점에 한 번 읽히므로(importlib.reload로) 재평가해 확인한다."""
+    import importlib
+
+    import evals.eval_item_quality_runs as mod
+
+    monkeypatch.delenv("OFFLINE_JUDGE_MODEL", raising=False)
+    importlib.reload(mod)
+    try:
+        assert mod._OFFLINE_JUDGE_MODEL_DEFAULT == "anthropic/claude-sonnet-5.5"
+
+        monkeypatch.setenv("OFFLINE_JUDGE_MODEL", "openai/gpt-6.1-sol")
+        importlib.reload(mod)
+        assert mod._OFFLINE_JUDGE_MODEL_DEFAULT == "openai/gpt-6.1-sol"
+    finally:
+        monkeypatch.delenv("OFFLINE_JUDGE_MODEL", raising=False)
+        importlib.reload(mod)

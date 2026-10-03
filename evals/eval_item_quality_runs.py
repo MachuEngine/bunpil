@@ -77,6 +77,13 @@ _MODELS = ("qwen2.5-14b", "gpt-6-luna", "gemini-3.8-flash")
 
 _CRITERIA = ("정답유일성", "오답매력도", "근거성")
 
+# judge/discrimination 서브커맨드의 --judge-model 기본값 — 2026-10 결정: 오프라인 평가
+# Judge를 OFFLINE_JUDGE_MODEL(evals/eval_lib.py get_offline_judge_backend())로 통일한다.
+# compare-generators·structure-judge는 이미 이 값을 하드코딩 기본값으로 쓰고 있었다
+# (여긴 env override까지 반영해 일관시킨다). 런타임 게이트 Judge(gpt-5.6-luna, JUDGE_BACKEND)와는
+# 무관 — 생성 시 고정되는 그 값은 건드리지 않는다.
+_OFFLINE_JUDGE_MODEL_DEFAULT = os.getenv("OFFLINE_JUDGE_MODEL", "anthropic/claude-sonnet-5.5")
+
 
 # ── 공용 경로/캐시 헬퍼 ──────────────────────────────────────────────────
 
@@ -1428,7 +1435,7 @@ def main() -> None:
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_judge = sub.add_parser("judge", help="run의 객관식 문항을 Judge로 채점해 캐시에 append(이어서 실행)")
-    p_judge.add_argument("--judge-model", default="openai/gpt-5.6-luna")
+    p_judge.add_argument("--judge-model", default=_OFFLINE_JUDGE_MODEL_DEFAULT)
     p_judge.add_argument("--models", nargs="+", choices=_MODELS, default=None)
     p_judge.add_argument("--repeat", type=int, default=1)
     p_judge.add_argument(
@@ -1438,7 +1445,7 @@ def main() -> None:
     p_judge.set_defaults(func=cmd_judge)
 
     p_disc = sub.add_parser("discrimination", help="judged 캐시 + run + 입력 메타로 모델 간 변별력 분석")
-    p_disc.add_argument("--judge-model", default="openai/gpt-5.6-luna")
+    p_disc.add_argument("--judge-model", default=_OFFLINE_JUDGE_MODEL_DEFAULT)
     p_disc.add_argument("--models", nargs="+", choices=_MODELS, default=None)
     p_disc.set_defaults(func=cmd_discrimination)
 
