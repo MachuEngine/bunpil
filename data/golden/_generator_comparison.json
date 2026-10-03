@@ -1,0 +1,615 @@
+{
+  "code_version": "e7c72c4",
+  "judge_model": "anthropic/claude-sonnet-5.5",
+  "baseline": "qwen2.5-14b",
+  "models": [
+    "qwen2.5-14b",
+    "gpt-6-luna",
+    "gemini-3.8-flash"
+  ],
+  "rule_metrics": {
+    "qwen2.5-14b": {
+      "n": 33,
+      "count_ok_rate": 0.545,
+      "first_pass_rate": 0.0,
+      "final_gate_pass_rate": 0.152,
+      "avg_attempts": 4.727,
+      "malformed_retries_total": 0,
+      "avg_wall_clock_sec": 516.908,
+      "median_wall_clock_sec": 423.457,
+      "avg_cost_usd": 0.0,
+      "n_zero_mc_passages": 4
+    },
+    "gpt-6-luna": {
+      "n": 33,
+      "count_ok_rate": 1.0,
+      "first_pass_rate": 0.758,
+      "final_gate_pass_rate": 1.0,
+      "avg_attempts": 1.273,
+      "malformed_retries_total": 0,
+      "avg_wall_clock_sec": 38.094,
+      "median_wall_clock_sec": 31.943,
+      "avg_cost_usd": 0.00341,
+      "n_zero_mc_passages": 0
+    },
+    "gemini-3.8-flash": {
+      "n": 33,
+      "count_ok_rate": 1.0,
+      "first_pass_rate": 1.0,
+      "final_gate_pass_rate": 1.0,
+      "avg_attempts": 1.0,
+      "malformed_retries_total": 0,
+      "avg_wall_clock_sec": 39.675,
+      "median_wall_clock_sec": 36.919,
+      "avg_cost_usd": 0.02237,
+      "n_zero_mc_passages": 0
+    }
+  },
+  "judge_metrics": {
+    "qwen2.5-14b": {
+      "정답유일성": {
+        "n": 133,
+        "mean": 2.774,
+        "mean_ci": [
+          2.398,
+          3.121
+        ],
+        "low_quality_rate": 0.496,
+        "low_quality_ci": [
+          0.39,
+          0.613
+        ]
+      },
+      "오답매력도": {
+        "n": 133,
+        "mean": 2.639,
+        "mean_ci": [
+          2.454,
+          2.822
+        ],
+        "low_quality_rate": 0.429,
+        "low_quality_ci": [
+          0.312,
+          0.557
+        ]
+      },
+      "근거성": {
+        "n": 133,
+        "mean": 3.248,
+        "mean_ci": [
+          3.0,
+          3.496
+        ],
+        "low_quality_rate": 0.271,
+        "low_quality_ci": [
+          0.163,
+          0.388
+        ]
+      },
+      "uniqueness_critical_fail_rate": 0.496,
+      "uniqueness_critical_fail_ci": [
+        0.39,
+        0.613
+      ]
+    },
+    "gpt-6-luna": {
+      "정답유일성": {
+        "n": 152,
+        "mean": 4.52,
+        "mean_ci": [
+          4.185,
+          4.8
+        ],
+        "low_quality_rate": 0.099,
+        "low_quality_ci": [
+          0.027,
+          0.181
+        ]
+      },
+      "오답매력도": {
+        "n": 152,
+        "mean": 3.882,
+        "mean_ci": [
+          3.731,
+          4.042
+        ],
+        "low_quality_rate": 0.033,
+        "low_quality_ci": [
+          0.0,
+          0.078
+        ]
+      },
+      "근거성": {
+        "n": 152,
+        "mean": 4.743,
+        "mean_ci": [
+          4.585,
+          4.88
+        ],
+        "low_quality_rate": 0.0,
+        "low_quality_ci": [
+          0.0,
+          0.0
+        ]
+      },
+      "uniqueness_critical_fail_rate": 0.099,
+      "uniqueness_critical_fail_ci": [
+        0.027,
+        0.181
+      ]
+    },
+    "gemini-3.8-flash": {
+      "정답유일성": {
+        "n": 156,
+        "mean": 4.641,
+        "mean_ci": [
+          4.368,
+          4.871
+        ],
+        "low_quality_rate": 0.058,
+        "low_quality_ci": [
+          0.007,
+          0.127
+        ]
+      },
+      "오답매력도": {
+        "n": 156,
+        "mean": 4.128,
+        "mean_ci": [
+          3.977,
+          4.276
+        ],
+        "low_quality_rate": 0.019,
+        "low_quality_ci": [
+          0.0,
+          0.059
+        ]
+      },
+      "근거성": {
+        "n": 156,
+        "mean": 4.872,
+        "mean_ci": [
+          4.77,
+          4.952
+        ],
+        "low_quality_rate": 0.0,
+        "low_quality_ci": [
+          0.0,
+          0.0
+        ]
+      },
+      "uniqueness_critical_fail_rate": 0.058,
+      "uniqueness_critical_fail_ci": [
+        0.007,
+        0.127
+      ]
+    }
+  },
+  "human_metrics": {
+    "qwen2.5-14b": {
+      "정답유일성": {
+        "n": 25,
+        "mean": 2.96,
+        "mean_ci": [
+          2.32,
+          3.56
+        ],
+        "low_quality_rate": 0.44,
+        "low_quality_ci": [
+          0.28,
+          0.64
+        ]
+      },
+      "오답매력도": {
+        "n": 25,
+        "mean": 2.48,
+        "mean_ci": [
+          2.24,
+          2.72
+        ],
+        "low_quality_rate": 0.48,
+        "low_quality_ci": [
+          0.28,
+          0.68
+        ]
+      },
+      "근거성": {
+        "n": 25,
+        "mean": 3.28,
+        "mean_ci": [
+          2.8,
+          3.76
+        ],
+        "low_quality_rate": 0.28,
+        "low_quality_ci": [
+          0.12,
+          0.48
+        ]
+      },
+      "uniqueness_critical_fail_rate": 0.44,
+      "uniqueness_critical_fail_ci": [
+        0.28,
+        0.64
+      ]
+    },
+    "gpt-6-luna": {
+      "정답유일성": {
+        "n": 33,
+        "mean": 4.545,
+        "mean_ci": [
+          4.12,
+          4.879
+        ],
+        "low_quality_rate": 0.091,
+        "low_quality_ci": [
+          0.0,
+          0.182
+        ]
+      },
+      "오답매력도": {
+        "n": 33,
+        "mean": 3.758,
+        "mean_ci": [
+          3.545,
+          3.97
+        ],
+        "low_quality_rate": 0.0,
+        "low_quality_ci": [
+          0.0,
+          0.0
+        ]
+      },
+      "근거성": {
+        "n": 33,
+        "mean": 4.788,
+        "mean_ci": [
+          4.576,
+          4.939
+        ],
+        "low_quality_rate": 0.03,
+        "low_quality_ci": [
+          0.0,
+          0.091
+        ]
+      },
+      "uniqueness_critical_fail_rate": 0.091,
+      "uniqueness_critical_fail_ci": [
+        0.0,
+        0.182
+      ]
+    },
+    "gemini-3.8-flash": {
+      "정답유일성": {
+        "n": 33,
+        "mean": 4.333,
+        "mean_ci": [
+          3.818,
+          4.727
+        ],
+        "low_quality_rate": 0.121,
+        "low_quality_ci": [
+          0.03,
+          0.242
+        ]
+      },
+      "오답매력도": {
+        "n": 33,
+        "mean": 4.152,
+        "mean_ci": [
+          3.939,
+          4.333
+        ],
+        "low_quality_rate": 0.0,
+        "low_quality_ci": [
+          0.0,
+          0.0
+        ]
+      },
+      "근거성": {
+        "n": 33,
+        "mean": 4.394,
+        "mean_ci": [
+          3.97,
+          4.727
+        ],
+        "low_quality_rate": 0.091,
+        "low_quality_ci": [
+          0.0,
+          0.212
+        ]
+      },
+      "uniqueness_critical_fail_rate": 0.121,
+      "uniqueness_critical_fail_ci": [
+        0.03,
+        0.242
+      ]
+    }
+  },
+  "human_metrics_note": "표본이 작아(모델당 최대 33건) 참고용입니다.",
+  "pairwise": {
+    "qwen2.5-14b_vs_gpt-6-luna": {
+      "judge_overall_diff": {
+        "n": 29,
+        "mean_diff": 1.57,
+        "ci": [
+          1.206,
+          1.922
+        ],
+        "verdict": "gpt-6-luna가 더 우수"
+      },
+      "human_diff": {
+        "정답유일성": {
+          "n": 25,
+          "mean_diff": 1.48,
+          "ci": [
+            0.44,
+            2.4
+          ],
+          "verdict": "gpt-6-luna가 더 우수"
+        },
+        "오답매력도": {
+          "n": 25,
+          "mean_diff": 1.24,
+          "ci": [
+            0.88,
+            1.64
+          ],
+          "verdict": "gpt-6-luna가 더 우수"
+        },
+        "근거성": {
+          "n": 25,
+          "mean_diff": 1.48,
+          "ci": [
+            0.92,
+            2.04
+          ],
+          "verdict": "gpt-6-luna가 더 우수"
+        }
+      },
+      "final_gate_diff": {
+        "n": 33,
+        "mean_diff": 0.848,
+        "ci": [
+          0.727,
+          0.97
+        ],
+        "verdict": "gpt-6-luna가 더 우수"
+      },
+      "latency_diff": {
+        "n": 33,
+        "mean_diff": -478.814,
+        "ci": [
+          -601.7,
+          -371.991
+        ],
+        "verdict": "gpt-6-luna가 더 우수"
+      }
+    },
+    "qwen2.5-14b_vs_gemini-3.8-flash": {
+      "judge_overall_diff": {
+        "n": 29,
+        "mean_diff": 1.74,
+        "ci": [
+          1.487,
+          2.005
+        ],
+        "verdict": "gemini-3.8-flash가 더 우수"
+      },
+      "human_diff": {
+        "정답유일성": {
+          "n": 25,
+          "mean_diff": 1.4,
+          "ci": [
+            0.68,
+            2.08
+          ],
+          "verdict": "gemini-3.8-flash가 더 우수"
+        },
+        "오답매력도": {
+          "n": 25,
+          "mean_diff": 1.76,
+          "ci": [
+            1.48,
+            2.08
+          ],
+          "verdict": "gemini-3.8-flash가 더 우수"
+        },
+        "근거성": {
+          "n": 25,
+          "mean_diff": 1.32,
+          "ci": [
+            0.68,
+            1.881
+          ],
+          "verdict": "gemini-3.8-flash가 더 우수"
+        }
+      },
+      "final_gate_diff": {
+        "n": 33,
+        "mean_diff": 0.848,
+        "ci": [
+          0.727,
+          0.97
+        ],
+        "verdict": "gemini-3.8-flash가 더 우수"
+      },
+      "latency_diff": {
+        "n": 33,
+        "mean_diff": -477.233,
+        "ci": [
+          -601.281,
+          -370.129
+        ],
+        "verdict": "gemini-3.8-flash가 더 우수"
+      }
+    },
+    "gpt-6-luna_vs_gemini-3.8-flash": {
+      "judge_overall_diff": {
+        "n": 33,
+        "mean_diff": 0.186,
+        "ci": [
+          0.012,
+          0.378
+        ],
+        "verdict": "gemini-3.8-flash가 더 우수"
+      },
+      "human_diff": {
+        "정답유일성": {
+          "n": 33,
+          "mean_diff": -0.212,
+          "ci": [
+            -0.848,
+            0.424
+          ],
+          "verdict": "판정 불가(CI가 0을 포함)"
+        },
+        "오답매력도": {
+          "n": 33,
+          "mean_diff": 0.394,
+          "ci": [
+            0.151,
+            0.637
+          ],
+          "verdict": "gemini-3.8-flash가 더 우수"
+        },
+        "근거성": {
+          "n": 33,
+          "mean_diff": -0.394,
+          "ci": [
+            -0.848,
+            0.061
+          ],
+          "verdict": "판정 불가(CI가 0을 포함)"
+        }
+      },
+      "final_gate_diff": {
+        "n": 33,
+        "mean_diff": 0.0,
+        "ci": [
+          0.0,
+          0.0
+        ],
+        "verdict": "판정 불가(CI가 0을 포함)"
+      },
+      "latency_diff": {
+        "n": 33,
+        "mean_diff": 1.581,
+        "ci": [
+          -5.488,
+          6.427
+        ],
+        "verdict": "판정 불가(CI가 0을 포함)"
+      }
+    }
+  },
+  "case_type_table": {
+    "human": {
+      "qwen2.5-14b": {
+        "hard_content": {
+          "정답유일성": 2.75,
+          "오답매력도": 2.5,
+          "근거성": 2.875
+        },
+        "normal": {
+          "정답유일성": 2.8,
+          "오답매력도": 2.4,
+          "근거성": 3.3
+        },
+        "hard": {
+          "정답유일성": 3.429,
+          "오답매력도": 2.571,
+          "근거성": 3.714
+        }
+      },
+      "gpt-6-luna": {
+        "hard_content": {
+          "정답유일성": 4.3,
+          "오답매력도": 3.9,
+          "근거성": 4.8
+        },
+        "normal": {
+          "정답유일성": 5.0,
+          "오답매력도": 3.846,
+          "근거성": 5.0
+        },
+        "hard": {
+          "정답유일성": 4.2,
+          "오답매력도": 3.5,
+          "근거성": 4.5
+        }
+      },
+      "gemini-3.8-flash": {
+        "hard": {
+          "정답유일성": 4.9,
+          "오답매력도": 4.2,
+          "근거성": 4.6
+        },
+        "normal": {
+          "정답유일성": 4.077,
+          "오답매력도": 4.077,
+          "근거성": 4.0
+        },
+        "hard_content": {
+          "정답유일성": 4.1,
+          "오답매력도": 4.2,
+          "근거성": 4.7
+        }
+      }
+    },
+    "judge": {
+      "qwen2.5-14b": {
+        "hard": {
+          "정답유일성": 2.736,
+          "오답매력도": 2.755,
+          "근거성": 3.132
+        },
+        "normal": {
+          "정답유일성": 2.705,
+          "오답매력도": 2.523,
+          "근거성": 3.341
+        },
+        "hard_content": {
+          "정답유일성": 2.917,
+          "오답매력도": 2.611,
+          "근거성": 3.306
+        }
+      },
+      "gpt-6-luna": {
+        "hard": {
+          "정답유일성": 4.373,
+          "오답매력도": 3.686,
+          "근거성": 4.549
+        },
+        "normal": {
+          "정답유일성": 4.827,
+          "오답매력도": 3.942,
+          "근거성": 4.865
+        },
+        "hard_content": {
+          "정답유일성": 4.347,
+          "오답매력도": 4.02,
+          "근거성": 4.816
+        }
+      },
+      "gemini-3.8-flash": {
+        "hard": {
+          "정답유일성": 4.782,
+          "오답매력도": 4.055,
+          "근거성": 4.855
+        },
+        "normal": {
+          "정답유일성": 4.75,
+          "오답매력도": 4.269,
+          "근거성": 4.846
+        },
+        "hard_content": {
+          "정답유일성": 4.367,
+          "오답매력도": 4.061,
+          "근거성": 4.918
+        }
+      }
+    }
+  },
+  "gate_dependency_note": "최종 게이트 통과율(final_gate_pass_rate)은 런타임 Judge(gpt-5.6-luna, 생성 시 고정)의 구조 검증 결과에 의존한다 — 이 커맨드의 --judge-model(문항 품질 평가용)과는 다른 모델.",
+  "missing_bias_note": "객관식 0개(run 실패 포함) 지문은 Judge·사람 점수 쌍에서는 빠지지만, 규칙 지표(목표 개수 달성률·통과율)에는 실패로 포함된다 — 품질 지표만 보면 해당 모델이 유리하게 보일 수 있다는 점에 주의."
+}
