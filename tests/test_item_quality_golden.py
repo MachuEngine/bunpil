@@ -248,7 +248,8 @@ def test_build_labelset_picks_one_mc_item_per_passage_model():
         assert "model" not in e
         assert set(e.keys()) == {"id", "passage_id", "passage_text", "item", "human_label"}
         assert e["human_label"] == {
-            "정답유일성": None, "오답매력도": None, "근거성": None, "cannot_judge": False, "reason": "",
+            "정답유일성": None, "오답매력도": None, "근거성": None, "학생난이도": None,
+            "cannot_judge": False, "reason": "",
         }
     # model_map으로만 모델을 알 수 있다
     for blind_id, mapping in model_map.items():
@@ -308,7 +309,10 @@ def test_has_existing_labels_false_when_all_null(tmp_path):
         "entries": [
             {
                 "id": "iq_001",
-                "human_label": {"정답유일성": None, "오답매력도": None, "근거성": None, "cannot_judge": False, "reason": ""},
+                "human_label": {
+                    "정답유일성": None, "오답매력도": None, "근거성": None, "학생난이도": None,
+                    "cannot_judge": False, "reason": "",
+                },
             }
         ]
     }
@@ -322,7 +326,27 @@ def test_has_existing_labels_true_when_any_score_filled(tmp_path):
         "entries": [
             {
                 "id": "iq_001",
-                "human_label": {"정답유일성": 4, "오답매력도": None, "근거성": None, "cannot_judge": False, "reason": ""},
+                "human_label": {
+                    "정답유일성": 4, "오답매력도": None, "근거성": None, "학생난이도": None,
+                    "cannot_judge": False, "reason": "",
+                },
+            }
+        ]
+    }
+    path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    assert _has_existing_labels(str(path)) is True
+
+
+def test_has_existing_labels_true_when_student_difficulty_filled(tmp_path):
+    path = tmp_path / "golden.json"
+    data = {
+        "entries": [
+            {
+                "id": "iq_001",
+                "human_label": {
+                    "정답유일성": None, "오답매력도": None, "근거성": None, "학생난이도": "중",
+                    "cannot_judge": False, "reason": "",
+                },
             }
         ]
     }

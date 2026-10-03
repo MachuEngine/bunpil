@@ -412,6 +412,7 @@ def build_labelset(
                 "정답유일성": None,
                 "오답매력도": None,
                 "근거성": None,
+                "학생난이도": None,
                 "cannot_judge": False,
                 "reason": "",
             },
@@ -434,7 +435,7 @@ def _has_existing_labels(path: str) -> bool:
         hl = e.get("human_label", {}) or {}
         if hl.get("cannot_judge") or (hl.get("reason") or "").strip():
             return True
-        if any(hl.get(k) is not None for k in ("정답유일성", "오답매력도", "근거성")):
+        if any(hl.get(k) is not None for k in ("정답유일성", "오답매력도", "근거성", "학생난이도")):
             return True
     return False
 
@@ -454,7 +455,10 @@ _GOLDEN_SCHEMA = {
         "human_label": (
             "정답유일성·오답매력도·근거성: 1~5 정수(evals/eval_lib.py JUDGE_TPL과 동일 기준 — "
             "정답유일성=오직 하나의 정답, 오답매력도=오답 선지가 그럴듯함, 근거성=교육과정 기반). "
-            "판단 불가 시 cannot_judge=true. 세 기준 중 2점 이하가 있으면 reason에 한 줄 근거."
+            "학생난이도: 상/중/하 문자열(고등학생이 풀 때의 난이도, 교사 관점 직관적 판단 — "
+            "평가셋 난이도 분포 확인용, 모델 비교 지표에는 쓰지 않음). "
+            "판단 불가 시 cannot_judge=true. 세 기준(정답유일성·오답매력도·근거성) 중 2점 "
+            "이하가 있으면 reason에 한 줄 근거."
         ),
     },
     "provenance": "golden_gen/gen_item_quality_golden.py generate + build-labelset.",
