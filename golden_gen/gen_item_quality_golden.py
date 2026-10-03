@@ -10,6 +10,8 @@
   generate       지문 1개당 1회 그래프 실행 → data/golden/_item_quality_runs/{model}.jsonl에 즉시 append
   summarize      모델별 run 파일을 집계해 표로 출력(원문 미출력)
   build-labelset 3개 모델 run 파일에서 (지문, 모델)마다 객관식 1개씩 뽑아 블라인드 골든셋 생성
+  export-sheet   JSON 직접 편집용 라벨링 시트(item_quality_labeling_sheet.json) 생성
+  import-sheet   편집한 라벨링 시트의 라벨을 item_quality_golden.json에 반영
 
 하드룰 2(마스킹은 모델 호출 이전): generate는 app.main._build_spec()을 그대로 호출해
 PII 마스킹 → 요청 분석 순서를 운영과 동일하게 유지한다.
@@ -41,6 +43,7 @@ _INPUTS_PATH = os.path.join(_GOLDEN_DIR, "item_quality_inputs.json")
 _RUNS_DIR = os.path.join(_GOLDEN_DIR, "_item_quality_runs")
 _GOLDEN_PATH = os.path.join(_GOLDEN_DIR, "item_quality_golden.json")
 _MODEL_MAP_PATH = os.path.join(_GOLDEN_DIR, "_item_quality_model_map.json")
+_SHEET_PATH = os.path.join(_GOLDEN_DIR, "item_quality_labeling_sheet.json")
 
 # 모델별 env — 반드시 app.* import 전에 설정한다(gen_structure_golden.py와 같은 관례).
 # 평가의 API 호출은 OpenRouter로 통일한다(2026-10 사용자 결정) — qwen2.5-14b(로컬
@@ -491,6 +494,186 @@ def cmd_build_labelset(args: argparse.Namespace) -> None:
         print(f"missing {len(missing)}건 (run 실패 또는 객관식 없음) — model_map.json의 'missing' 참고")
 
 
+# ── export-sheet / import-sheet (JSON 직접 편집) ────────────────────────────
+#
+# tools/labeling.html(브라우저 도구) 대신 JSON 파일을 직접 편집해 라벨을 달 수 있게 하는
+# 보조 경로. 라벨 기준 문구는 tools/labeling.html의 RUBRIC 상수를 그대로 가져왔다(두 도구가
+# 같은 기준을 쓰도록 문구를 동기화 — RUBRIC을 고치면 이 상수도 같이 고칠 것).
+
+_SHEET_GUIDE = [
+    "이 파일은 JSON 편집기로 직접 라벨을 채우는 시트입니다. 각 문항의 \"라벨\" 블록만 채우세요"
+    "(그 아래 예시문제_줄·발문·보기_줄·선지·표시된_정답은 참고용 원문이라 수정해도 반영되지 않습니다).",
+    "정답유일성·오답매력도·근거성: 1~5 정수. 모델 정보는 제공하지 않습니다 — 추측하지 말고"
+    " 문항 자체만 보고 판단하세요.",
+    "학생난이도: \"상\"/\"중\"/\"하\" 문자열.",
+    "정답유일성·오답매력도·근거성 중 하나라도 2점 이하이거나 판단불가를 true로 두면 근거를"
+    " 반드시 채워야 합니다(비어 있으면 import-sheet가 반영을 거부합니다).",
+    "",
+    "[기준표]",
+    "정답유일성",
+    "  5: 표시된 정답이 맞고, 다른 선지는 명확히 오답이다",
+    "  3: 표시된 정답이 맞지만, 해석에 따라 다른 선지도 정답이 될 여지가 있다",
+    "  1: 정답이 둘 이상이거나, 표시된 정답이 틀렸다",
+    "오답매력도",
+    "  5: 모든 오답이 같은 개념 범주 안에서 그럴듯해, 내용을 알아야 고를 수 있다",
+    "  3: 일부 오답이 너무 티가 나서 소거법으로 쉽게 지워진다",
+    "  1: 오답 대부분이 문항과 무관하거나 말이 되지 않는다",
+    "근거성",
+    "  5: 고교 사회과 교육과정 내용과 정확히 맞고 사실 오류가 없다",
+    "  3: 경미한 부정확함이나 교육과정 밖 내용이 섞여 있다",
+    "  1: 명백한 사실 오류가 있다",
+    "학생난이도: 상/중/하 — 고등학생이 이 문항을 풀 때의 난이도(교사 관점의 직관적 판단)",
+    "2·4점은 각각 인접한 두 앵커 사이.",
+]
+
+_SCORE_KEYS = ("정답유일성", "오답매력도", "근거성")
+
+
+def build_label_sheet_entry(entry: dict) -> dict:
+    """golden entry 1개를 사람이 읽기 좋은 시트 항목으로 바꾼다(라벨 칸이 맨 위).
+
+    passage_text·stimulus는 줄 단위 문자열 배열로 풀어 "\\n"이 그대로 보이는 문제를
+    없앤다. stimulus가 비어 있으면 보기_줄 키 자체를 생략한다."""
+    item = entry["item"]
+    sheet_entry = {
+        "id": entry["id"],
+        "라벨": {
+            "정답유일성": None, "오답매력도": None, "근거성": None, "학생난이도": None,
+            "판단불가": False, "근거": "",
+        },
+        "예시문제_줄": entry["passage_text"].split("\n"),
+        "발문": item["question"],
+    }
+    if item.get("stimulus"):
+        sheet_entry["보기_줄"] = item["stimulus"].split("\n")
+    sheet_entry["선지"] = item["options"]
+    sheet_entry["표시된_정답"] = item["answer"]
+    return sheet_entry
+
+
+def build_label_sheet(entries: list[dict]) -> dict:
+    """golden entries 전체를 _안내 + 문항 리스트로 묶은 시트 딕셔너리로 바꾼다."""
+    return {
+        "_안내": _SHEET_GUIDE,
+        "문항": [build_label_sheet_entry(e) for e in entries],
+    }
+
+
+def _has_existing_sheet_labels(path: str) -> bool:
+    """이미 라벨이 하나라도 채워진 시트 파일이 있으면 True(라벨 유실 방지용 가드)."""
+    if not os.path.exists(path):
+        return False
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    for item in data.get("문항", []):
+        label = item.get("라벨", {}) or {}
+        if label.get("판단불가") or (label.get("근거") or "").strip():
+            return True
+        if any(label.get(k) is not None for k in (*_SCORE_KEYS, "학생난이도")):
+            return True
+    return False
+
+
+def validate_sheet_label(label: dict) -> list[str]:
+    """시트 문항 1개의 '라벨' 블록을 검증한다. 오류 메시지 리스트(없으면 빈 리스트)."""
+    errors = []
+    for key in _SCORE_KEYS:
+        v = label.get(key)
+        if v is not None and (isinstance(v, bool) or not isinstance(v, int) or not (1 <= v <= 5)):
+            errors.append(f"{key} 값이 1~5 정수나 null이 아님")
+    difficulty = label.get("학생난이도")
+    if difficulty is not None and difficulty not in ("상", "중", "하"):
+        errors.append("학생난이도 값이 상/중/하나 null이 아님")
+    needs_reason = bool(label.get("판단불가")) or any(
+        isinstance(label.get(k), int) and not isinstance(label.get(k), bool) and label.get(k) <= 2
+        for k in _SCORE_KEYS
+    )
+    if needs_reason and not str(label.get("근거") or "").strip():
+        errors.append("2점 이하 또는 판단불가인데 근거가 비어 있음")
+    return errors
+
+
+def validate_sheet(sheet_items: list[dict], valid_ids: set[str]) -> list[tuple[str, list[str]]]:
+    """시트 문항 전체를 검증한다. 반환: [(id, 오류 메시지 리스트), ...](유효한 문항은 제외)."""
+    errors = []
+    for item in sheet_items:
+        item_id = item.get("id")
+        item_errors = []
+        if item_id not in valid_ids:
+            item_errors.append("golden에 존재하지 않는 id")
+        item_errors.extend(validate_sheet_label(item.get("라벨", {}) or {}))
+        if item_errors:
+            errors.append((item_id, item_errors))
+    return errors
+
+
+def apply_sheet_labels(golden_entries: list[dict], sheet_items: list[dict]) -> tuple[list[dict], int]:
+    """검증을 통과한 sheet_items의 라벨을 golden_entries의 human_label에 반영한다.
+
+    다른 필드는 그대로 두고 human_label만 갱신한다. 반환: (갱신된 entries,
+    미완료 문항 수 — 정답유일성·오답매력도·근거성 중 하나라도 null인 경우)."""
+    sheet_by_id = {item["id"]: (item.get("라벨") or {}) for item in sheet_items}
+    updated = []
+    incomplete = 0
+    for entry in golden_entries:
+        label = sheet_by_id.get(entry["id"])
+        new_entry = dict(entry)
+        if label is not None:
+            new_entry["human_label"] = {
+                "정답유일성": label.get("정답유일성"),
+                "오답매력도": label.get("오답매력도"),
+                "근거성": label.get("근거성"),
+                "학생난이도": label.get("학생난이도"),
+                "cannot_judge": bool(label.get("판단불가", False)),
+                "reason": label.get("근거", "") or "",
+            }
+            if any(label.get(k) is None for k in _SCORE_KEYS):
+                incomplete += 1
+        updated.append(new_entry)
+    return updated, incomplete
+
+
+def cmd_export_sheet(args: argparse.Namespace) -> None:
+    if _has_existing_sheet_labels(_SHEET_PATH):
+        print(f"중단 — {_SHEET_PATH}에 이미 채워진 라벨이 있습니다. 라벨 유실 방지를 위해 덮어쓰지 않습니다.")
+        sys.exit(1)
+
+    with open(_GOLDEN_PATH, encoding="utf-8") as f:
+        golden = json.load(f)
+    sheet = build_label_sheet(golden["entries"])
+
+    os.makedirs(_GOLDEN_DIR, exist_ok=True)
+    with open(_SHEET_PATH, "w", encoding="utf-8") as f:
+        json.dump(sheet, f, ensure_ascii=False, indent=2)
+
+    print(f"완료 — {_SHEET_PATH}에 {len(sheet['문항'])}개 문항 (라벨은 전부 빈 값)")
+
+
+def cmd_import_sheet(args: argparse.Namespace) -> None:
+    sheet_path = args.sheet or _SHEET_PATH
+    with open(sheet_path, encoding="utf-8") as f:
+        sheet = json.load(f)
+    with open(_GOLDEN_PATH, encoding="utf-8") as f:
+        golden = json.load(f)
+
+    valid_ids = {e["id"] for e in golden["entries"]}
+    sheet_items = sheet.get("문항", [])
+    errors = validate_sheet(sheet_items, valid_ids)
+    if errors:
+        print(f"검증 실패 — {len(errors)}개 문항, 반영하지 않습니다.")
+        for item_id, msgs in errors:
+            for msg in msgs:
+                print(f"  {item_id}: {msg}")
+        sys.exit(1)
+
+    updated_entries, incomplete = apply_sheet_labels(golden["entries"], sheet_items)
+    golden["entries"] = updated_entries
+    with open(_GOLDEN_PATH, "w", encoding="utf-8") as f:
+        json.dump(golden, f, ensure_ascii=False, indent=2)
+
+    print(f"완료 — {_GOLDEN_PATH}에 {len(sheet_items)}개 문항 반영 (미완료 {incomplete}개)")
+
+
 # ── CLI ──────────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -511,6 +694,13 @@ def main() -> None:
     p_build = sub.add_parser("build-labelset", help="3개 모델 run 파일에서 블라인드 라벨링용 골든셋 생성")
     p_build.add_argument("--seed", type=int, default=0)
     p_build.set_defaults(func=cmd_build_labelset)
+
+    p_export = sub.add_parser("export-sheet", help="JSON 직접 편집용 라벨링 시트 생성")
+    p_export.set_defaults(func=cmd_export_sheet)
+
+    p_import = sub.add_parser("import-sheet", help="편집한 라벨링 시트의 라벨을 골든셋에 반영")
+    p_import.add_argument("--sheet", default=None, help="시트 파일 경로(기본: data/golden/item_quality_labeling_sheet.json)")
+    p_import.set_defaults(func=cmd_import_sheet)
 
     args = parser.parse_args()
     args.func(args)

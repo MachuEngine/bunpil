@@ -13,12 +13,18 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, Tool
 
 from golden_gen.gen_item_quality_golden import (
     _has_existing_labels,
+    _has_existing_sheet_labels,
     _run_passage,
     _summarize_agent_messages,
+    apply_sheet_labels,
+    build_label_sheet,
+    build_label_sheet_entry,
     build_labelset,
     load_run_records,
     select_entries,
     summarize_model,
+    validate_sheet,
+    validate_sheet_label,
 )
 
 
@@ -366,3 +372,209 @@ def test_has_existing_labels_true_when_cannot_judge_set(tmp_path):
     }
     path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     assert _has_existing_labels(str(path)) is True
+
+
+# ── build_label_sheet_entry / build_label_sheet (JSON 직접 편집용 시트) ─────
+
+def _golden_entry(id_="iq_001", stimulus="", passage_text="1행\n2행"):
+    return {
+        "id": id_,
+        "passage_id": "p1",
+        "passage_text": passage_text,
+        "item": {
+            "question": "질문입니다",
+            "stimulus": stimulus,
+            "options": ["① 가", "② 나"],
+            "answer": "① 가",
+        },
+        "human_label": {
+            "정답유일성": None, "오답매력도": None, "근거성": None, "학생난이도": None,
+            "cannot_judge": False, "reason": "",
+        },
+    }
+
+
+def test_build_label_sheet_entry_key_order_label_first():
+    entry = build_label_sheet_entry(_golden_entry())
+    # 라벨 칸이 맨 위 — id, 라벨, 예시문제_줄, 발문, (보기_줄,) 선지, 표시된_정답 순서
+    assert list(entry.keys()) == ["id", "라벨", "예시문제_줄", "발문", "선지", "표시된_정답"]
+    assert entry["라벨"] == {
+        "정답유일성": None, "오답매력도": None, "근거성": None, "학생난이도": None,
+        "판단불가": False, "근거": "",
+    }
+
+
+def test_build_label_sheet_entry_splits_passage_text_into_lines():
+    entry = build_label_sheet_entry(_golden_entry(passage_text="첫줄\n둘째줄\n셋째줄"))
+    assert entry["예시문제_줄"] == ["첫줄", "둘째줄", "셋째줄"]
+
+
+def test_build_label_sheet_entry_omits_stimulus_key_when_empty():
+    entry = build_label_sheet_entry(_golden_entry(stimulus=""))
+    assert "보기_줄" not in entry
+
+
+def test_build_label_sheet_entry_splits_stimulus_when_present():
+    entry = build_label_sheet_entry(_golden_entry(stimulus="자료1\n자료2"))
+    assert entry["보기_줄"] == ["자료1", "자료2"]
+    # 보기_줄도 선지보다 앞, 라벨보다는 뒤
+    keys = list(entry.keys())
+    assert keys.index("라벨") < keys.index("보기_줄") < keys.index("선지")
+
+
+def test_build_label_sheet_wraps_entries_with_guide():
+    sheet = build_label_sheet([_golden_entry("iq_001"), _golden_entry("iq_002")])
+    assert list(sheet.keys()) == ["_안내", "문항"]
+    assert isinstance(sheet["_안내"], list) and len(sheet["_안내"]) > 0
+    assert [e["id"] for e in sheet["문항"]] == ["iq_001", "iq_002"]
+
+
+# ── _has_existing_sheet_labels ───────────────────────────────────────────
+
+def _empty_sheet_label():
+    return {"정답유일성": None, "오답매력도": None, "근거성": None, "학생난이도": None, "판단불가": False, "근거": ""}
+
+
+def test_has_existing_sheet_labels_false_for_missing_file(tmp_path):
+    assert _has_existing_sheet_labels(str(tmp_path / "nope.json")) is False
+
+
+def test_has_existing_sheet_labels_false_when_all_empty(tmp_path):
+    path = tmp_path / "sheet.json"
+    data = {"_안내": [], "문항": [{"id": "iq_001", "라벨": _empty_sheet_label()}]}
+    path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    assert _has_existing_sheet_labels(str(path)) is False
+
+
+def test_has_existing_sheet_labels_true_when_score_filled(tmp_path):
+    path = tmp_path / "sheet.json"
+    label = _empty_sheet_label()
+    label["정답유일성"] = 4
+    data = {"_안내": [], "문항": [{"id": "iq_001", "라벨": label}]}
+    path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    assert _has_existing_sheet_labels(str(path)) is True
+
+
+# ── validate_sheet_label / validate_sheet ────────────────────────────────
+
+def test_validate_sheet_label_accepts_all_null():
+    assert validate_sheet_label(_empty_sheet_label()) == []
+
+
+def test_validate_sheet_label_accepts_valid_scores_with_reason():
+    label = _empty_sheet_label()
+    label.update({"정답유일성": 5, "오답매력도": 4, "근거성": 3, "학생난이도": "상"})
+    assert validate_sheet_label(label) == []
+
+
+def test_validate_sheet_label_rejects_out_of_range_score():
+    label = _empty_sheet_label()
+    label["정답유일성"] = 6
+    errors = validate_sheet_label(label)
+    assert any("정답유일성" in e for e in errors)
+
+
+def test_validate_sheet_label_rejects_non_int_score():
+    label = _empty_sheet_label()
+    label["오답매력도"] = "4"
+    errors = validate_sheet_label(label)
+    assert any("오답매력도" in e for e in errors)
+
+
+def test_validate_sheet_label_rejects_invalid_difficulty():
+    label = _empty_sheet_label()
+    label["학생난이도"] = "최상"
+    errors = validate_sheet_label(label)
+    assert any("학생난이도" in e for e in errors)
+
+
+def test_validate_sheet_label_requires_reason_when_score_low():
+    label = _empty_sheet_label()
+    label["근거성"] = 1
+    errors = validate_sheet_label(label)
+    assert any("근거" in e for e in errors)
+
+
+def test_validate_sheet_label_requires_reason_when_cannot_judge():
+    label = _empty_sheet_label()
+    label["판단불가"] = True
+    errors = validate_sheet_label(label)
+    assert any("근거" in e for e in errors)
+
+
+def test_validate_sheet_label_passes_when_low_score_has_reason():
+    label = _empty_sheet_label()
+    label.update({"근거성": 2, "근거": "교육과정 밖 내용 포함"})
+    assert validate_sheet_label(label) == []
+
+
+def test_validate_sheet_flags_unknown_id():
+    items = [{"id": "iq_999", "라벨": _empty_sheet_label()}]
+    errors = validate_sheet(items, valid_ids={"iq_001"})
+    assert len(errors) == 1
+    assert errors[0][0] == "iq_999"
+    assert any("id" in msg for msg in errors[0][1])
+
+
+def test_validate_sheet_no_errors_when_all_valid():
+    items = [
+        {"id": "iq_001", "라벨": _empty_sheet_label()},
+        {"id": "iq_002", "라벨": _empty_sheet_label()},
+    ]
+    assert validate_sheet(items, valid_ids={"iq_001", "iq_002"}) == []
+
+
+# ── apply_sheet_labels ────────────────────────────────────────────────────
+
+def test_apply_sheet_labels_maps_keys_to_human_label():
+    golden_entries = [_golden_entry("iq_001")]
+    label = {
+        "정답유일성": 5, "오답매력도": 4, "근거성": 3, "학생난이도": "중",
+        "판단불가": False, "근거": "",
+    }
+    updated, incomplete = apply_sheet_labels(golden_entries, [{"id": "iq_001", "라벨": label}])
+    assert updated[0]["human_label"] == {
+        "정답유일성": 5, "오답매력도": 4, "근거성": 3, "학생난이도": "중",
+        "cannot_judge": False, "reason": "",
+    }
+    assert incomplete == 0
+    # 다른 필드는 그대로
+    assert updated[0]["passage_id"] == "p1"
+
+
+def test_apply_sheet_labels_maps_cannot_judge_and_reason():
+    golden_entries = [_golden_entry("iq_001")]
+    label = {
+        "정답유일성": None, "오답매력도": None, "근거성": None, "학생난이도": None,
+        "판단불가": True, "근거": "그림이 깨져서 판단 불가",
+    }
+    updated, incomplete = apply_sheet_labels(golden_entries, [{"id": "iq_001", "라벨": label}])
+    assert updated[0]["human_label"]["cannot_judge"] is True
+    assert updated[0]["human_label"]["reason"] == "그림이 깨져서 판단 불가"
+    assert incomplete == 1  # 점수 3종이 모두 null
+
+
+def test_apply_sheet_labels_leaves_entry_untouched_when_not_in_sheet():
+    golden_entries = [_golden_entry("iq_001"), _golden_entry("iq_002")]
+    label = {"정답유일성": 5, "오답매력도": 5, "근거성": 5, "학생난이도": "상", "판단불가": False, "근거": ""}
+    updated, incomplete = apply_sheet_labels(golden_entries, [{"id": "iq_001", "라벨": label}])
+    assert updated[1]["human_label"]["정답유일성"] is None  # iq_002는 시트에 없어 그대로
+    assert incomplete == 0
+
+
+def test_apply_sheet_labels_partial_progress_counts_incomplete():
+    golden_entries = [_golden_entry("iq_001"), _golden_entry("iq_002")]
+    sheet_items = [
+        {"id": "iq_001", "라벨": {
+            "정답유일성": 5, "오답매력도": 5, "근거성": 5, "학생난이도": "상",
+            "판단불가": False, "근거": "",
+        }},
+        {"id": "iq_002", "라벨": {
+            "정답유일성": 4, "오답매력도": None, "근거성": None, "학생난이도": None,
+            "판단불가": False, "근거": "",
+        }},
+    ]
+    updated, incomplete = apply_sheet_labels(golden_entries, sheet_items)
+    assert incomplete == 1  # iq_002만 미완료
+    assert updated[0]["human_label"]["정답유일성"] == 5
+    assert updated[1]["human_label"]["오답매력도"] is None
