@@ -11,6 +11,9 @@ python-multipart==0.0.20
 pymupdf==1.24.14
 chromadb==0.5.23
 FlagEmbedding==1.2.11
+# FlagEmbedding 1.2.11이 내부에서 peft를 import하지만 자체 의존성에 선언하지
+# 않아(2026-10 CI 실패 원인) 명시적으로 고정한다.
+peft==0.19.1
 torch==2.12.1
 numpy==1.26.4
 
