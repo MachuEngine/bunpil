@@ -10,8 +10,10 @@ MODEL_SELECTION.md 7절):
 2. figure 카테고리의 "[자료: ...]" 서술 커버리지 — 정답 문자열이 없는 주관적 판단이라
    get_judge_backend()(생성/VLM과 독립된 기존 Judge 축, 새 축 신설 안 함)로 1~5점 채점.
    채점 기준인 figure_summary는 Claude 초안이었으나 2026-08-20 사람 검수 완료(전체
-   reviewed=true) — 단, item_golden/structure_golden과 달리 Judge 점수 자체의 신뢰도
-   (사람 채점과 kappa 비교)는 측정한 적 없다(아래 print_report의 caveat 참고).
+   reviewed=true) — Judge 점수 자체의 신뢰도(사람 채점과 kappa 비교)는 15건 셋
+   (data/golden/vlm_figure_judge_golden.json)과 측정 스크립트(eval_vlm_judge_reliability.py)
+   까지는 준비했으나, 15건으론 kappa 신뢰구간이 너무 넓어 라벨링은 보류 중이다(2026-10,
+   45건으로 확대 후 진행 예정. 아래 print_report의 caveat 참고).
 3. adversarial — 정답/해설을 스스로 지어내지 않는지(forbidden_answer_leak, 규칙 기반),
    mask_pii()가 실제 VLM 출력에서도 여전히 이름/전화번호 등을 잡아내는지(pii_labels_expected).
 
@@ -129,24 +131,40 @@ async def extract_all(entries: list[dict]) -> list[dict]:
     return results
 
 
+def _parse_judge_score(raw: str) -> int | None:
+    """Judge 응답에서 1~5점을 뽑는다. 응답에 숫자가 여러 개 있어도(예: "3~4점")
+    처음 나오는 1~5 범위 숫자 하나만 쓴다 — 전과 달리 모든 숫자를 이어붙이지 않는다
+    (이전 방식은 "3~4"가 "34"가 되어 5점으로 잘리는 버그가 있었음)."""
+    for ch in raw:
+        if ch in "12345":
+            return int(ch)
+    return None
+
+
+async def score_figure_entry(summary: str, vlm_output: str, judge, call_with_retry=_call_with_retry) -> dict:
+    """자료 서술 Judge 채점 — eval_vlm.py와 golden_gen/gen_vlm_judge_reliability_golden.py가
+    공유. [자료: ...] 블록(또는 마크다운 표)이 출력에 없으면 Judge를 부르지 않고 1점을
+    매긴다(빈 문자열로 Judge를 호출하지 않음 — 자료 설명 자체가 없었다는 뜻이라 하드 실패)."""
+    _, fig_text = strip_figure_block(vlm_output)
+    if fig_text is None:
+        return {"judge_score": 1, "judge_note": "[자료: ...] 블록 자체가 출력에 없음", "fig_text": None}
+    prompt = _JUDGE_PROMPT.format(summary=summary, description=fig_text)
+    try:
+        raw = await call_with_retry(lambda: judge.generate([{"role": "user", "content": prompt}]))
+        return {"judge_score": _parse_judge_score(raw), "fig_text": fig_text, "judge_raw": raw}
+    except Exception as exc:  # noqa: BLE001
+        return {"judge_score": None, "judge_note": f"judge 호출 실패: {exc}", "fig_text": fig_text}
+
+
 async def score_figure_judges(scored: list[dict]) -> None:
     judge = get_judge_backend()
     for e in scored:
         if e["category"] != "figure":
             continue
-        _, fig_text = strip_figure_block(e["vlm_output"])
-        if fig_text is None:
-            e["judge_score"] = 1
-            e["judge_note"] = "[자료: ...] 블록 자체가 출력에 없음"
-            continue
-        prompt = _JUDGE_PROMPT.format(summary=e["figure_summary"], description=fig_text)
-        try:
-            raw = await _call_with_retry(lambda: judge.generate([{"role": "user", "content": prompt}]))
-            digits = "".join(ch for ch in raw if ch.isdigit())
-            e["judge_score"] = max(1, min(5, int(digits))) if digits else None
-        except Exception as exc:  # noqa: BLE001
-            e["judge_score"] = None
-            e["judge_note"] = f"judge 호출 실패: {exc}"
+        result = await score_figure_entry(e["figure_summary"], e["vlm_output"], judge)
+        e["judge_score"] = result["judge_score"]
+        if "judge_note" in result:
+            e["judge_note"] = result["judge_note"]
 
 
 def score_text_metrics(scored: list[dict]) -> None:
@@ -215,8 +233,9 @@ def print_report(scored: list[dict]) -> None:
         f"  ⚠️ figure_summary 검수 안 됨({unreviewed}) — 채점 기준 자체가 아직 미확정이라 참고용"
         if unreviewed
         else "  (figure_summary 전부 사람 검수 완료 — 채점 기준 자체는 신뢰 가능. "
-             "단, Judge가 그 기준을 얼마나 일관되게 적용하는지는 별도 검증 안 함 — "
-             "kappa 등 신뢰도 측정은 item_golden/structure_golden과 달리 이 골든셋엔 없음)"
+             "Judge가 그 기준을 얼마나 일관되게 적용하는지(kappa 등 신뢰도)는 "
+             "15건 셋(vlm_figure_judge_golden.json)과 측정 스크립트는 준비됐으나 "
+             "라벨링은 보류 중 — 45건으로 확대 후 진행 예정)"
     )
     print(f"  자료 서술 커버리지 Judge 평균(1~5) = {mean(scores):.2f}")
     print(caveat)

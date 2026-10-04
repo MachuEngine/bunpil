@@ -23,8 +23,10 @@ except ImportError:
         return decorator
 
 from app.common.llm import PromptTemplate
+from app.common.llm.backends.openrouter import OpenRouterBackend
 from app.common.rag import RAGRetriever
 from app.modules.exam.judge import STRUCTURE_JUDGE_TPL, judge_structure  # noqa: F401 (재노출)
+from evals.stats import cluster_bootstrap_ci, mean_ci, weighted_kappa
 
 _TRACE_META = {
     "model": os.getenv("OLLAMA_MODEL", "unknown"),
@@ -35,6 +37,23 @@ _GOLDEN_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "golden")
 _GOLDEN_PATH = os.path.join(_GOLDEN_DIR, "retrieval_golden_final.json")
 _ITEM_GOLDEN_PATH = os.path.join(_GOLDEN_DIR, "item_golden.json")
 _STRUCTURE_GOLDEN_PATH = os.path.join(_GOLDEN_DIR, "structure_golden.json")
+_ITEM_QUALITY_GOLDEN_PATH = os.path.join(_GOLDEN_DIR, "item_quality_golden.json")
+_QUALITY_CRITERIA = ("정답유일성", "오답매력도", "근거성")
+
+
+def get_offline_judge_backend() -> OpenRouterBackend:
+    """오프라인 정기 평가(eval_exam.py) 전용 Judge 백엔드 — 런타임 게이트의
+    `get_judge_backend()`(.env JUDGE_BACKEND)와 **완전히 분리**한다(2026-10 결정).
+
+    이유: 오프라인 평가가 "런타임 Judge를 믿어도 되는가"를 검증하는 역할인데, 같은 모델로
+    검증하면 자기 자신을 신뢰도 기준으로 삼는 셈이 된다. 생성 모델과 계열이 다른 별도
+    Judge(기본 anthropic/claude-sonnet-5.5, OpenRouter)로 재채점했을 때 사람 라벨 대비 κ가
+    더 높게 나왔다(evals/eval_item_quality_runs.py reliability 비교 결과,
+    data/golden/_judge_selection_round2.json). OPENROUTER_API_KEY 미설정 시 이 생성자 자체는
+    실패하지 않고, 첫 generate() 호출 시 ChatOpenRouterBackend 생성 시점에 실패한다
+    (fail-fast, get_judge_backend()와 같은 철학 — 신뢰도 수치를 내기 전에 멈춘다)."""
+    model = os.getenv("OFFLINE_JUDGE_MODEL", "anthropic/claude-sonnet-5.5")
+    return OpenRouterBackend(model=model)
 
 
 # ── golden 로더 ─────────────────────────────────────────────────────
@@ -118,6 +137,33 @@ def eval_retrieval(retriever: RAGRetriever, golden: list) -> dict:
     }
 
 
+@traceable(name="eval_retrieval_per_query", run_type="chain", metadata=_TRACE_META)
+def eval_retrieval_per_query(retriever: RAGRetriever, golden: list) -> list[dict]:
+    """eval_retrieval()과 동일한 판정 로직으로, 쿼리 단위 hit(0/1)·rr을 그대로 노출한다.
+
+    eval_retrieval()의 집계(recall_at_5·mrr·n)만으로는 질의 단위 부트스트랩 CI를 낼 수
+    없어 추가했다 — eval_retrieval()의 기존 반환값은 바꾸지 않고, CI가 필요한 소비자
+    (eval_exam.py)만 이 함수를 따로 호출한다. 쿼리 원문 대신 id만 남긴다(최소 노출)."""
+    rows = []
+    for item in golden:
+        col = item["source_collection"]
+        results = retriever.retrieve(item["query"], col, top_k=5)
+        preview = item["chunk_preview"].strip()
+
+        found_rank = None
+        for rank, r in enumerate(results, 1):
+            if preview and preview[:80] in r["text"]:
+                found_rank = rank
+                break
+
+        rows.append({
+            "id": item["id"],
+            "hit": 1 if found_rank is not None else 0,
+            "rr": (1.0 / found_rank) if found_rank is not None else 0.0,
+        })
+    return rows
+
+
 # ── 문항 품질 Judge ──────────────────────────────────────────────────
 
 JUDGE_TPL = PromptTemplate(
@@ -145,17 +191,27 @@ JUDGE_TPL = PromptTemplate(
 
 @traceable(name="judge_one", run_type="llm", metadata=_TRACE_META)
 def judge_one(item: dict, llm) -> dict:
-    item_str = json.dumps(
-        {"question": item["question"], "options": item.get("options", []), "answer": item.get("answer", "")},
-        ensure_ascii=False,
-    )
+    item_dict = {"question": item["question"], "options": item.get("options", []), "answer": item.get("answer", "")}
+    # 2026-10-03: stimulus(<보기>·자료 제시문)가 있으면 포함한다 — 합답형·자료형 문항은
+    # <보기>를 봐야 정답유일성을 판단할 수 있다. 없거나 빈 문자열이면 기존과 완전히 같은
+    # JSON(ITEM_GOLDEN이 이 조건으로 이미 측정돼 있어 바꾸지 않음).
+    stimulus = item.get("stimulus")
+    if stimulus:
+        item_dict["stimulus"] = stimulus
+    item_str = json.dumps(item_dict, ensure_ascii=False)
     messages = JUDGE_TPL.build(item_str)
     raw = _run_async(llm.generate(messages))
     try:
         s, e = raw.find("{"), raw.rfind("}") + 1
-        scores = json.loads(raw[s:e]) if s >= 0 and e > s else {}
+        if s >= 0 and e > s:
+            scores = json.loads(raw[s:e])
+            parse_failed = False
+        else:
+            scores = {}
+            parse_failed = True
     except Exception:
         scores = {}
+        parse_failed = True
     return {
         "정답유일성": int(scores.get("정답유일성", 3)),
         "오답매력도": int(scores.get("오답매력도", 3)),
@@ -164,6 +220,7 @@ def judge_one(item: dict, llm) -> dict:
             (int(scores.get("정답유일성", 3)) + int(scores.get("오답매력도", 3)) + int(scores.get("근거성", 3))) / 3,
             2,
         ),
+        "parse_failed": parse_failed,
     }
 
 
@@ -233,6 +290,81 @@ def eval_judge_reliability(scored: list[dict]) -> dict:
     }
 
 
+# ── 문항 품질 Judge 신뢰도 — item_quality_golden.json(사람 라벨 91건) ──────────
+# 2026-10 결정: 정기 평가의 Judge 신뢰도 기준 라벨셋을 ITEM_GOLDEN(30건, Claude 합성
+# human_score)에서 이쪽(사람이 직접 라벨링한 91건, 기준별 1~5점)으로 교체한다. ITEM_GOLDEN은
+# 이력으로 보존하고(위 eval_judge_reliability·eval_item_quality는 그대로 둠), 정기 평가
+# (eval_exam.py)만 이 신뢰도 쪽을 쓴다.
+
+def _load_item_quality_golden() -> list[dict]:
+    """item_quality_golden.json 95건 중 cannot_judge이거나 기준(정답유일성·오답매력도·근거성)
+    중 하나라도 null인 4건을 제외한 91건만 반환한다 — 사람이 판단을 보류한 항목이라
+    Judge 신뢰도 계산 대상이 아니다(evals/eval_item_quality_runs.py usable_human_labels와
+    같은 기준)."""
+    with open(_ITEM_QUALITY_GOLDEN_PATH, encoding="utf-8") as f:
+        data = json.load(f)
+    usable = []
+    for e in data.get("entries", []):
+        hl = e.get("human_label") or {}
+        if hl.get("cannot_judge") or any(hl.get(c) is None for c in _QUALITY_CRITERIA):
+            continue
+        usable.append(e)
+    return usable
+
+
+@traceable(name="score_item_quality_golden", run_type="chain", metadata=_TRACE_META)
+def score_item_quality_golden(entries: list[dict], llm, limit: int | None = None) -> list[dict]:
+    """item_quality_golden.json 엔트리 각각을 judge_one()으로 정확히 1회만 채점.
+
+    score_items()를 그대로 쓰지 않는 이유: 이 골든셋의 엔트리는 {"item": {...}, "human_label":
+    {기준별 점수...}, "passage_id": ...}로 ITEM_GOLDEN(엔트리 자체가 문항)과 모양이 다르다.
+    judge_one()에는 entry["item"]만 넘기고, entry 전체(passage_id 포함)는 결과에 남겨야
+    eval_item_quality_golden_reliability()가 지문 단위 클러스터 CI를 낼 수 있다."""
+    subset = entries[:limit] if limit is not None else entries
+    return [{"entry": e, "scores": judge_one(e["item"], llm)} for e in subset]
+
+
+def eval_item_quality_golden_reliability(scored: list[dict]) -> dict:
+    """score_item_quality_golden() 결과와 기준별 human_label을 대조해 가중 κ·MAE·편향을
+    지문(passage_id) 단위 클러스터 부트스트랩 95% CI와 함께 계산한다(LLM 재호출 없음).
+
+    eval_judge_reliability()(ITEM_GOLDEN, overall 단일값·이진 κ·CI 없음)와는 별개 지표다 —
+    이 함수가 2026-10부터 정기 평가(eval_exam.py)의 공식 Judge 신뢰도 수치이고,
+    eval_judge_reliability()는 이력 비교용으로 남긴다. eval_item_quality_runs.py의
+    compute_reliability_report()(여러 Judge·judged 캐시 조인용)는 모양이 안 맞아(이 함수는
+    judge_one()으로 매번 새로 채점하는 1패스 결과라 judged 캐시·model_map 조인이 필요 없음)
+    재사용하지 않고, 그 안에서 쓰는 evals/stats.py 원시 함수(weighted_kappa·
+    cluster_bootstrap_ci·mean_ci)만 직접 재사용한다."""
+    out = {"n": len(scored), "criteria": {}}
+    for c in _QUALITY_CRITERIA:
+        human_vals = [s["entry"]["human_label"][c] for s in scored]
+        judge_vals = [s["scores"][c] for s in scored]
+        clusters = [s["entry"]["passage_id"] for s in scored]
+
+        kappa_point, kappa_lo, kappa_hi = cluster_bootstrap_ci(
+            list(zip(human_vals, judge_vals)), clusters,
+            lambda sample: weighted_kappa(
+                [a for a, b in sample], [b for a, b in sample], labels=(1, 2, 3, 4, 5),
+            ),
+        )
+        mae_values = [abs(j - h) for h, j in zip(human_vals, judge_vals)]
+        mae_point, mae_lo, mae_hi = mean_ci(mae_values, clusters)
+        bias_values = [j - h for h, j in zip(human_vals, judge_vals)]
+        bias_point, bias_lo, bias_hi = mean_ci(bias_values, clusters)
+
+        def _r(x):
+            return round(x, 3) if x is not None else None
+
+        out["criteria"][c] = {
+            "weighted_kappa": _r(kappa_point), "kappa_ci": [_r(kappa_lo), _r(kappa_hi)],
+            "mae": _r(mae_point), "mae_ci": [_r(mae_lo), _r(mae_hi)],
+            "bias": _r(bias_point), "bias_ci": [_r(bias_lo), _r(bias_hi)],
+            "human_avg": round(sum(human_vals) / len(human_vals), 2),
+            "llm_avg": round(sum(judge_vals) / len(judge_vals), 2),
+        }
+    return out
+
+
 # ── 구조 유사도 Judge ────────────────────────────────────────────────
 # STRUCTURE_JUDGE_TPL·채점 로직은 app/modules/exam/judge.py로 이동(2026-07-23) —
 # 런타임 judge_node와 오프라인 eval이 완전히 같은 함수를 공유하도록 통합(검증-배포
@@ -287,3 +419,69 @@ def eval_structure_judge(scored: list[dict]) -> dict:
         "difficulty_match_agreement": round(sum(difficulty_match_hits) / n, 3),
         "overall_score_mae": round(sum(overall_diffs) / n, 3),
     }
+
+
+# ── 구조 유사도 Judge — 항목 단위 CI(experiments/compare_judge_models.py에서 이동) ─────
+# 2026-10: compare_judge_models.py(Judge 후보 비교)와 eval_exam.py(정기 평가) 둘 다 같은
+# 계산(항목별 judge-human 쌍 추출 → 항목 단위 클러스터 부트스트랩 CI)이 필요해 공용 위치로
+# 옮겼다. compare_judge_models.py는 이 두 함수를 그대로 import해 쓰고(동작 불변), 반복
+# 회차 평균(_average_repeats)처럼 이 모듈이 쓰지 않는 로직은 그쪽에 남겨뒀다.
+
+def structure_item_rows(scored: list[dict]) -> list[dict]:
+    """score_structure() 결과 1회분을 항목별 (id, judge/human overall·difficulty_match)
+    dict 리스트로 변환 — eval_structure_judge()는 집계만 내므로, CI 계산에 필요한
+    항목 단위 쌍은 score_structure()가 이미 들고 있는 entry/judge를 그대로 꺼내 쓴다.
+
+    likely_parse_failed: judge_structure()는 judge_one()과 달리 parse_failed 플래그를
+    노출하지 않는다(app/modules/exam/judge.py — 파싱 실패 시 조용히 전부 기본값으로
+    채운다). type_ratio_score=0.0·overall_score=0·difficulty_match=False가 동시에
+    나온 경우를 "파싱 실패로 추정"하는 근사치로만 쓴다 — 진짜로 0점을 준 경우와
+    구분할 수 없으므로 집계 시 반드시 '추정'으로 표기한다."""
+    rows = []
+    for s in scored:
+        entry, judge = s["entry"], s["judge"]
+        human = entry["human_label"]
+        likely_parse_failed = (
+            judge["type_ratio_score"] == 0.0
+            and judge["overall_score"] == 0
+            and judge["difficulty_match"] is False
+        )
+        rows.append({
+            "id": entry["id"],
+            "judge_overall": judge["overall_score"],
+            "judge_difficulty_match": judge["difficulty_match"],
+            "human_overall": human["overall_score"],
+            "human_difficulty_match": human["difficulty_match"],
+            "likely_parse_failed": likely_parse_failed,
+        })
+    return rows
+
+
+def structure_ci(averaged_rows: list[dict], n_boot: int = 1000, seed: int = 0) -> dict:
+    """항목 단위로 평균된 rows({"id", "mae", "bias", "difficulty_hit"} 형태 — 반복이 있으면
+    compare_judge_models.py의 `_average_repeats()`로 회차 평균을 먼저 낸 결과, 반복이 1회면
+    그 값 자체)에 클러스터(=항목 id) 부트스트랩 CI를 적용한다.
+
+    rows 하나가 항목 하나이므로 클러스터 부트스트랩은 사실상 항목 단위 일반 부트스트랩과
+    같다 — structure_golden은 항목마다 지문이 달라 다른 클러스터링 기준이 없다."""
+    ids = [r["id"] for r in averaged_rows]
+
+    def _mean_of(key):
+        def fn(rows: list[dict]) -> float | None:
+            vals = [r[key] for r in rows]
+            return sum(vals) / len(vals) if vals else None
+        return fn
+
+    out = {}
+    for key, label in (
+        ("mae", "overall_mae"),
+        ("difficulty_hit", "difficulty_match_agreement"),
+        ("bias", "bias_judge_minus_human"),
+    ):
+        point, lo, hi = cluster_bootstrap_ci(averaged_rows, ids, _mean_of(key), n_boot=n_boot, seed=seed)
+        out[label] = {
+            "point": round(point, 3) if point is not None else None,
+            "ci_lo": round(lo, 3) if lo is not None else None,
+            "ci_hi": round(hi, 3) if hi is not None else None,
+        }
+    return out

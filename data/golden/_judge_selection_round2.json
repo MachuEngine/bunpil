@@ -1,0 +1,5649 @@
+{
+  "n_usable": 91,
+  "n_excluded": 4,
+  "criteria": {
+    "정답유일성": {
+      "per_judge": {
+        "anthropic/claude-sonnet-5.5": {
+          "n": 91,
+          "weighted_kappa": 0.871,
+          "kappa_ci": [
+            0.747,
+            0.948
+          ],
+          "mae": 0.315,
+          "mae_ci": [
+            0.205,
+            0.446
+          ],
+          "bias": 0.132,
+          "bias_ci": [
+            -0.011,
+            0.285
+          ],
+          "repeat_kappa_mean": 0.859,
+          "repeat_kappa_range": [
+            0.845,
+            0.866
+          ]
+        },
+        "openai/gpt-5.6-luna": {
+          "n": 91,
+          "weighted_kappa": 0.779,
+          "kappa_ci": [
+            0.642,
+            0.883
+          ],
+          "mae": 0.458,
+          "mae_ci": [
+            0.307,
+            0.606
+          ],
+          "bias": 0.223,
+          "bias_ci": [
+            0.058,
+            0.381
+          ],
+          "repeat_kappa_mean": 0.759,
+          "repeat_kappa_range": [
+            0.734,
+            0.794
+          ]
+        }
+      },
+      "pairwise": {
+        "anthropic/claude-sonnet-5.5 vs openai/gpt-5.6-luna": {
+          "n": 91,
+          "mean_abs_error_diff": -0.143,
+          "ci": [
+            -0.262,
+            -0.022
+          ],
+          "verdict": "anthropic/claude-sonnet-5.5가 더 정확"
+        }
+      },
+      "bias_by_generation_model": {
+        "anthropic/claude-sonnet-5.5": {
+          "gemini-3.8-flash": {
+            "n": 33,
+            "bias": 0.303,
+            "ci_low": -0.01,
+            "ci_high": 0.697
+          },
+          "gpt-6-luna": {
+            "n": 33,
+            "bias": 0.02,
+            "ci_low": -0.061,
+            "ci_high": 0.101
+          },
+          "qwen2.5-14b": {
+            "n": 25,
+            "bias": 0.053,
+            "ci_low": -0.213,
+            "ci_high": 0.307
+          }
+        },
+        "openai/gpt-5.6-luna": {
+          "gemini-3.8-flash": {
+            "n": 33,
+            "bias": 0.313,
+            "ci_low": -0.03,
+            "ci_high": 0.687
+          },
+          "gpt-6-luna": {
+            "n": 33,
+            "bias": 0.04,
+            "ci_low": -0.182,
+            "ci_high": 0.263
+          },
+          "qwen2.5-14b": {
+            "n": 25,
+            "bias": 0.347,
+            "ci_low": -0.0,
+            "ci_high": 0.693
+          }
+        }
+      }
+    },
+    "오답매력도": {
+      "per_judge": {
+        "anthropic/claude-sonnet-5.5": {
+          "n": 91,
+          "weighted_kappa": 0.665,
+          "kappa_ci": [
+            0.58,
+            0.745
+          ],
+          "mae": 0.458,
+          "mae_ci": [
+            0.355,
+            0.565
+          ],
+          "bias": 0.099,
+          "bias_ci": [
+            -0.042,
+            0.237
+          ],
+          "repeat_kappa_mean": 0.682,
+          "repeat_kappa_range": [
+            0.669,
+            0.69
+          ]
+        },
+        "openai/gpt-5.6-luna": {
+          "n": 91,
+          "weighted_kappa": 0.53,
+          "kappa_ci": [
+            0.399,
+            0.646
+          ],
+          "mae": 0.707,
+          "mae_ci": [
+            0.592,
+            0.83
+          ],
+          "bias": 0.612,
+          "bias_ci": [
+            0.473,
+            0.735
+          ],
+          "repeat_kappa_mean": 0.496,
+          "repeat_kappa_range": [
+            0.469,
+            0.532
+          ]
+        }
+      },
+      "pairwise": {
+        "anthropic/claude-sonnet-5.5 vs openai/gpt-5.6-luna": {
+          "n": 91,
+          "mean_abs_error_diff": -0.249,
+          "ci": [
+            -0.384,
+            -0.091
+          ],
+          "verdict": "anthropic/claude-sonnet-5.5가 더 정확"
+        }
+      },
+      "bias_by_generation_model": {
+        "anthropic/claude-sonnet-5.5": {
+          "gemini-3.8-flash": {
+            "n": 33,
+            "bias": 0.01,
+            "ci_low": -0.222,
+            "ci_high": 0.242
+          },
+          "gpt-6-luna": {
+            "n": 33,
+            "bias": 0.111,
+            "ci_low": -0.121,
+            "ci_high": 0.343
+          },
+          "qwen2.5-14b": {
+            "n": 25,
+            "bias": 0.2,
+            "ci_low": -0.053,
+            "ci_high": 0.413
+          }
+        },
+        "openai/gpt-5.6-luna": {
+          "gemini-3.8-flash": {
+            "n": 33,
+            "bias": 0.364,
+            "ci_low": 0.182,
+            "ci_high": 0.535
+          },
+          "gpt-6-luna": {
+            "n": 33,
+            "bias": 0.697,
+            "ci_low": 0.464,
+            "ci_high": 0.919
+          },
+          "qwen2.5-14b": {
+            "n": 25,
+            "bias": 0.827,
+            "ci_low": 0.613,
+            "ci_high": 1.027
+          }
+        }
+      }
+    },
+    "근거성": {
+      "per_judge": {
+        "anthropic/claude-sonnet-5.5": {
+          "n": 91,
+          "weighted_kappa": 0.58,
+          "kappa_ci": [
+            0.376,
+            0.739
+          ],
+          "mae": 0.56,
+          "mae_ci": [
+            0.423,
+            0.706
+          ],
+          "bias": 0.172,
+          "bias_ci": [
+            -0.014,
+            0.356
+          ],
+          "repeat_kappa_mean": 0.578,
+          "repeat_kappa_range": [
+            0.566,
+            0.584
+          ]
+        },
+        "openai/gpt-5.6-luna": {
+          "n": 91,
+          "weighted_kappa": 0.543,
+          "kappa_ci": [
+            0.338,
+            0.709
+          ],
+          "mae": 0.549,
+          "mae_ci": [
+            0.416,
+            0.691
+          ],
+          "bias": 0.432,
+          "bias_ci": [
+            0.253,
+            0.606
+          ],
+          "repeat_kappa_mean": 0.535,
+          "repeat_kappa_range": [
+            0.527,
+            0.543
+          ]
+        }
+      },
+      "pairwise": {
+        "anthropic/claude-sonnet-5.5 vs openai/gpt-5.6-luna": {
+          "n": 91,
+          "mean_abs_error_diff": 0.011,
+          "ci": [
+            -0.084,
+            0.1
+          ],
+          "verdict": "판정 불가(CI가 0을 포함)"
+        }
+      },
+      "bias_by_generation_model": {
+        "anthropic/claude-sonnet-5.5": {
+          "gemini-3.8-flash": {
+            "n": 33,
+            "bias": 0.485,
+            "ci_low": 0.152,
+            "ci_high": 0.889
+          },
+          "gpt-6-luna": {
+            "n": 33,
+            "bias": -0.081,
+            "ci_low": -0.263,
+            "ci_high": 0.091
+          },
+          "qwen2.5-14b": {
+            "n": 25,
+            "bias": 0.093,
+            "ci_low": -0.28,
+            "ci_high": 0.467
+          }
+        },
+        "openai/gpt-5.6-luna": {
+          "gemini-3.8-flash": {
+            "n": 33,
+            "bias": 0.566,
+            "ci_low": 0.262,
+            "ci_high": 0.93
+          },
+          "gpt-6-luna": {
+            "n": 33,
+            "bias": 0.192,
+            "ci_low": 0.061,
+            "ci_high": 0.364
+          },
+          "qwen2.5-14b": {
+            "n": 25,
+            "bias": 0.573,
+            "ci_low": 0.146,
+            "ci_high": 0.973
+          }
+        }
+      }
+    }
+  },
+  "human_label_distribution": {
+    "n_entries": 95,
+    "cannot_judge_n": 4,
+    "score_dist": {
+      "정답유일성": {
+        "1": 14,
+        "2": 4,
+        "3": 6,
+        "4": 8,
+        "5": 59
+      },
+      "오답매력도": {
+        "1": 1,
+        "2": 11,
+        "3": 28,
+        "4": 39,
+        "5": 12
+      },
+      "근거성": {
+        "1": 4,
+        "2": 7,
+        "3": 10,
+        "4": 13,
+        "5": 57
+      }
+    },
+    "mode_ratio": {
+      "정답유일성": 0.648,
+      "오답매력도": 0.429,
+      "근거성": 0.626
+    },
+    "difficulty_overall": {
+      "상": 0,
+      "중": 34,
+      "하": 57
+    },
+    "difficulty_by_model": {
+      "qwen2.5-14b": {
+        "상": 0,
+        "중": 4,
+        "하": 21
+      },
+      "gpt-6-luna": {
+        "상": 0,
+        "중": 11,
+        "하": 22
+      },
+      "gemini-3.8-flash": {
+        "상": 0,
+        "중": 19,
+        "하": 14
+      }
+    }
+  },
+  "rows": [
+    {
+      "id": "iq_001",
+      "passage_id": "hard-003",
+      "model": "qwen2.5-14b",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 3,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_002",
+      "passage_id": "hard-003",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 3,
+        "오답매력도": 4,
+        "근거성": 4
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 4,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_003",
+      "passage_id": "hard-001",
+      "model": "qwen2.5-14b",
+      "human": {
+        "정답유일성": 4,
+        "오답매력도": 3,
+        "근거성": 4
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_004",
+      "passage_id": "pilot-016",
+      "model": "qwen2.5-14b",
+      "human": {
+        "정답유일성": 2,
+        "오답매력도": 2,
+        "근거성": 3
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 2,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 3.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 2,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 3.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 2,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 3.0,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 2.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 2.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 2.33,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_005",
+      "passage_id": "pilot-025",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 3,
+            "overall": 3.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_006",
+      "passage_id": "hard-004",
+      "model": "qwen2.5-14b",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 3,
+        "근거성": 4
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 4,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 3.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 3.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 3.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 4,
+            "오답매력도": 3,
+            "근거성": 5,
+            "overall": 4.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_007",
+      "passage_id": "pilot-003",
+      "model": "qwen2.5-14b",
+      "human": {
+        "정답유일성": 1,
+        "오답매력도": 3,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 3,
+            "overall": 2.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 3,
+            "overall": 2.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 3,
+            "overall": 2.0,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 1,
+            "오답매력도": 3,
+            "근거성": 3,
+            "overall": 2.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 3,
+            "overall": 2.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 4,
+            "근거성": 3,
+            "overall": 2.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_008",
+      "passage_id": "pilot-012",
+      "model": "qwen2.5-14b",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 3,
+        "근거성": 3
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 4.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 4.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 4.0,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 4.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 3,
+            "overall": 3.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_009",
+      "passage_id": "hard-009",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 1,
+        "오답매력도": 3,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 1,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 2.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 2,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 3.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 2.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 1,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 3.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 3.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 3.33,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_010",
+      "passage_id": "hard-005",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_011",
+      "passage_id": "test-014",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 4,
+        "오답매력도": 4,
+        "근거성": 2
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_012",
+      "passage_id": "test-012",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 3,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_013",
+      "passage_id": "pilot-018",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_014",
+      "passage_id": "pilot-003",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 3,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_015",
+      "passage_id": "hard-001",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_016",
+      "passage_id": "test-025",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_017",
+      "passage_id": "hard-009",
+      "model": "qwen2.5-14b",
+      "human": {
+        "정답유일성": 4,
+        "오답매력도": 3,
+        "근거성": 3
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 4,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 3.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 3.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 3.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_018",
+      "passage_id": "hard-008",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 1,
+        "오답매력도": 3,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 1,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 3.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 3,
+            "근거성": 5,
+            "overall": 3.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 2.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 1,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 3.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 3.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_019",
+      "passage_id": "hard-003",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_021",
+      "passage_id": "hard-004",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 3,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_022",
+      "passage_id": "pilot-020",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 3,
+        "근거성": 4
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_023",
+      "passage_id": "test-024",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 3,
+        "오답매력도": 4,
+        "근거성": 3
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_024",
+      "passage_id": "hard-009",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 5,
+        "근거성": 4
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 4.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 1,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 3.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 3.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_025",
+      "passage_id": "test-029",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 4.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 4.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 4.33,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_027",
+      "passage_id": "pilot-021",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_028",
+      "passage_id": "pilot-027",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 4,
+        "오답매력도": 4,
+        "근거성": 4
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 4,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_029",
+      "passage_id": "pilot-007",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_031",
+      "passage_id": "pilot-025",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 4
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_032",
+      "passage_id": "test-031",
+      "model": "qwen2.5-14b",
+      "human": {
+        "정답유일성": 3,
+        "오답매력도": 2,
+        "근거성": 3
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 4,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 3.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 3.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 3.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_033",
+      "passage_id": "test-018",
+      "model": "qwen2.5-14b",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 2,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 4,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 5,
+            "overall": 4.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_034",
+      "passage_id": "test-029",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 4
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_035",
+      "passage_id": "pilot-003",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 5,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_036",
+      "passage_id": "pilot-006",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_037",
+      "passage_id": "test-007",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 4,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_038",
+      "passage_id": "pilot-014",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 3,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_039",
+      "passage_id": "hard-006",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 4,
+        "오답매력도": 4,
+        "근거성": 3
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_040",
+      "passage_id": "test-018",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_041",
+      "passage_id": "test-006",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_042",
+      "passage_id": "hard-002",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 5,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_043",
+      "passage_id": "hard-008",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 3,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_044",
+      "passage_id": "hard-006",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 4,
+        "오답매력도": 4,
+        "근거성": 4
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 4,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 4.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 4.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 4.0,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_045",
+      "passage_id": "hard-008",
+      "model": "qwen2.5-14b",
+      "human": {
+        "정답유일성": 1,
+        "오답매력도": 2,
+        "근거성": 1
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 2,
+            "overall": 1.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 2,
+            "overall": 1.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 2,
+            "overall": 1.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 1,
+            "오답매력도": 3,
+            "근거성": 2,
+            "overall": 2.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 3,
+            "근거성": 2,
+            "overall": 2.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 3,
+            "근거성": 2,
+            "overall": 2.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_046",
+      "passage_id": "pilot-005",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_047",
+      "passage_id": "test-024",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_048",
+      "passage_id": "test-001",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_049",
+      "passage_id": "test-002",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_050",
+      "passage_id": "test-007",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_051",
+      "passage_id": "pilot-018",
+      "model": "qwen2.5-14b",
+      "human": {
+        "정답유일성": 1,
+        "오답매력도": 2,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 3,
+            "overall": 2.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 2,
+            "오답매력도": 2,
+            "근거성": 3,
+            "overall": 2.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 3,
+            "overall": 2.0,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 2.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 3,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 3.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_052",
+      "passage_id": "test-012",
+      "model": "qwen2.5-14b",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 2,
+        "근거성": 4
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 3.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 5,
+            "overall": 4.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 2,
+            "근거성": 5,
+            "overall": 3.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 5,
+            "overall": 4.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_053",
+      "passage_id": "hard-010",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 1,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 5,
+            "overall": 2.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 2.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 3,
+            "근거성": 5,
+            "overall": 3.0,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 1,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 3.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 3.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 3.33,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_054",
+      "passage_id": "test-031",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 1,
+        "오답매력도": 3,
+        "근거성": 4
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 2,
+            "오답매력도": 3,
+            "근거성": 3,
+            "overall": 2.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 3,
+            "근거성": 3,
+            "overall": 2.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 3,
+            "근거성": 3,
+            "overall": 2.33,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 3.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 3.33,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_055",
+      "passage_id": "pilot-016",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 3,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_056",
+      "passage_id": "test-031",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 3,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 4.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 4.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 4.33,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_057",
+      "passage_id": "hard-001",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_058",
+      "passage_id": "pilot-006",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_060",
+      "passage_id": "hard-002",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 5,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_061",
+      "passage_id": "hard-007",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 5,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_062",
+      "passage_id": "test-029",
+      "model": "qwen2.5-14b",
+      "human": {
+        "정답유일성": 3,
+        "오답매력도": 3,
+        "근거성": 3
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 2,
+            "overall": 1.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 2,
+            "overall": 1.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 2,
+            "overall": 1.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 1,
+            "오답매력도": 4,
+            "근거성": 2,
+            "overall": 2.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 4,
+            "근거성": 2,
+            "overall": 2.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 4,
+            "근거성": 3,
+            "overall": 3.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_063",
+      "passage_id": "test-002",
+      "model": "qwen2.5-14b",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 2,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 4,
+            "overall": 3.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 5,
+            "overall": 4.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 5,
+            "overall": 4.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 2,
+            "근거성": 5,
+            "overall": 4.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_064",
+      "passage_id": "pilot-021",
+      "model": "qwen2.5-14b",
+      "human": {
+        "정답유일성": 2,
+        "오답매력도": 3,
+        "근거성": 2
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 3,
+            "오답매력도": 3,
+            "근거성": 3,
+            "overall": 3.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 2,
+            "오답매력도": 3,
+            "근거성": 3,
+            "overall": 2.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 2,
+            "오답매력도": 2,
+            "근거성": 3,
+            "overall": 2.33,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 3,
+            "오답매력도": 4,
+            "근거성": 3,
+            "overall": 3.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 2,
+            "오답매력도": 3,
+            "근거성": 3,
+            "overall": 2.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 4.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_065",
+      "passage_id": "test-025",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_066",
+      "passage_id": "hard-010",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 5,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_067",
+      "passage_id": "pilot-012",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 1,
+        "오답매력도": 3,
+        "근거성": 2
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 3,
+            "overall": 2.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 3,
+            "overall": 2.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 3,
+            "overall": 2.0,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 1,
+            "오답매력도": 3,
+            "근거성": 5,
+            "overall": 3.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 3.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 3.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_068",
+      "passage_id": "pilot-021",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 3,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_069",
+      "passage_id": "test-024",
+      "model": "qwen2.5-14b",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 3,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_070",
+      "passage_id": "test-007",
+      "model": "qwen2.5-14b",
+      "human": {
+        "정답유일성": 2,
+        "오답매력도": 3,
+        "근거성": 2
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 2,
+            "오답매력도": 3,
+            "근거성": 3,
+            "overall": 2.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 2,
+            "오답매력도": 3,
+            "근거성": 3,
+            "overall": 2.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 2,
+            "오답매력도": 3,
+            "근거성": 3,
+            "overall": 2.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 2,
+            "오답매력도": 4,
+            "근거성": 3,
+            "overall": 3.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 2,
+            "오답매력도": 5,
+            "근거성": 4,
+            "overall": 3.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 2,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 3.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_071",
+      "passage_id": "pilot-027",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 5,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 4,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_072",
+      "passage_id": "pilot-014",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 1,
+        "오답매력도": 3,
+        "근거성": 1
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 4.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 4.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 4.0,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 3,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 3.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 4.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 5,
+            "근거성": 4,
+            "overall": 4.33,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_073",
+      "passage_id": "hard-004",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_074",
+      "passage_id": "test-014",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_075",
+      "passage_id": "pilot-012",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 5,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_076",
+      "passage_id": "hard-007",
+      "model": "qwen2.5-14b",
+      "human": {
+        "정답유일성": 1,
+        "오답매력도": 3,
+        "근거성": 2
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 2,
+            "오답매력도": 3,
+            "근거성": 3,
+            "overall": 2.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 2,
+            "오답매력도": 3,
+            "근거성": 3,
+            "overall": 2.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 2,
+            "오답매력도": 3,
+            "근거성": 3,
+            "overall": 2.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 2,
+            "오답매력도": 3,
+            "근거성": 3,
+            "overall": 2.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 2,
+            "오답매력도": 3,
+            "근거성": 3,
+            "overall": 2.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 2,
+            "오답매력도": 4,
+            "근거성": 2,
+            "overall": 2.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_077",
+      "passage_id": "test-006",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_078",
+      "passage_id": "pilot-005",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 5,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_079",
+      "passage_id": "hard-005",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_080",
+      "passage_id": "test-018",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 3,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 4.0,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_081",
+      "passage_id": "pilot-007",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 5,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_082",
+      "passage_id": "hard-007",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 2,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 3.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 2,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 3.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 2,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 3.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_083",
+      "passage_id": "test-001",
+      "model": "qwen2.5-14b",
+      "human": {
+        "정답유일성": 3,
+        "오답매력도": 2,
+        "근거성": 3
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 4,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 3.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 3.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 3.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 3,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_084",
+      "passage_id": "hard-010",
+      "model": "qwen2.5-14b",
+      "human": {
+        "정답유일성": 1,
+        "오답매력도": 2,
+        "근거성": 2
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 2,
+            "overall": 1.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 2,
+            "overall": 1.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 2,
+            "overall": 1.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 1,
+            "오답매력도": 4,
+            "근거성": 3,
+            "overall": 2.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 3,
+            "overall": 2.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 2,
+            "overall": 1.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_085",
+      "passage_id": "test-012",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_086",
+      "passage_id": "pilot-016",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 1,
+        "오답매력도": 4,
+        "근거성": 1
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_087",
+      "passage_id": "pilot-027",
+      "model": "qwen2.5-14b",
+      "human": {
+        "정답유일성": 2,
+        "오답매력도": 3,
+        "근거성": 3
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 3,
+            "오답매력도": 2,
+            "근거성": 3,
+            "overall": 2.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 3,
+            "오답매력도": 2,
+            "근거성": 3,
+            "overall": 2.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 3,
+            "오답매력도": 3,
+            "근거성": 3,
+            "overall": 3.0,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 4,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_088",
+      "passage_id": "pilot-007",
+      "model": "qwen2.5-14b",
+      "human": {
+        "정답유일성": 4,
+        "오답매력도": 3,
+        "근거성": 4
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 3,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 3.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 3,
+            "오답매력도": 3,
+            "근거성": 4,
+            "overall": 3.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 3,
+            "오답매력도": 3,
+            "근거성": 3,
+            "overall": 3.0,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 2,
+            "오답매력도": 4,
+            "근거성": 3,
+            "overall": 3.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 3,
+            "오답매력도": 3,
+            "근거성": 3,
+            "overall": 3.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 3,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 3.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_089",
+      "passage_id": "pilot-020",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_090",
+      "passage_id": "test-001",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 5,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 3,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 3.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 3,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 3.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 3,
+            "오답매력도": 4,
+            "근거성": 4,
+            "overall": 3.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 4,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 4,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.33,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_091",
+      "passage_id": "test-002",
+      "model": "gemini-3.8-flash",
+      "human": {
+        "정답유일성": 4,
+        "오답매력도": 5,
+        "근거성": 4
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 5,
+            "근거성": 5,
+            "overall": 5.0,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_092",
+      "passage_id": "pilot-005",
+      "model": "qwen2.5-14b",
+      "human": {
+        "정답유일성": 1,
+        "오답매력도": 2,
+        "근거성": 1
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 2,
+            "오답매력도": 2,
+            "근거성": 3,
+            "overall": 2.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 2,
+            "오답매력도": 2,
+            "근거성": 2,
+            "overall": 2.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 2,
+            "오답매력도": 2,
+            "근거성": 3,
+            "overall": 2.33,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 2,
+            "오답매력도": 3,
+            "근거성": 2,
+            "overall": 2.33,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 2,
+            "오답매력도": 2,
+            "근거성": 2,
+            "overall": 2.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 2,
+            "오답매력도": 3,
+            "근거성": 2,
+            "overall": 2.33,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_093",
+      "passage_id": "hard-002",
+      "model": "qwen2.5-14b",
+      "human": {
+        "정답유일성": 1,
+        "오답매력도": 1,
+        "근거성": 2
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 2,
+            "overall": 1.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 2,
+            "overall": 1.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 2,
+            "overall": 1.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 2,
+            "overall": 1.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 1,
+            "오답매력도": 2,
+            "근거성": 2,
+            "overall": 1.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 2,
+            "오답매력도": 2,
+            "근거성": 3,
+            "overall": 2.33,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_094",
+      "passage_id": "pilot-020",
+      "model": "qwen2.5-14b",
+      "human": {
+        "정답유일성": 3,
+        "오답매력도": 2,
+        "근거성": 3
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 2,
+            "오답매력도": 2,
+            "근거성": 2,
+            "overall": 2.0,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 3,
+            "오답매력도": 3,
+            "근거성": 2,
+            "overall": 2.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 2,
+            "오답매력도": 2,
+            "근거성": 2,
+            "overall": 2.0,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 3,
+            "오답매력도": 3,
+            "근거성": 2,
+            "overall": 2.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 3,
+            "오답매력도": 3,
+            "근거성": 2,
+            "overall": 2.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 3,
+            "오답매력도": 3,
+            "근거성": 2,
+            "overall": 2.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "iq_095",
+      "passage_id": "pilot-018",
+      "model": "gpt-6-luna",
+      "human": {
+        "정답유일성": 5,
+        "오답매력도": 4,
+        "근거성": 5
+      },
+      "judges": {
+        "anthropic/claude-sonnet-5.5": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ],
+        "openai/gpt-5.6-luna": [
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          },
+          {
+            "정답유일성": 5,
+            "오답매력도": 4,
+            "근거성": 5,
+            "overall": 4.67,
+            "parse_failed": false
+          }
+        ]
+      }
+    }
+  ]
+}

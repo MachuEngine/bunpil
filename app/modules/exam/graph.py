@@ -281,6 +281,24 @@ def agent_node(state: ExamState) -> dict:
         response = _invoke_with_retry(llm, messages)
         messages.append(response)
 
+        # 2026-10-03: langchain-openai는 다음 요청을 보낼 때 정상 tool_calls뿐 아니라
+        # invalid_tool_calls(인자 JSON이 깨진 호출)도 assistant 메시지의 tool_calls로
+        # 함께 직렬화한다(langchain_openai/chat_models/base.py _convert_message_to_dict).
+        # 여기서 ToolMessage로 응답하지 않으면 응답 없는 tool call이 대화에 남아
+        # OpenAI 계열 API가 "No tool output found for function call ..." 400으로 거부한다
+        # (Ollama는 관대해서 드러나지 않았음). id가 없는 항목은 ToolMessage로 짝지을 수 없어
+        # 건너뛴다 — OpenAI 응답의 tool call에는 id가 항상 붙어 실측에서 나온 적은 없지만,
+        # 그대로 직렬화되면 다른 400(스키마 오류)이 날 수 있다(2026-10-03 리뷰 지적).
+        for itc in getattr(response, "invalid_tool_calls", None) or []:
+            if itc.get("id"):
+                messages.append(ToolMessage(
+                    content=(
+                        "도구 호출 오류 — 인자 형식(JSON)이 올바르지 않습니다. "
+                        f"형식을 확인하고 다시 호출하세요: {itc.get('error')}"
+                    ),
+                    tool_call_id=itc["id"],
+                ))
+
         # getattr - 파이썬 내장 함수.
         # 어떤 객체에서 특정 이름(문자열)의 속성을 꺼내오되, 그 속성이 없으면 기본값을 사용해라
         if not getattr(response, "tool_calls", []):

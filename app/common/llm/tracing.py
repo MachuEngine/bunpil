@@ -14,6 +14,7 @@ import os
 # 실제 서빙(프로덕션) 백엔드 — local(Ollama)만 순수 로컬 개발용이고 나머지는 전부 실제
 # 트래픽일 수 있다고 간주. app/common/llm/factory.py에 새 백엔드가 추가되면 여기도
 # 같이 갱신해야 한다(반대쪽에도 참조 주석 있음).
+# openrouter는 평가(모델 비교) 전용이라 의도적으로 제외 — dev LangSmith 프로젝트로 간다.
 _PROD_BACKENDS = {"runpod", "openai"}
 
 

@@ -68,17 +68,18 @@ Settings → API Keys에서 발급. `.env`에 미리 넣어두면 매번 셸에 
 
 | Dataset 이름 | 골든셋 소스 | 무엇을 채점하나 |
 |---|---|---|
-| `bunpil-item-quality-judge` | `data/golden/item_golden.json` (30개) | 정답유일성·오답매력도·근거성 |
+| `bunpil-item-quality-judge-v2` | `data/golden/item_quality_golden.json` (사람 라벨 91건, 2026-10부터 — `item_golden.json`/`bunpil-item-quality-judge`는 대체됨, EVAL.md 28절) | 정답유일성·오답매력도·근거성 |
 | `bunpil-structure-judge` | `data/golden/structure_golden.json` (45개, human_label 채워진 것만) | 구조 유사도(overall/type_ratio/difficulty) — `get_judge_backend()`로 채점. 2026-07-23부터 런타임 `judge` 노드와 완전히 같은 코드(`app/modules/exam/judge.py`)라 이 수치가 곧 배포된 judge의 신뢰도 |
 | `bunpil-rag-quality` | `gen_structure_golden.PASSAGE_SAMPLES` 기준 실제 생성 | Faithfulness / Answer Relevancy |
 
 `eval_exam.py`/`eval_ragas.py`를 트레이싱 켜고 실행할 때마다 각 Dataset에
-**새 Experiment(실행 회차)**가 하나씩 쌓인다(`experiment_prefix`: `item-quality-judge` /
-`structure-judge` / `rag-quality`). Dataset 페이지에서 여러 Experiment를 체크박스로
-선택하면 **회차별 점수가 표(컬럼)로 나란히** 나온다 — "3점 앵커 few-shot 넣기 전/후
-kappa가 어떻게 바뀌었나"를 EVAL.md에 손으로 옮겨 적지 않고 여기서 바로 비교할 수 있다.
+**새 Experiment(실행 회차)**가 하나씩 쌓인다(`experiment_prefix`: `item-quality-judge-v2`
+(2026-10부터, 옛 `item-quality-judge`는 더 이상 안 씀) / `structure-judge` / `rag-quality`).
+Dataset 페이지에서 여러 Experiment를 체크박스로 선택하면 **회차별 점수가 표(컬럼)로
+나란히** 나온다 — "3점 앵커 few-shot 넣기 전/후 kappa가 어떻게 바뀌었나"를 EVAL.md에
+손으로 옮겨 적지 않고 여기서 바로 비교할 수 있다.
 
-> **주의**: `item-quality-judge`/`structure-judge`의 Dataset은 **실행할 때마다 삭제 후
+> **주의**: `item-quality-judge-v2`/`structure-judge`의 Dataset은 **실행할 때마다 삭제 후
 > 재생성**된다(`sync_dataset()`, 골든셋 JSON이 항상 단일 진실 공급원이라는 원칙 때문 —
 > 사람이 라벨을 재검토해 바꿨는데 Dataset이 옛날 값을 들고 있는 불일치를 막기 위함).
 > 즉 **과거 Experiment 자체는 남지만, Dataset 예제 목록은 항상 "최신 골든셋"** 이라는
@@ -178,7 +179,7 @@ print(r.status_code, r.text[:120])"
 | `app/common/llm/tracing.py` | dev/prod 프로젝트 자동 분기 (`init_langsmith_project()`) |
 | `evals/langsmith_experiments.py` | Dataset 동기화 공용 유틸(`sync_dataset`, `identity_target`) |
 | `evals/eval_trajectory.py` | 트레이스 집계(도구 신뢰도·재시도 원인·궤적 형태) — 3.3절, 안 보일 때는 3.3.1절, 측정 결과는 EVAL.md 11·11.1절 |
-| `evals/eval_exam.py` `run_langsmith_experiments()` | item-quality-judge / structure-judge 등록 |
+| `evals/eval_exam.py` `run_langsmith_experiments()` | item-quality-judge-v2 / structure-judge 등록 |
 | `evals/eval_ragas.py` `run_langsmith_experiments()` | rag-quality 등록 (매 실행 실제 생성 후 채점) |
 | `evals/eval_lib.py` `_TRACE_META` | 트레이스에 붙는 `model`/`backend` 메타데이터 |
 | `app/modules/exam/judge.py` | 런타임 `judge` 노드와 오프라인 eval이 공유하는 채점 함수(`judge_structure()`) |

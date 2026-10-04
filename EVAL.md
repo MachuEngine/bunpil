@@ -51,6 +51,7 @@
 | **22절 이전** — 오답매력도 2.846 목표 미달 | **22절 재측정 → 26·27절** | 2.846은 **7B 생성 + qwen Judge 시절 값이라 무효**. 현재 스택으로는 3.75~3.82. 이후 네 접근이 모두 무위로 끝나 **개선 수단 없음으로 종결** |
 | **23절** — 정답유일성 지시 "효과 있음", 채택 | **24절** | **순차 배치 비교의 배치 효과**였다. 같은 실행 안에서 팔을 번갈아 도는 교차 A/B로 재검증하니 −0.083(p=0.58) → **프롬프트에서 제거해 되돌림** |
 | **4절 회차 로그** — "종합평균 4.06 첫 목표 달성"을 **생성 품질 달성**으로 읽는 것 | **8.1절** (2026-09-16 정정) | 4.06이 채점하는 ITEM_GOLDEN은 Claude가 합성한 **고정 30문항**이라 생성 모델을 한 번도 호출하지 않는다. 같은 4절이 이미 실측으로 기록해 둔 사실이다(생성 프롬프트 변경 전/후 평균이 **2.815로 동일**). 4.06은 **Judge 신뢰도 지표**이고, 실측 생성 품질은 8.1절의 **3.14**(잠정) |
+| **2026-07-24 측정된 문항 품질 Judge κ 0.468/0.595** | **28절** (2026-10 정정) | 이 κ가 채점하던 ITEM_GOLDEN은 **문항도 점수도 Claude가 합성한 것**이었다. 같은 Judge·같은 30건을 다시 돌려도 실행마다 0.468/0.595로 흔들렸다 — 신뢰도를 재는 측정 자체의 신뢰도가 낮았던 것. 실제 생성물 91건 + 사람 라벨 1인으로 대체하고, 오프라인 평가 Judge도 claude-sonnet-5.5로 교체했다 |
 | **14절 "후보 골든셋"** — 후보 10건 Recall@5 0.600, `reviewed: false` | **14절 내 정정 박스** | 검수 중 `cand_008` 라벨 오류를 고치자 해당 건이 미스로 바뀌어 **0.500(5/10)**. 같은 날 10건 전부 `reviewed: true`로 승격됐다. 원본(`regulations_retrieval_candidates.json`)이 기준 |
 
 **아직 확정되지 않은 것** (뒤집힌 건 아니지만 그대로 인용하면 안 되는 값)
@@ -72,14 +73,22 @@
 |---|---|---|---|
 | 검색 | Recall@5 | 함수 | ≥ 0.8 |
 | 검색 | MRR | 함수 | 참고값 |
-| 문항 품질 | 정답유일성·오답매력도·근거성 | LLM Judge | 평균 ≥ 4.0 |
-| Judge 신뢰도 | Cohen's kappa | 사람 라벨 비교 | ≥ 0.4 |
-| Judge 신뢰도 | ±1 일치율 | 사람 라벨 비교 | ≥ 0.7 |
+| 문항 품질 | 정답유일성·오답매력도·근거성 | LLM Judge | 참고값(평균 ≥ 4.0 가이드라인, 판정은 아래 Judge 신뢰도로 확인) |
+| Judge 신뢰도 | 가중 Cohen's kappa(기준별 3개: 정답유일성·오답매력도·근거성) | 사람 라벨(item_quality_golden.json 91건) 비교, 지문 단위 클러스터 부트스트랩 95% CI | ≥ 0.4, CI 하한이 임계값 미만이면 "미확정" |
+| Judge 신뢰도 | MAE, 편향(judge−human) | 〃 | 참고값 (CI가 0을 포함하면 "판정 불가") |
 | 구조 유사도 Judge 신뢰도 | difficulty 일치율, overall MAE (LLM Judge) + 문항 개수 일치(코드) | 사람 라벨(STRUCTURE_GOLDEN) 비교 + `len(draft_items)==num_items` | 참고값 (별도 pass/fail 게이트 없음 — overall 이진 kappa 게이트는 2026-07-24 폐기 결정, 6절 참고) |
 
 > 2026.07 passage_text 리디자인으로 "세트 제약(유형/난이도/커버리지/중복률)" 함수 검증은 폐기되고 위 "구조 유사도 Judge 신뢰도"로 대체됨 (`check_duplicate`/`past_exams` 제거에 따름).
 >
 > **2026-07-09 count_match 개념 폐기**: "생성 개수가 예시 문제 개수와 일치해야 한다"는 전제 자체가 틀렸음이 발견됨 — 실제로는 개수가 예시와 무관하게 `ExamSpec.num_items`(명시 없으면 기본 5)로 별도 지정된다. count_match는 이제 LLM Judge/사람 라벨 대상이 아니라 `validate_node`가 `len(draft_items)==num_items`로 직접 계산한다. `STRUCTURE_GOLDEN`의 `human_label`·`eval_structure_judge()`·`similarity_judge` 도구 시그니처에서 count_match 전면 제거(자세한 내용은 `data/golden/structure_golden.json`의 `_schema.count_match_deprecated`, `bunpil_roadmap.md` 참고).
+>
+> **2026-10 문항 품질 Judge 신뢰도 골든셋 교체**: 기준 라벨셋을 ITEM_GOLDEN(`item_golden.json`,
+> 30건, Claude가 문항·점수를 모두 합성)에서 `item_quality_golden.json`(사람이 직접 라벨링한
+> 91건, 기준별 1~5점)으로 바꿨다. 옛 κ는 overall 하나를 이진화(≥3)한 값이었는데, 새 κ는
+> 기준별로(정답유일성·오답매력도·근거성) **가중 kappa**를 따로 낸다 — 점수 차이가 클수록
+> 더 많이 깎는 방식이라 이진화보다 정보가 많다. ±1 일치율은 폐지하고 MAE(+CI)로 대체했다.
+> ITEM_GOLDEN·구 지표(`eval_judge_reliability`/`eval_item_quality`)는 코드에서 지우지 않고
+> 이력 비교용으로만 남겼다. 상세는 28절.
 
 ### 입력 PII 마스킹 (`tests/test_masker.py`)
 
@@ -121,18 +130,37 @@ MASKING_GOLDEN 20건을 유닛테스트가 그대로 강제하도록 옮겼다.
 | MASKING_GOLDEN | `data/golden/masking_golden.json` | 20개 | 합성. 생기부 모듈 제거 후 `tests/test_masker.py`가 채점(출제 경로가 `mask_pii`를 계속 사용) |
 | ~~VIOLATION_GOLDEN~~ | — | — | **2026-08-03 삭제** (생기부 모듈과 함께, 14절) |
 | ~~HALLUCINATION_GOLDEN~~ | — | — | **2026-08-03 삭제** (생기부 모듈과 함께, 14절) |
-| ITEM_GOLDEN | `data/golden/item_golden.json` | 30개 | human_score 1~5점 분포. 2026-07-09 `evals/eval_exam.py` 하드코딩에서 외부화 |
+| ITEM_GOLDEN | `data/golden/item_golden.json` | 30개 | human_score 1~5점 분포. 2026-07-09 `evals/eval_exam.py` 하드코딩에서 외부화. **합성(Claude가 문항·점수 모두 합성), 2026-10 정기 평가 기준에서 `item_quality_golden.json`으로 대체됨(이력 보존, 28절)** |
+| ITEM_QUALITY_GOLDEN | `data/golden/item_quality_golden.json` | 95개 중 라벨 사용 가능 91개(cannot_judge 4개 제외) | 실제 생성 모델 3종(qwen2.5-14b/gpt-6-luna/gemini-3.8-flash) 출력에서 (지문, 모델)마다 객관식 1개씩 뽑은 **사람 라벨 1인** 골든셋, 모델 정보는 블라인드 처리(매핑은 `_item_quality_model_map.json`). 2026-10부터 문항 품질 Judge 신뢰도의 정기 평가 기준(28절) |
 | VLM_EXTRACTION_GOLDEN | `data/golden/vlm_extraction_golden.json` | 40개 (text_only 20 · figure 15, 채점 기준 `figure_summary` 전량 사람 검수 완료 · adversarial 5) | 합성 시험 문제 이미지(PIL 렌더링, `golden_gen/gen_vlm_golden.py`). **출제 모듈이 아니라 `/exam/extract`(이미지→텍스트) 전용** — `evals/eval_exam.py`가 아닌 별도 `evals/eval_vlm.py`가 채점. 상세는 [MODEL_SELECTION.md](./MODEL_SELECTION.md) §7 |
+| VLM_FIGURE_JUDGE_GOLDEN | `data/golden/vlm_figure_judge_golden.json` | 15개 | VLM_EXTRACTION_GOLDEN의 figure 15건을 고쳐 재생성해 Judge 채점까지 고정해 둔 것. **라벨링은 보류**(15건으로는 kappa의 신뢰구간이 너무 넓어, 45건으로 확대 후 라벨링할 예정, MODEL_SELECTION.md §7) |
 | example_question_retrieval_test | `data/golden/example_question_retrieval_test.json` | 8개 (reviewed 0개) | 주제어가 아닌 "실제 문제 문장" 스타일 query — standards 컬렉션과의 문체 격차 검증용, 라벨링 대기 |
 
 ## 3. 실행 방법
 
 ```bash
-# 출제 모듈 평가
-python evals/eval_exam.py
+# 출제 모듈 평가 (Recall@5/MRR + 문항 품질 Judge 신뢰도 + 구조 Judge 신뢰도)
+# CHROMA_PERSIST_DIR을 셸에서 명시해야 함(.env의 프로덕션 경로가 load_dotenv()로 먼저 세팅됨)
+CHROMA_PERSIST_DIR=./chroma_db python evals/eval_exam.py
 
 # 출제 모듈 Agent Trajectory (LangSmith 트레이스 집계 — 11절)
 python evals/eval_trajectory.py --since 2026-07-23
+
+# 저장된 원자료로 CI만 재계산(API 호출 없음, 28절)
+python evals/ci_report.py
+
+# 문항 품질 골든셋 생성(지문별로 운영 경로를 그대로 실행, 서브커맨드: generate/summarize/
+# build-labelset/export-sheet/import-sheet — 28절)
+python golden_gen/gen_item_quality_golden.py generate --model qwen2.5-14b
+
+# 문항 품질 평가 파이프라인 (28절, 위 generate가 run을 만든 뒤)
+python evals/eval_item_quality_runs.py judge --judge-model anthropic/claude-sonnet-5.5
+python evals/eval_item_quality_runs.py reliability --judges anthropic/claude-sonnet-5.5 openai/gpt-5.6-luna
+python evals/eval_item_quality_runs.py structure-judge --judge-model anthropic/claude-sonnet-5.5
+python evals/eval_item_quality_runs.py compare-generators
+
+# Judge 모델 후보 비교 (구조 유사도만, N회 반복 — 28절 "1차 선별")
+python experiments/compare_judge_models.py --judges or-claude-sonnet-5.5,or-gpt-5.6-luna --structure-only --repeat 2
 ```
 
 > `eval_trajectory.py`는 모델을 호출하지 않고 LangSmith API만 읽는다(`LANGCHAIN_API_KEY` 필요).
@@ -175,6 +203,7 @@ Windows 콘솔에서 실행 시 `cp949` 인코딩 오류(`UnicodeEncodeError`)�
 
 | 2026.08.03 | **하이브리드 검색(BM25+dense, RRF) 도입 A/B** — 검색만 측정(LLM 미사용), 생성·Judge 모델 무관 | 0.955 (변화 없음) | **0.814** (dense-only 0.789) | — | — | — | standards MRR 0.892→**0.938**, regulations MRR 0.667→**0.667(변화 없음)**. 리랭커 이전 후보 포함률 9/10→**10/10**(`ret_015`를 BM25가 후보 12위로 처음 찾아냄) — 12절 참고 |
 | 2026.08.03 | **리랭커 조사 → `n_candidates` 20→10 변경** — 검색만 측정(LLM 미사용) | **1.000** ✅(첫 만점) | **0.854** | — | — | — | regulations Recall@5 0.900→**1.000**, MRR 0.667→**0.753**(12절 착수 시 주 목표 달성). 골든 22건 전수 대조에서 개선 3건·**악화 0건**, 리랭커 처리 쌍이 절반이라 **속도 2배**. 리랭커 ablation도 함께 측정(기여도 MRR +0.034~0.045, Recall엔 영향 없음) — 13절 참고 |
+| 2026.10.04 | 오프라인 Judge **claude-sonnet-5.5**(`OFFLINE_JUDGE_MODEL`, 런타임 게이트는 여전히 gpt-5.6-luna) — **문항 품질 Judge 신뢰도 골든셋을 ITEM_GOLDEN(합성)에서 item_quality_golden.json(사람 라벨 91건)으로 교체 후 첫 정기 평가**(`evals/eval_exam.py`, 28절) | **1.000**(변화 없음) | 0.854(변화 없음) | avg_overall **4.05**(참고값, pass_rate 0.70) | 정답유일성 **0.861**✅/오답매력도 **0.695**✅/근거성 0.561 미확정(CI 하한<0.4) — 기준별 가중 κ, ±1 일치율은 폐지하고 MAE로 대체(정답유일성 0.33/오답매력도 0.44/근거성 0.56) | — (아래 칸은 구 "세트제약/구조Judge" 자리) difficulty 일치 0.867·overall MAE **0.467**·편향 −0.02 판정 불가 — STRUCTURE_GOLDEN 45건(사람 라벨은 여전히 qwen 출력 기준, Judge만 sonnet으로 교체) |
 
 > 모델 교체 또는 프롬프트 튜닝 시마다 행 추가. 2026.07 Recall@5/MRR은 passage_text 리디자인으로 past_exams golden 항목이 제거되며 n이 28→21로 줄어 재측정한 값(검색은 LLM과 무관하므로 모델 열은 해당 없음).
 >
@@ -182,11 +211,12 @@ Windows 콘솔에서 실행 시 `cp949` 인코딩 오류(`UnicodeEncodeError`)�
 >
 > **방법론 오류 정정(2026.07.09)**: 이후 `graph.py` agent_node 프롬프트(생성 측)에도 오답 매력도 지시를 추가하고 같은 방식(`eval_exam.py` 전/후 재실행)으로 검증하려 했으나, `eval_item_quality()`가 채점하는 `ITEM_GOLDEN`은 **스크립트에 하드코딩된 고정 30개 문항**이라 agent_node를 전혀 호출하지 않는다 — 즉 생성 프롬프트를 바꿔도 이 지표엔 원리적으로 반영될 수 없다(실제로 전/후 평균이 2.815로 완전히 동일하게 나와서 발견). 생성 프롬프트 변경 효과는 `scripts/compare_distractor_quality.py`로 별도 검증함(아래 결과 이력 참고).
 
-> **이 표는 2026.08.03 행에서 멈춰 있다.** 그 뒤(정답유일성/오답매력도 재보정, 22~27절)는
-> 표 형식 대신 서사(§22~27)로만 기록돼 있어 여기 추가하지 않았다 — 그 결과 이 표의
-> 문항품질·kappa·구조Judge 값(2026.07.24 행)은 더 이상 최신이 아니다. **"지금 코드가
-> 어떤 상태인가"는 [EVAL_SUMMARY.md](./EVAL_SUMMARY.md) §5(현재 열린 이슈)를 볼 것.**
-> 검색(Recall@5/MRR) 값만은 08.03 행이 여전히 최신이다(이후 변경 없음).
+> **2026.08.03~2026.10.04 사이는 표가 비어 있다.** 그 기간(정답유일성/오답매력도 재보정,
+> 22~27절)은 표 형식 대신 서사(§22~27)로만 기록돼 있어 행을 추가하지 않았다 — 그 서사의
+> 문항품질 수치는 2026.10.04 행과 기준(골든셋·Judge)이 달라 직접 비교할 수 없다.
+> **2026.10.04 행은 문항 품질 Judge 신뢰도 골든셋을 사람 라벨(item_quality_golden.json)로
+> 교체한 뒤의 정기 평가다** — 자세한 경위·생성 모델 비교·Judge 재선정은 28절.
+> 검색(Recall@5/MRR)은 2026.08.03 이후 변경이 없다.
 
 ## 5. 진행 중인 조사
 
@@ -2771,3 +2801,226 @@ validate 게이트 임계값 때와 구조가 같다 — **설계 시점에 정�
 - **근본 해결에는 기준별 사람 라벨링이 선행돼야 한다.** 지금은 오답매력도 채점의
   신뢰도조차 검증된 적이 없어(ITEM_GOLDEN엔 종합 `human_score` 하나뿐), 무엇을
   개선해도 제대로 측정할 수 없다. 26절의 한계가 여기서도 그대로 발목을 잡는다.
+
+## 28. 평가 마무리 — 사람 라벨 평가셋·Judge 재선정·생성 모델 2차 비교 (2026-10)
+
+27절이 남긴 한계는 결국 "기준별 사람 라벨링이 없다"였다. 이번 라운드는 그 공백을 채우는
+작업이다 — ITEM_GOLDEN(합성)을 사람 라벨 91건으로 대체하고, 그 라벨로 Judge 모델을
+다시 고르고, 생성 모델도 로컬만이 아니라 API까지 넣어 다시 비교했다. 근거 데이터는 모두
+`data/golden/`에 커밋돼 있다(28.12절 재현 명령 참고).
+
+### 28.0 판정 기준 — 확정 / 미확정 / 판정 불가
+
+이 절부터는 모든 수치에 **95% 신뢰구간**(참값이 있을 범위를 95% 확신으로 좁힌 구간 —
+같은 실험을 여러 번 반복한다면 그중 95%는 이 구간 안에 참값이 들어온다는 뜻)을 함께
+적는다. 신뢰구간은 **부트스트랩**(가진 데이터에서 복원추출로 같은 크기의 표본을 수천 번
+다시 뽑아, 그때마다 통계치를 계산해 분포를 직접 만드는 방법 — 공식으로 분산을 유도하기
+어려운 지표에도 쓸 수 있다)으로 냈다. 지문 하나에서 여러 문항을 뽑은 경우에는 **클러스터
+부트스트랩**(문항 단위가 아니라 지문 단위로 통째로 뽑는다 — 같은 지문에서 나온 문항들은
+서로 독립이 아니므로, 지문 단위로 묶어야 신뢰구간이 너무 좁게(과신)계산되지 않는다)을 썼다.
+
+이 신뢰구간을 바탕으로 세 가지로 판정한다:
+- **확정** — 목표 임계값(예: κ≥0.4) 대비 신뢰구간 하한이 임계값을 넘는다.
+- **미확정** — 점추정치는 임계값을 넘었지만 신뢰구간 하한이 임계값보다 낮다(더 나쁠
+  가능성을 배제 못 함).
+- **판정 불가** — 두 값(예: 편향, A-B 차이)의 신뢰구간이 0을 포함한다(차이가 없을
+  가능성을 배제 못 함).
+
+### 28.1 평가셋 구성 — 33지문, 재구성 이유는 천장 효과
+
+입력은 합성 지문 33개(`data/golden/item_quality_inputs.json`). 원래 입력은 2026-09에
+Claude가 합성해 모델 선정 작업에 쓰려다 롤백된 버전(`f53cc9a^`)에서 가져왔다 — 형식
+mc4 9·mc5 8·합답형 8·자료형 8개, `case_type`은 normal(단일 형식·기본 개념) 13·
+hard(형식 혼합·5문항 요청 등 요청이 까다로운 것) 10건이었다.
+
+스모크 테스트에서 API 모델 2종이 normal 지문을 전부 첫 시도에 통과시켜 **변별 지문
+0/33(0%)**이 나왔다(28.2절) — 쉬운 입력으로는 모델 간 차이를 잴 수 없다는 뜻이다. 그래서
+normal 10개를 제외하고, 이 프로젝트에서 실제로 실패가 관측된 특징(부정형 발문의 복수
+정답, `<보기>` 합답형, 인접 개념 구분, 수치 자료 계산, 5문항 요청 시 턴 한도)을 넣어
+Claude가 새로 작성한 `hard_content`(내용 난이도가 높음, `hard`와는 다른 축) 10개로
+교체했다(최종 normal 3·hard 10·hard_content 10, 나머지는 형식 분배 유지로 총 33개).
+
+라벨셋은 (지문, 모델)마다 객관식 1문항을 무작위로 뽑아 95문항을 만들었다(qwen이 객관식을
+하나도 못 만든 지문 4개는 제외). 모델 정보는 라벨링 편향을 막기 위해 블라인드 처리했다
+(매핑은 `_item_quality_model_map.json`에 별도 보관). 라벨러는 1인(본인)이고, 91건을
+채점·4건은 판단불가로 남겼다(근거 기재). 사람 라벨 분포: 정답유일성 1점 14·2점 4·3점
+6·4점 8·5점 59(최빈 65%) / 오답매력도 1점 1·2점 11·3점 28·4점 39·5점 12(최빈 43%) /
+근거성 1점 4·2점 7·3점 10·4점 13·5점 57(최빈 63%) / 학생난이도 상 0·중 34·하 57.
+
+### 28.2 변별력 사전 점검 — Judge가 거의 다 4~5점을 줬다
+
+본격적으로 사람 라벨링을 하기 전에, 현재 런타임 Judge(gpt-5.6-luna)로 API 모델 2종의
+출력을 먼저 채점해 변별이 되는지 확인했다. **변별 지문 0/33(0%)** — Judge가 대부분
+4~5점을 줘 해상도가 낮았다(이때 발견된 gpt-5.6-luna의 오답매력도 편향 +0.61은 나중에
+사람 라벨로도 확인됐다, 28.4절). 입력을 더 어렵게 만들어 변별을 끌어내는 대신, 사람
+라벨로 직접 판정하기로 방향을 정했다(28.1절의 재구성과는 별개로, "판정은 결국 사람이
+한다"는 원칙을 유지).
+
+### 28.3 Judge 1차 선별 — 45건으로는 순위가 안 갈린다
+
+Judge 후보를 좁히는 예비 단계로, STRUCTURE_GOLDEN 45건(사람 라벨 1인, qwen 출력만)을
+5개 후보 Judge로 2회씩 재채점했다(`data/golden/_judge_selection_round1.json`).
+
+| 후보 | 구조 MAE [95% CI] | 난이도 일치 | 편향 |
+|---|---|---|---|
+| sonnet-5.5 | 0.48 [0.32, 0.65] | 0.91 | −0.03 |
+| opus-5.5 | 0.53 [0.36, 0.73] | 0.83 | −0.11 |
+| gpt-5.6-luna | 0.63 [0.46, 0.84] | 0.93 | +0.23 |
+| gpt-6.1-sol | 0.71 [0.49, 0.98] | 0.94 | +0.04 |
+| gemini-3.8-flash | 0.78 [0.54, 1.04] | 0.90 | +0.24 |
+
+신뢰구간이 대부분 겹쳐 순위를 확정할 수 없었다. "신뢰구간으로 못 가르면 저렴한 쪽을
+쓴다"는 사전 규칙은 이 상황에 맞지 않다고 보고, 점추정치·비용·역할을 기준으로 2차 후보
+**sonnet + luna(현행 기준선)**를 선정했다(사용자 결정). 1차 비용은 처음 $20으로 잘못
+보고됐는데(후보당 호출 수를 450으로 잘못 곱한 계산 오류) 실제로는 약 $4였다.
+
+### 28.4 Judge 2차 선별 — 사람 라벨 91건으로 sonnet이 더 정확했다
+
+`data/golden/_judge_selection_round2.json`, 사람 라벨 91건 × 3회.
+
+| 기준 | sonnet κ [95% CI] | luna κ [95% CI] | 짝지은 비교 | luna 편향 |
+|---|---|---|---|---|
+| 정답유일성 | 0.87 [0.75, 0.95] | 0.78 [0.64, 0.88] | sonnet 우세 −0.14 [−0.26, −0.02] | +0.22 |
+| 오답매력도 | 0.67 [0.58, 0.75] | 0.53 [0.40, 0.65] | sonnet 우세 −0.25 [−0.38, −0.09] | +0.61 |
+| 근거성 | 0.58 [0.38, 0.74] | 0.54 [0.34, 0.71] | 판정 불가 +0.01 [−0.08, +0.10] | +0.43 |
+
+sonnet의 편향(Judge 평균 − 사람 평균)은 세 기준 모두 신뢰구간이 0을 포함해 판정 불가지만,
+luna는 오답매력도에서 +0.61로 뚜렷이 후하다. 두 Judge 모두 gemini 출력의 근거성은 후하게
+매긴다(+0.49, +0.57). luna의 자기 계열(gpt-6-luna) 편향은 일관되지 않았다(오답매력도만
++0.70으로 gemini의 +0.36보다 높고, 나머지 두 기준은 더 낮음) — 그래서 "luna가 자기
+계열 출력을 편애한다"는 가설은 이 데이터로는 확정하지 못했다.
+
+**결정**: 오프라인 평가 Judge = **claude-sonnet-5.5**. 런타임 구조 게이트 Judge는 아직
+gpt-5.6-luna 그대로이고, 운영 전환 시 claude-sonnet-5.5로 교체한다(MODEL_SELECTION.md §2).
+
+### 28.5 정기 평가 — `evals/eval_exam.py` (오프라인 Judge sonnet-5.5, 2026-10-04)
+
+| 지표 | 값 | 판정 |
+|---|---|---|
+| 문항 품질 κ — 정답유일성 | 0.861 [0.738, 0.939] | 확정 |
+| 문항 품질 κ — 오답매력도 | 0.695 [0.599, 0.773] | 확정 |
+| 문항 품질 κ — 근거성 | 0.561 [0.347, 0.730] | 미확정(CI 하한 < 0.4) |
+| 문항 품질 MAE (정답유일성/오답매력도/근거성) | 0.33 / 0.44 / 0.56 | 참고값 |
+| 문항 품질 편향(세 기준 모두) | — | 판정 불가 |
+| 구조 Judge MAE | 0.467 [0.311, 0.644] | 참고값(게이트 없음) |
+| 구조 Judge 난이도 일치 | 0.867 [0.756, 0.956] | 참고값 |
+| 구조 Judge 편향 | −0.02 | 판정 불가 |
+| 검색 Recall@5 | 1.000 [1.0, 1.0] (n=22, 천장) | 확정 |
+| 검색 MRR | 0.854 [0.732, 0.955] | 참고값 |
+
+근거성 κ만 미확정이다 — 점추정치(0.561)는 목표(0.4)를 넘지만, 신뢰구간 하한(0.347)이
+목표 아래라 "더 나쁠 가능성"을 배제할 수 없다.
+
+### 28.6 생성 모델 비교 — 33지문, 짝지은 비교는 같은 지문 기준 클러스터 부트스트랩
+
+`data/golden/_generator_comparison.json`. 세 모델(qwen2.5:14b 로컬·gpt-6-luna·
+gemini-3.8-flash)을 같은 33개 지문으로, 운영 경로(`_build_spec` → 그래프, `budget=5`)
+그대로 생성했다.
+
+| | qwen2.5:14b(로컬) | gpt-6-luna | gemini-3.8-flash |
+|---|---|---|---|
+| 목표 개수 달성 | 54.5% | 100% | 100% |
+| 첫 시도 통과 | 0% | 75.8% | 100% |
+| 최종 게이트 통과(런타임 luna) | 15.2% | 100% | 100% |
+| 평균 시도 | 4.73 | 1.27 | 1.00 |
+| 지연 평균(중앙값) | 517초(423) | 38초(32) | 40초(37) |
+| 세트당 비용(생성만) | $0 | $0.0034 | $0.0224 |
+| 사람 정답유일성/오답매력도/근거성 | 2.96/2.48/3.28 (n=25) | 4.55/3.76/4.79 (n=33) | 4.33/4.15/4.39 (n=33) |
+| 사람 치명 오류(≤2점): 정답유일성/근거성 | 44% / 28% | 9.1% / 3.0% | 12.1% / 9.1% |
+| sonnet Judge 정답유일성/오답매력도/근거성 | 2.77/2.64/3.25 | 4.52/3.88/4.74 | 4.64/4.13/4.87 |
+| sonnet 구조 점수(0~5) | 1.72 | 4.03 | 4.15 |
+
+qwen은 33개 지문 중 4개에서 객관식 문항을 하나도 못 만들어 품질 쌍(사람·Judge)에서는
+빠졌다(규칙 지표에는 실패로 포함됨) — 품질 지표만 보면 qwen이 실제보다 유리하게 보일
+수 있다.
+
+**짝지은 비교**: qwen vs API 2종은 모든 지표에서 API가 우세하다(신뢰구간이 0을 포함하지
+않음). gpt-6-luna vs gemini-3.8-flash(사람, 33쌍)는 정답유일성 −0.21 [−0.85, +0.42]
+판정 불가, 오답매력도 +0.39 [+0.15, +0.64] gemini 우세, 근거성 −0.39 [−0.85, +0.06]
+판정 불가(luna 쪽으로 기움). Judge 종합점수는 +0.19 [+0.01, +0.38]로 gemini 우세하지만,
+sonnet이 gemini 출력의 근거성을 후하게 매기는 편향(+0.49)으로 일부 설명 가능하다. 구조
+점수는 +0.12 [−0.18, +0.42] 판정 불가. 게이트 통과율·지연 차이도 없다.
+
+**게이트 Judge 대조** (같은 세트, 런타임 luna 구조점수 − sonnet 구조점수): qwen +0.41,
+gpt-6-luna +0.30, gemini +0.30. 모델 간 차이는 신뢰구간이 0을 포함해, luna가
+gpt-6-luna 출력만 특별히 후하게 보는 편향은 이 데이터로는 찾지 못했다. sonnet 기준으로
+게이트를 다시 적용해도 API 2종의 통과율은 100%로 동일하다.
+
+**선택 근거**: 품질 지표가 대부분 판정 불가인 상황에서, 교사에게 더 치명적인 오류(정답이
+틀림·근거 없음)의 비율이 luna 쪽이 더 낮고(유의하지는 않음), 비용이 gemini의 약 1/6.6
+수준이라는 점을 함께 봤다(단 교사 1인이 하루 10세트를 쓴다고 가정하면 $0.03 vs $0.22로,
+지금 사용 규모에서는 비용 차이가 결정적이지는 않다). 운영 생성 모델 = **gpt-6-luna**
+(MODEL_SELECTION.md §1 "2차 선정").
+
+### 28.7 원자료로 재계산한 기존 수치 CI — `evals/ci_report.py`
+
+재실행 없이 저장된 raw 결과만으로 신뢰구간을 다시 계산했다(API 호출 없음).
+
+| 지표 | 값 |
+|---|---|
+| RAGAS faithfulness | 0.048 [0.0, 0.14] (n=7) |
+| RAGAS answer_relevancy | 0.374 [0.32, 0.44] (n=7) |
+| 실측 생성 품질 overall(2026-09, qwen 생성·옛 luna Judge) | 3.14 [2.74, 3.58] (n=24) |
+| 게이트 재보정(2026-08-04, gpt-5.6-luna) 구조 MAE | 0.756 [0.51, 1.0] |
+| 게이트 재보정 편향 | +0.22 [−0.13, +0.51] |
+
+CI 산출 불가(원자료가 집계값만 남아 있어 못 냄): 2026-07 Judge 비교
+(`_judge_comparison_results.json`), 2026-07 생성 모델 비교(`_model_comparison_results.json`),
+VLM 추출 CER·그림 서술 점수(`eval_vlm.py`가 결과를 파일로 저장하지 않음).
+
+### 28.8 이번 작업에서 발견·수정한 결함 6건
+
+1. **`agent_node`가 깨진 도구 호출에 응답하지 않음**: 인자 JSON이 깨진 도구 호출
+   (invalid_tool_calls)에 `ToolMessage`로 응답하지 않아, OpenAI 계열 API가 400
+   "No tool output found"로 생성을 통째로 실패시켰다(gpt-6-luna 실측, Ollama는 관대해
+   그동안 발견되지 않았음). 수정 `c7c75ce`.
+2. **`judge_one()`이 `<보기>`·자료(stimulus)를 Judge 입력에서 빼먹음**: 합답형·자료형
+   문항은 자료 없이는 정답유일성을 판단할 수 없는데도 누락돼 있었다. 수정.
+3. **`JUDGE_BACKEND=openrouter`에서 `OPENROUTER_JUDGE_MODEL` 미설정 시 생성 모델로
+   조용히 폴백**(자기채점 재발 경로) — fail-fast로 수정(코드 리뷰에서 재현).
+4. **VLM Judge 숫자 파싱 오류**: "3~4"가 34로 이어 붙어 5로 잘렸다 — 첫 번째 1~5 숫자만
+   읽도록 수정.
+5. **gpt-6-luna를 OpenAI Chat Completions로 직접 부르면 400**(추론+도구 호출은 Responses
+   API가 필요) — OpenRouter 경유는 정상. 운영 전환 시 고려해야 할 제약으로 기록.
+6. **`weighted_kappa`의 `labels` 기본값이 관측값으로 척도를 추정**해 거리 왜곡이 생길 수
+   있었음 — `labels`를 필수 인자로 바꿔 고정.
+
+### 28.9 비용·시간
+
+이번 평가 작업의 OpenRouter 사용액 합계는 약 $8.25(주간 사용액 기준)다. 로컬 qwen 생성은
+33지문에 4시간 45분이 걸렸다.
+
+### 28.10 한계
+
+- 라벨러 1인 — 독립 라벨러 간 κ는 없다(사용자 요청으로 명시).
+- 합성 입력(실제 교사 입력 아님), 객관식만(서술형 제외), 학생 난이도 "상" 문항이 0개라
+  중·하 난이도 범위에서의 비교다.
+- 로컬 qwen은 Ollama Q4 양자화, 배포(RunPod)는 AWQ — 양자화 방식이 다르다.
+- 구조 유사도 사람 라벨은 qwen 출력 45건뿐이라, API 출력에서의 구조 Judge 정확도는
+  미검증이다(Judge 간 대조만 했다).
+- Judge 1차 선별은 45건으로 신뢰구간이 겹쳐 점추정치·비용 기반으로 후보를 좁혔다.
+- VLM 그림 서술 Judge는 미검증(보류) — MODEL_SELECTION.md §7.
+- 모델별 사람 점수는 n=25~33으로 참고용이다.
+
+### 28.11 재현 명령
+
+```bash
+# 문항 품질 골든셋 생성(지문별로 운영 경로를 그대로 실행)
+python golden_gen/gen_item_quality_golden.py generate --model qwen2.5-14b
+
+# Judge로 채점 → 변별력 → 신뢰도 → 구조 Judge 재채점 → 생성 모델 종합 비교
+python evals/eval_item_quality_runs.py judge --judge-model anthropic/claude-sonnet-5.5
+python evals/eval_item_quality_runs.py discrimination
+python evals/eval_item_quality_runs.py reliability --judges anthropic/claude-sonnet-5.5 openai/gpt-5.6-luna
+python evals/eval_item_quality_runs.py structure-judge --judge-model anthropic/claude-sonnet-5.5
+python evals/eval_item_quality_runs.py compare-generators
+
+# Judge 모델 후보 비교(구조 유사도만, 2회 반복 — 28.3절 "1차 선별")
+python experiments/compare_judge_models.py --judges or-claude-sonnet-5.5,or-gpt-5.6-luna --structure-only --repeat 2
+
+# 정기 평가(검색 + 문항 품질 Judge 신뢰도 + 구조 Judge 신뢰도)
+CHROMA_PERSIST_DIR=./chroma_db python evals/eval_exam.py
+
+# 저장된 원자료로 CI만 재계산(API 호출 없음)
+python evals/ci_report.py
+```

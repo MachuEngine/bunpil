@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>분필 — 문항 품질 라벨링</title>
+<style>
+  :root {
+    --bg: #fafafa;
+    --fg: #1a1a1a;
+    --muted: #666;
+    --border: #d8d8d8;
+    --panel: #ffffff;
+    --accent: #2563eb;
+    --danger: #c0392b;
+    --danger-bg: #fdecea;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17181a;
+      --fg: #e8e8e8;
+      --muted: #a0a0a0;
+      --border: #3a3a3a;
+      --panel: #222325;
+      --accent: #5b9dff;
+      --danger: #ff6b5e;
+      --danger-bg: #3a2322;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo",
+      "Malgun Gothic", sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.55;
+  }
+  #app { max-width: 880px; margin: 0 auto; padding: 16px 20px 80px; }
+  header h1 { font-size: 1.25rem; margin: 0 0 10px; }
+  .file-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+  button {
+    font: inherit;
+    padding: 7px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--fg);
+    cursor: pointer;
+  }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  #progress { color: var(--muted); font-size: 0.92rem; margin-bottom: 14px; }
+  details {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+  }
+  details summary { cursor: pointer; font-weight: 600; }
+  #rubric-content table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
+  #rubric-content th, #rubric-content td {
+    border: 1px solid var(--border);
+    padding: 6px 8px;
+    text-align: left;
+    vertical-align: top;
+  }
+  #rubric-content th { width: 110px; white-space: nowrap; }
+  #rubric-content .note { color: var(--muted); font-size: 0.85rem; margin-top: 6px; }
+  .nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .nav span { font-weight: 600; }
+  #passage-text {
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 8px 0 0;
+    font-size: 0.95rem;
+  }
+  #item-view {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+  }
+  #item-view h2 { margin: 0 0 10px; font-size: 1.05rem; }
+  #item-question { font-weight: 600; margin: 0 0 8px; }
+  #item-stimulus {
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin: 0 0 10px;
+    font-size: 0.92rem;
+  }
+  #item-options { list-style: none; margin: 0 0 10px; padding: 0; }
+  #item-options li { padding: 4px 2px; }
+  #item-options li.is-answer { font-weight: 700; color: var(--accent); }
+  #item-answer { margin: 0; color: var(--muted); }
+  #label-form fieldset {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+  }
+  #label-form legend { font-weight: 600; padding: 0 4px; }
+  .scale-row { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 4px; }
+  .scale-row label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+  textarea {
+    width: 100%;
+    min-height: 64px;
+    font: inherit;
+    background: var(--panel);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px;
+    resize: vertical;
+  }
+  label.block { display: block; margin-top: 6px; }
+  #validation-message {
+    background: var(--danger-bg);
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-top: 10px;
+  }
+  #validation-message[hidden] { display: none; }
+  #main-content[hidden] { display: none; }
+  footer { color: var(--muted); font-size: 0.82rem; margin-top: 30px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>분필 — 문항 품질 라벨링</h1>
+    <div class="file-controls">
+      <input type="file" id="file-input" accept="application/json">
+      <button id="export-btn" disabled>JSON 내보내기</button>
+    </div>
+    <div id="progress">라벨링할 골든셋 JSON 파일을 선택하세요.</div>
+  </header>
+
+  <details id="rubric-panel" open>
+    <summary>채점 기준표 (펼치기/접기)</summary>
+    <div id="rubric-content"></div>
+  </details>
+
+  <main id="main-content" hidden>
+    <div class="nav">
+      <button id="prev-btn">← 이전</button>
+      <span id="entry-id-label"></span>
+      <button id="next-btn">다음 →</button>
+    </div>
+
+    <details id="passage-details" open>
+      <summary>교사가 넣은 예시 문제</summary>
+      <pre id="passage-text"></pre>
+    </details>
+
+    <section id="item-view">
+      <h2>생성된 문항</h2>
+      <p id="item-question"></p>
+      <pre id="item-stimulus" hidden></pre>
+      <ul id="item-options"></ul>
+      <p id="item-answer"></p>
+    </section>
+
+    <form id="label-form">
+      <fieldset>
+        <legend>정답유일성</legend>
+        <div class="scale-row" data-scale="정답유일성"></div>
+      </fieldset>
+      <fieldset>
+        <legend>오답매력도</legend>
+        <div class="scale-row" data-scale="오답매력도"></div>
+      </fieldset>
+      <fieldset>
+        <legend>근거성</legend>
+        <div class="scale-row" data-scale="근거성"></div>
+      </fieldset>
+      <fieldset>
+        <legend>학생난이도</legend>
+        <div class="scale-row" data-scale-text="학생난이도"></div>
+      </fieldset>
+      <label class="block">
+        <input type="checkbox" id="cannot-judge"> 판단 불가
+      </label>
+      <label class="block">
+        근거(2점 이하이거나 판단 불가 시 필수)
+        <textarea id="reason-text"></textarea>
+      </label>
+      <div id="validation-message" hidden></div>
+    </form>
+  </main>
+
+  <footer>
+    ←/→ 키로 이전/다음 문항 이동(입력 중인 필드에 포커스가 없을 때만 동작). 진행 상황은
+    브라우저 localStorage에 파일 이름 + 문항 id 기준으로 자동 저장됩니다.
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ── 채점 기준표(RUBRIC) — 사용자 검토용 초안. 화면 렌더링과 텍스트 출처를 하나로 ──
+  var RUBRIC = {
+    정답유일성: {
+      5: "표시된 정답이 맞고, 다른 선지는 명확히 오답이다",
+      3: "표시된 정답이 맞지만, 해석에 따라 다른 선지도 정답이 될 여지가 있다",
+      1: "정답이 둘 이상이거나, 표시된 정답이 틀렸다",
+    },
+    오답매력도: {
+      5: "모든 오답이 같은 개념 범주 안에서 그럴듯해, 내용을 알아야 고를 수 있다",
+      3: "일부 오답이 너무 티가 나서 소거법으로 쉽게 지워진다",
+      1: "오답 대부분이 문항과 무관하거나 말이 되지 않는다",
+    },
+    근거성: {
+      5: "고교 사회과 교육과정 내용과 정확히 맞고 사실 오류가 없다",
+      3: "경미한 부정확함이나 교육과정 밖 내용이 섞여 있다",
+      1: "명백한 사실 오류가 있다",
+    },
+    학생난이도: "상/중/하: 고등학생이 이 문항을 풀 때의 난이도(교사 관점의 직관적 판단)",
+    note: "2·4점은 각각 인접한 두 앵커 사이.",
+  };
+
+  // ── 순수 로직(DOM 비의존) — node로도 분리 실행 검증 가능 ───────────────────
+
+  function defaultLabel() {
+    return {
+      정답유일성: null, 오답매력도: null, 근거성: null, 학생난이도: null,
+      cannot_judge: false, reason: "",
+    };
+  }
+
+  // 파일에 저장된 라벨(base)에 localStorage에 저장된 라벨(stored)을 덧씌운다.
+  // stored가 더 최근 진행 상황이므로 우선한다. base/stored 둘 다 없는 키는 기본값(null 등).
+  function mergeLabel(base, stored) {
+    return Object.assign({}, defaultLabel(), base || {}, stored || {});
+  }
+
+  // 정답유일성·오답매력도·근거성 중 하나라도 2점 이하이거나 판단 불가면 근거가 필요하다.
+  function needsReason(label) {
+    if (!label) return false;
+    if (label.cannot_judge) return true;
+    return ["정답유일성", "오답매력도", "근거성"].some(function (k) {
+      var v = label[k];
+      return typeof v === "number" && v <= 2;
+    });
+  }
+
+  function isReasonFilled(label) {
+    return !!(label && label.reason && String(label.reason).trim().length > 0);
+  }
+
+  // "다음"으로 넘어갈 수 있는지 — 근거 필수 조건만 검사한다(다른 미입력 필드는 막지 않음).
+  function canAdvance(label) {
+    if (needsReason(label) && !isReasonFilled(label)) {
+      return {
+        ok: false,
+        message: "정답유일성·오답매력도·근거성 중 2점 이하가 있거나 판단 불가로 표시했습니다. "
+          + "근거를 입력해야 다음 문항으로 넘어갈 수 있습니다.",
+      };
+    }
+    return { ok: true, message: "" };
+  }
+
+  // 한 문항의 라벨링이 끝났는지 — 판단 불가(+근거)거나, 세 점수·학생난이도가 모두 채워지고
+  // (필요시) 근거도 채워졌을 때.
+  function isComplete(label) {
+    if (!label) return false;
+    if (label.cannot_judge) return isReasonFilled(label);
+    var scoresFilled = ["정답유일성", "오답매력도", "근거성"].every(function (k) {
+      return typeof label[k] === "number";
+    });
+    var difficultyFilled = label.학생난이도 === "상" || label.학생난이도 === "중" || label.학생난이도 === "하";
+    if (!scoresFilled || !difficultyFilled) return false;
+    if (needsReason(label) && !isReasonFilled(label)) return false;
+    return true;
+  }
+
+  function countComplete(entries) {
+    return entries.filter(function (e) { return isComplete(e.human_label); }).length;
+  }
+
+  function localStorageKey(fileName, entryId) {
+    return "bunpil-item-quality-label:" + fileName + ":" + entryId;
+  }
+
+  // 브라우저 환경이 아닐 때(node 테스트)만 순수 함수를 내보낸다 — 오프라인 단일 파일
+  // 동작에는 영향 없음(브라우저에서는 window만 있고 module은 undefined). DOM 코드보다
+  // 먼저 둬야 한다 — node에서 require할 때 document가 없어 DOM 코드가 바로 실행되면
+  // 에러가 나므로, 아래 DOM 전용 코드 전체를 `document`가 있을 때만 실행하도록 감싼다.
+  if (typeof module !== "undefined" && module.exports) {
+    module.exports = {
+      RUBRIC: RUBRIC,
+      defaultLabel: defaultLabel,
+      mergeLabel: mergeLabel,
+      needsReason: needsReason,
+      isReasonFilled: isReasonFilled,
+      canAdvance: canAdvance,
+      isComplete: isComplete,
+      countComplete: countComplete,
+      localStorageKey: localStorageKey,
+    };
+  }
+
+  // ── DOM 전용 코드(브라우저에서만 실행) ───────────────────────────────────
+  if (typeof document === "undefined") return;
+
+  function safeGet(key) {
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  }
+  function safeSet(key, value) {
+    try { localStorage.setItem(key, value); } catch (e) { /* 저장 실패해도 앱은 계속 동작 */ }
+  }
+
+  var state = { fileName: null, data: null, entries: [], index: 0 };
+
+  var fileInput = document.getElementById("file-input");
+  var exportBtn = document.getElementById("export-btn");
+  var progressEl = document.getElementById("progress");
+  var mainEl = document.getElementById("main-content");
+  var prevBtn = document.getElementById("prev-btn");
+  var nextBtn = document.getElementById("next-btn");
+  var entryIdLabel = document.getElementById("entry-id-label");
+  var passageText = document.getElementById("passage-text");
+  var itemQuestion = document.getElementById("item-question");
+  var itemStimulus = document.getElementById("item-stimulus");
+  var itemOptions = document.getElementById("item-options");
+  var itemAnswer = document.getElementById("item-answer");
+  var form = document.getElementById("label-form");
+  var cannotJudgeBox = document.getElementById("cannot-judge");
+  var reasonText = document.getElementById("reason-text");
+  var validationMessage = document.getElementById("validation-message");
+
+  function renderRubric() {
+    var container = document.getElementById("rubric-content");
+    var rows = ["정답유일성", "오답매력도", "근거성"].map(function (key) {
+      var r = RUBRIC[key];
+      return "<tr><th>" + key + "</th><td>5: " + r[5] + "<br>3: " + r[3] + "<br>1: " + r[1] + "</td></tr>";
+    }).join("");
+    container.innerHTML =
+      "<table><tbody>" + rows
+      + "<tr><th>학생난이도</th><td>" + RUBRIC.학생난이도 + "</td></tr>"
+      + "</tbody></table>"
+      + "<p class=\"note\">" + RUBRIC.note + "</p>";
+  }
+
+  function buildScaleRadios(name) {
+    var row = form.querySelector('.scale-row[data-scale="' + name + '"]');
+    var html = "";
+    for (var v = 1; v <= 5; v++) {
+      html += '<label><input type="radio" name="' + name + '" value="' + v + '"> ' + v + "</label>";
+    }
+    row.innerHTML = html;
+  }
+
+  function buildDifficultyRadios() {
+    var row = form.querySelector('.scale-row[data-scale-text="학생난이도"]');
+    row.innerHTML = ["상", "중", "하"].map(function (v) {
+      return '<label><input type="radio" name="학생난이도" value="' + v + '"> ' + v + "</label>";
+    }).join("");
+  }
+
+  function currentEntry() {
+    return state.entries[state.index];
+  }
+
+  function hideValidationMessage() {
+    validationMessage.hidden = true;
+    validationMessage.textContent = "";
+  }
+
+  function showValidationMessage(message) {
+    validationMessage.hidden = false;
+    validationMessage.textContent = message;
+  }
+
+  function updateProgress() {
+    progressEl.textContent = "완료 " + countComplete(state.entries) + " / " + state.entries.length + "문항";
+  }
+
+  function setFormFromLabel(label) {
+    ["정답유일성", "오답매력도", "근거성"].forEach(function (key) {
+      form.querySelectorAll('input[name="' + key + '"]').forEach(function (radio) {
+        radio.checked = label[key] !== null && String(label[key]) === radio.value;
+      });
+    });
+    form.querySelectorAll('input[name="학생난이도"]').forEach(function (radio) {
+      radio.checked = label.학생난이도 === radio.value;
+    });
+    cannotJudgeBox.checked = !!label.cannot_judge;
+    reasonText.value = label.reason || "";
+  }
+
+  function renderEntry() {
+    var entry = currentEntry();
+    hideValidationMessage();
+    entryIdLabel.textContent = entry.id + " (" + (state.index + 1) + "/" + state.entries.length + ")";
+    passageText.textContent = entry.passage_text || "";
+
+    itemQuestion.textContent = entry.item.question || "";
+    var stimulus = entry.item.stimulus || "";
+    if (stimulus.trim()) {
+      itemStimulus.hidden = false;
+      itemStimulus.textContent = stimulus;
+    } else {
+      itemStimulus.hidden = true;
+      itemStimulus.textContent = "";
+    }
+
+    itemOptions.innerHTML = "";
+    (entry.item.options || []).forEach(function (opt) {
+      var li = document.createElement("li");
+      li.textContent = opt;
+      if (entry.item.answer && opt.indexOf(entry.item.answer) === 0) {
+        li.className = "is-answer";
+      }
+      itemOptions.appendChild(li);
+    });
+    itemAnswer.textContent = "표시된 정답: " + (entry.item.answer || "");
+
+    setFormFromLabel(entry.human_label);
+    prevBtn.disabled = state.index === 0;
+    nextBtn.disabled = state.index === state.entries.length - 1;
+    updateProgress();
+  }
+
+  function persistCurrentLabel() {
+    var entry = currentEntry();
+    safeSet(localStorageKey(state.fileName, entry.id), JSON.stringify(entry.human_label));
+  }
+
+  function onLabelChange() {
+    var entry = currentEntry();
+    var label = entry.human_label;
+    ["정답유일성", "오답매력도", "근거성"].forEach(function (key) {
+      var checked = form.querySelector('input[name="' + key + '"]:checked');
+      label[key] = checked ? parseInt(checked.value, 10) : null;
+    });
+    var difficulty = form.querySelector('input[name="학생난이도"]:checked');
+    label.학생난이도 = difficulty ? difficulty.value : null;
+    label.cannot_judge = cannotJudgeBox.checked;
+    label.reason = reasonText.value;
+    persistCurrentLabel();
+    updateProgress();
+    hideValidationMessage();
+  }
+
+  function goNext() {
+    var entry = currentEntry();
+    var check = canAdvance(entry.human_label);
+    if (!check.ok) {
+      showValidationMessage(check.message);
+      return;
+    }
+    if (state.index < state.entries.length - 1) {
+      state.index += 1;
+      renderEntry();
+    }
+  }
+
+  function goPrev() {
+    if (state.index > 0) {
+      state.index -= 1;
+      renderEntry();
+    }
+  }
+
+  function loadFile(file) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      var data;
+      try {
+        data = JSON.parse(String(reader.result));
+      } catch (e) {
+        alert("JSON 파싱에 실패했습니다: " + e.message);
+        return;
+      }
+      if (!data || !Array.isArray(data.entries)) {
+        alert("entries 배열이 없는 파일입니다. build-labelset 결과 파일을 선택하세요.");
+        return;
+      }
+      data.entries.forEach(function (entry) {
+        var storedRaw = safeGet(localStorageKey(file.name, entry.id));
+        var stored = null;
+        if (storedRaw) {
+          try { stored = JSON.parse(storedRaw); } catch (e) { stored = null; }
+        }
+        entry.human_label = mergeLabel(entry.human_label, stored);
+      });
+      state.fileName = file.name;
+      state.data = data;
+      state.entries = data.entries;
+      state.index = 0;
+      mainEl.hidden = state.entries.length === 0;
+      exportBtn.disabled = state.entries.length === 0;
+      if (state.entries.length === 0) {
+        progressEl.textContent = "entries가 비어 있습니다.";
+        return;
+      }
+      renderEntry();
+    };
+    reader.onerror = function () {
+      alert("파일을 읽는 중 오류가 발생했습니다.");
+    };
+    reader.readAsText(file, "utf-8");
+  }
+
+  function exportJson() {
+    var incomplete = state.entries.length - countComplete(state.entries);
+    if (incomplete > 0) {
+      alert("아직 라벨링이 끝나지 않은 문항이 " + incomplete + "개 있습니다. 내보내기를 진행합니다.");
+    }
+    var blob = new Blob([JSON.stringify(state.data, null, 2)], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "item_quality_golden.labeled.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  fileInput.addEventListener("change", function () {
+    if (fileInput.files && fileInput.files[0]) {
+      loadFile(fileInput.files[0]);
+    }
+  });
+  exportBtn.addEventListener("click", exportJson);
+  prevBtn.addEventListener("click", goPrev);
+  nextBtn.addEventListener("click", goNext);
+  form.addEventListener("change", onLabelChange);
+  form.addEventListener("input", onLabelChange);
+
+  document.addEventListener("keydown", function (e) {
+    var tag = (e.target && e.target.tagName) || "";
+    if (["INPUT", "TEXTAREA", "SELECT", "BUTTON"].indexOf(tag) !== -1) return;
+    if (e.key === "ArrowRight") goNext();
+    else if (e.key === "ArrowLeft") goPrev();
+  });
+
+  ["정답유일성", "오답매력도", "근거성"].forEach(buildScaleRadios);
+  buildDifficultyRadios();
+  renderRubric();
+})();
+</script>
+</body>
+</html>

@@ -11,11 +11,17 @@ _ROLE_MAP = {"system": SystemMessage, "user": HumanMessage, "assistant": AIMessa
 
 
 class OpenAIBackend(LLMBackend):
+    # 하위 클래스(OpenRouterBackend 등)가 chat 어댑터·모델 env·기본 모델만 바꿔
+    # generate() 로직을 그대로 재사용하도록 클래스 속성으로 분리해 둠.
+    _chat_cls = ChatOpenAIBackend
+    _model_env = "OPENAI_MODEL"
+    _default_model = "gpt-4o-mini"
+
     def __init__(self, model=None):
-        self.model = model or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        self.model = model or os.getenv(self._model_env, self._default_model)
 
     async def generate(self, messages: list[dict], **kwargs) -> str:
-        chat = ChatOpenAIBackend(
+        chat = self._chat_cls(
             model=self.model,
             temperature=kwargs.get("temperature", 0.7),
             max_tokens=kwargs.get("max_tokens", 2048),
