@@ -70,7 +70,10 @@ _CANDIDATE_ENV = {
     "gpt-4o-mini": {"VLM_BACKEND": "openai", "OPENAI_VLM_MODEL": "gpt-4o-mini"},
     "gpt-6-luna": {"VLM_BACKEND": "openrouter", "OPENROUTER_VLM_MODEL": "openai/gpt-6-luna"},
     "gemini-3.8-flash": {"VLM_BACKEND": "openrouter", "OPENROUTER_VLM_MODEL": "google/gemini-3.8-flash"},
-    "qwen3-vl-8b": {"VLM_BACKEND": "local", "OLLAMA_VLM_MODEL": "qwen3-vl:8b"},
+    # 2026-10-05: 기본 태그 qwen3-vl:8b는 생각 과정 버전이라 출력 한도(2048)를 생각에 다 써서
+    # 그림 문항 61장 중 25장이 빈 응답이었다(think=false도 무시됨). 추출에는 생각이 필요 없어
+    # instruct 버전으로 바꿨다. 한도를 늘리면 이미지당 5분 이상이라 운영 후보가 될 수 없다.
+    "qwen3-vl-8b": {"VLM_BACKEND": "local", "OLLAMA_VLM_MODEL": "qwen3-vl:8b-instruct"},
     "gemma3-12b": {"VLM_BACKEND": "local", "OLLAMA_VLM_MODEL": "gemma3:12b"},
 }
 _CANDIDATES = tuple(_CANDIDATE_ENV)
