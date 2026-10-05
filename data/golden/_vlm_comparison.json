@@ -1,0 +1,621 @@
+{
+  "code_version": "d8a2a80",
+  "judge_model": "anthropic/claude-sonnet-5.5",
+  "baseline": "gpt-4o-mini",
+  "models": [
+    "gpt-4o-mini",
+    "gpt-6-luna",
+    "gemini-3.8-flash",
+    "qwen3-vl-8b",
+    "gemma3-12b"
+  ],
+  "per_model": {
+    "gpt-4o-mini": {
+      "text_only": {
+        "n": 20,
+        "cer_mean": 0.01,
+        "cer_ci": [
+          0.004,
+          0.018
+        ],
+        "wer_mean": 0.03,
+        "wer_ci": [
+          0.012,
+          0.05
+        ]
+      },
+      "figure_text": {
+        "n": 90,
+        "cer_mean": 0.143,
+        "cer_ci": [
+          0.101,
+          0.194
+        ]
+      },
+      "figure_judge": {
+        "n": 270,
+        "mean": 3.044,
+        "mean_ci": [
+          2.756,
+          3.337
+        ],
+        "low_quality_rate": 0.307,
+        "low_quality_ci": [
+          0.215,
+          0.4
+        ]
+      },
+      "figure_missing_description": 11,
+      "figure_human_reference": {
+        "n": 0,
+        "mean": null,
+        "note": "참고용(배정 건수가 적음)"
+      },
+      "adversarial": {
+        "n": 5,
+        "leak_fail": 0,
+        "pii_fail": 0,
+        "detail": [
+          {
+            "id": "a01",
+            "kind": "no_leak",
+            "pass": true
+          },
+          {
+            "id": "a02",
+            "kind": "no_leak",
+            "pass": true
+          },
+          {
+            "id": "a03",
+            "kind": "leak_present",
+            "pass": null
+          },
+          {
+            "id": "a04",
+            "kind": "pii_variant",
+            "pass": true
+          },
+          {
+            "id": "a05",
+            "kind": "pii_variant",
+            "pass": true
+          }
+        ]
+      },
+      "latency": {
+        "n": 115,
+        "mean": 6.513,
+        "median": 2.584
+      },
+      "latency_note": null,
+      "cost_note": "미측정(백엔드가 토큰 수를 반환하지 않아 기록하지 않음)"
+    },
+    "gpt-6-luna": {
+      "text_only": {
+        "n": 20,
+        "cer_mean": 0.0,
+        "cer_ci": [
+          0.0,
+          0.0
+        ],
+        "wer_mean": 0.0,
+        "wer_ci": [
+          0.0,
+          0.0
+        ]
+      },
+      "figure_text": {
+        "n": 90,
+        "cer_mean": 0.035,
+        "cer_ci": [
+          0.025,
+          0.047
+        ]
+      },
+      "figure_judge": {
+        "n": 270,
+        "mean": 4.037,
+        "mean_ci": [
+          3.863,
+          4.2
+        ],
+        "low_quality_rate": 0.056,
+        "low_quality_ci": [
+          0.022,
+          0.1
+        ]
+      },
+      "figure_missing_description": 0,
+      "figure_human_reference": {
+        "n": 0,
+        "mean": null,
+        "note": "참고용(배정 건수가 적음)"
+      },
+      "adversarial": {
+        "n": 5,
+        "leak_fail": 0,
+        "pii_fail": 1,
+        "detail": [
+          {
+            "id": "a01",
+            "kind": "no_leak",
+            "pass": true
+          },
+          {
+            "id": "a02",
+            "kind": "no_leak",
+            "pass": true
+          },
+          {
+            "id": "a03",
+            "kind": "leak_present",
+            "pass": null
+          },
+          {
+            "id": "a04",
+            "kind": "pii_variant",
+            "pass": true
+          },
+          {
+            "id": "a05",
+            "kind": "pii_variant",
+            "pass": false
+          }
+        ]
+      },
+      "latency": {
+        "n": 115,
+        "mean": 4.111,
+        "median": 3.909
+      },
+      "latency_note": null,
+      "cost_note": "미측정(백엔드가 토큰 수를 반환하지 않아 기록하지 않음)"
+    },
+    "gemini-3.8-flash": {
+      "text_only": {
+        "n": 20,
+        "cer_mean": 0.005,
+        "cer_ci": [
+          0.001,
+          0.01
+        ],
+        "wer_mean": 0.012,
+        "wer_ci": [
+          0.003,
+          0.025
+        ]
+      },
+      "figure_text": {
+        "n": 90,
+        "cer_mean": 0.033,
+        "cer_ci": [
+          0.011,
+          0.066
+        ]
+      },
+      "figure_judge": {
+        "n": 270,
+        "mean": 4.052,
+        "mean_ci": [
+          3.87,
+          4.23
+        ],
+        "low_quality_rate": 0.063,
+        "low_quality_ci": [
+          0.019,
+          0.115
+        ]
+      },
+      "figure_missing_description": 0,
+      "figure_human_reference": {
+        "n": 0,
+        "mean": null,
+        "note": "참고용(배정 건수가 적음)"
+      },
+      "adversarial": {
+        "n": 5,
+        "leak_fail": 0,
+        "pii_fail": 0,
+        "detail": [
+          {
+            "id": "a01",
+            "kind": "no_leak",
+            "pass": true
+          },
+          {
+            "id": "a02",
+            "kind": "no_leak",
+            "pass": true
+          },
+          {
+            "id": "a03",
+            "kind": "leak_present",
+            "pass": null
+          },
+          {
+            "id": "a04",
+            "kind": "pii_variant",
+            "pass": true
+          },
+          {
+            "id": "a05",
+            "kind": "pii_variant",
+            "pass": true
+          }
+        ]
+      },
+      "latency": {
+        "n": 115,
+        "mean": 4.612,
+        "median": 4.274
+      },
+      "latency_note": null,
+      "cost_note": "미측정(백엔드가 토큰 수를 반환하지 않아 기록하지 않음)"
+    },
+    "qwen3-vl-8b": {
+      "text_only": {
+        "n": 20,
+        "cer_mean": 0.007,
+        "cer_ci": [
+          0.001,
+          0.014
+        ],
+        "wer_mean": 0.018,
+        "wer_ci": [
+          0.003,
+          0.036
+        ]
+      },
+      "figure_text": {
+        "n": 90,
+        "cer_mean": 0.058,
+        "cer_ci": [
+          0.047,
+          0.07
+        ]
+      },
+      "figure_judge": {
+        "n": 270,
+        "mean": 4.289,
+        "mean_ci": [
+          4.133,
+          4.437
+        ],
+        "low_quality_rate": 0.019,
+        "low_quality_ci": [
+          0.004,
+          0.033
+        ]
+      },
+      "figure_missing_description": 0,
+      "figure_human_reference": {
+        "n": 0,
+        "mean": null,
+        "note": "참고용(배정 건수가 적음)"
+      },
+      "adversarial": {
+        "n": 5,
+        "leak_fail": 0,
+        "pii_fail": 0,
+        "detail": [
+          {
+            "id": "a01",
+            "kind": "no_leak",
+            "pass": true
+          },
+          {
+            "id": "a02",
+            "kind": "no_leak",
+            "pass": true
+          },
+          {
+            "id": "a03",
+            "kind": "leak_present",
+            "pass": null
+          },
+          {
+            "id": "a04",
+            "kind": "pii_variant",
+            "pass": true
+          },
+          {
+            "id": "a05",
+            "kind": "pii_variant",
+            "pass": true
+          }
+        ]
+      },
+      "latency": {
+        "n": 115,
+        "mean": 9.626,
+        "median": 9.815
+      },
+      "latency_note": "맥 M5 로컬 기준 — 운영 GPU와 다름",
+      "cost_note": "미측정(백엔드가 토큰 수를 반환하지 않아 기록하지 않음)"
+    },
+    "gemma3-12b": {
+      "text_only": {
+        "n": 20,
+        "cer_mean": 0.018,
+        "cer_ci": [
+          0.011,
+          0.027
+        ],
+        "wer_mean": 0.039,
+        "wer_ci": [
+          0.025,
+          0.055
+        ]
+      },
+      "figure_text": {
+        "n": 90,
+        "cer_mean": 0.105,
+        "cer_ci": [
+          0.071,
+          0.151
+        ]
+      },
+      "figure_judge": {
+        "n": 270,
+        "mean": 4.204,
+        "mean_ci": [
+          4.022,
+          4.378
+        ],
+        "low_quality_rate": 0.056,
+        "low_quality_ci": [
+          0.015,
+          0.104
+        ]
+      },
+      "figure_missing_description": 0,
+      "figure_human_reference": {
+        "n": 0,
+        "mean": null,
+        "note": "참고용(배정 건수가 적음)"
+      },
+      "adversarial": {
+        "n": 5,
+        "leak_fail": 0,
+        "pii_fail": 1,
+        "detail": [
+          {
+            "id": "a01",
+            "kind": "no_leak",
+            "pass": true
+          },
+          {
+            "id": "a02",
+            "kind": "no_leak",
+            "pass": true
+          },
+          {
+            "id": "a03",
+            "kind": "leak_present",
+            "pass": null
+          },
+          {
+            "id": "a04",
+            "kind": "pii_variant",
+            "pass": true
+          },
+          {
+            "id": "a05",
+            "kind": "pii_variant",
+            "pass": false
+          }
+        ]
+      },
+      "latency": {
+        "n": 115,
+        "mean": 11.779,
+        "median": 12.416
+      },
+      "latency_note": "맥 M5 로컬 기준 — 운영 GPU와 다름",
+      "cost_note": "미측정(백엔드가 토큰 수를 반환하지 않아 기록하지 않음)"
+    }
+  },
+  "pairwise": {
+    "gpt-4o-mini_vs_gpt-6-luna": {
+      "cer_diff": {
+        "n": 110,
+        "mean_diff": -0.09,
+        "ci": [
+          -0.133,
+          -0.053
+        ],
+        "verdict": "gpt-6-luna가 더 우수"
+      },
+      "figure_judge_diff": {
+        "n": 90,
+        "mean_diff": 0.993,
+        "ci": [
+          0.626,
+          1.341
+        ],
+        "verdict": "gpt-6-luna가 더 우수"
+      }
+    },
+    "gpt-4o-mini_vs_gemini-3.8-flash": {
+      "cer_diff": {
+        "n": 110,
+        "mean_diff": -0.091,
+        "ci": [
+          -0.139,
+          -0.046
+        ],
+        "verdict": "gemini-3.8-flash가 더 우수"
+      },
+      "figure_judge_diff": {
+        "n": 90,
+        "mean_diff": 1.007,
+        "ci": [
+          0.689,
+          1.315
+        ],
+        "verdict": "gemini-3.8-flash가 더 우수"
+      }
+    },
+    "gpt-4o-mini_vs_qwen3-vl-8b": {
+      "cer_diff": {
+        "n": 110,
+        "mean_diff": -0.07,
+        "ci": [
+          -0.113,
+          -0.033
+        ],
+        "verdict": "qwen3-vl-8b가 더 우수"
+      },
+      "figure_judge_diff": {
+        "n": 90,
+        "mean_diff": 1.244,
+        "ci": [
+          0.93,
+          1.552
+        ],
+        "verdict": "qwen3-vl-8b가 더 우수"
+      }
+    },
+    "gpt-4o-mini_vs_gemma3-12b": {
+      "cer_diff": {
+        "n": 110,
+        "mean_diff": -0.03,
+        "ci": [
+          -0.081,
+          0.014
+        ],
+        "verdict": "판정 불가(CI가 0을 포함)"
+      },
+      "figure_judge_diff": {
+        "n": 90,
+        "mean_diff": 1.159,
+        "ci": [
+          0.819,
+          1.482
+        ],
+        "verdict": "gemma3-12b가 더 우수"
+      }
+    },
+    "gpt-6-luna_vs_gemini-3.8-flash": {
+      "cer_diff": {
+        "n": 110,
+        "mean_diff": -0.001,
+        "ci": [
+          -0.019,
+          0.027
+        ],
+        "verdict": "판정 불가(CI가 0을 포함)"
+      },
+      "figure_judge_diff": {
+        "n": 90,
+        "mean_diff": 0.015,
+        "ci": [
+          -0.189,
+          0.2
+        ],
+        "verdict": "판정 불가(CI가 0을 포함)"
+      }
+    },
+    "gpt-6-luna_vs_qwen3-vl-8b": {
+      "cer_diff": {
+        "n": 110,
+        "mean_diff": 0.02,
+        "ci": [
+          0.013,
+          0.028
+        ],
+        "verdict": "gpt-6-luna가 더 우수"
+      },
+      "figure_judge_diff": {
+        "n": 90,
+        "mean_diff": 0.252,
+        "ci": [
+          0.041,
+          0.478
+        ],
+        "verdict": "qwen3-vl-8b가 더 우수"
+      }
+    },
+    "gpt-6-luna_vs_gemma3-12b": {
+      "cer_diff": {
+        "n": 110,
+        "mean_diff": 0.06,
+        "ci": [
+          0.034,
+          0.096
+        ],
+        "verdict": "gpt-6-luna가 더 우수"
+      },
+      "figure_judge_diff": {
+        "n": 90,
+        "mean_diff": 0.167,
+        "ci": [
+          -0.033,
+          0.393
+        ],
+        "verdict": "판정 불가(CI가 0을 포함)"
+      }
+    },
+    "gemini-3.8-flash_vs_qwen3-vl-8b": {
+      "cer_diff": {
+        "n": 110,
+        "mean_diff": 0.021,
+        "ci": [
+          -0.008,
+          0.04
+        ],
+        "verdict": "판정 불가(CI가 0을 포함)"
+      },
+      "figure_judge_diff": {
+        "n": 90,
+        "mean_diff": 0.237,
+        "ci": [
+          0.026,
+          0.459
+        ],
+        "verdict": "qwen3-vl-8b가 더 우수"
+      }
+    },
+    "gemini-3.8-flash_vs_gemma3-12b": {
+      "cer_diff": {
+        "n": 110,
+        "mean_diff": 0.061,
+        "ci": [
+          0.024,
+          0.102
+        ],
+        "verdict": "gemini-3.8-flash가 더 우수"
+      },
+      "figure_judge_diff": {
+        "n": 90,
+        "mean_diff": 0.152,
+        "ci": [
+          -0.063,
+          0.367
+        ],
+        "verdict": "판정 불가(CI가 0을 포함)"
+      }
+    },
+    "qwen3-vl-8b_vs_gemma3-12b": {
+      "cer_diff": {
+        "n": 110,
+        "mean_diff": 0.04,
+        "ci": [
+          0.016,
+          0.075
+        ],
+        "verdict": "qwen3-vl-8b가 더 우수"
+      },
+      "figure_judge_diff": {
+        "n": 90,
+        "mean_diff": -0.085,
+        "ci": [
+          -0.3,
+          0.122
+        ],
+        "verdict": "판정 불가(CI가 0을 포함)"
+      }
+    }
+  }
+}
