@@ -16,6 +16,10 @@ ChatOpenAI를 통해 이 호출이 트레이싱되면 마스킹 전 이미지·�
 트레이싱을 원천적으로 피하는 것(tests/test_exam_input_privacy.py의
 test_plain_backends_are_not_langchain_traceable)과 동일한 이유로, 이 백엔드도
 LangChain을 거치지 않는다.
+
+2026-10: 아래 `OpenRouterVLMBackend`(VLM 모델 비교 평가 전용)도 같은 이유로 openai
+SDK를 직접 호출한다 — `base_url`과 키만 OpenRouter용으로 바꾸고 요청 형식(`_call_vlm`)
+과 `_EXTRACT_PROMPT`는 그대로 공유한다.
 """
 import base64
 import os
@@ -32,6 +36,29 @@ _EXTRACT_PROMPT = """당신은 사회 교사가 첨부한 시험 문제 이미�
 - 설명이나 마크다운 코드 펜스 없이, 추출된 문제 본문만 응답하세요."""
 
 
+async def _call_vlm(client: AsyncOpenAI, model: str, image_bytes: bytes, mime_type: str) -> str:
+    """OpenAI 호환 chat completions 요청 1회 — OpenAI/OpenRouter VLM 백엔드가 공유."""
+    b64 = base64.b64encode(image_bytes).decode("ascii")
+    response = await client.chat.completions.create(
+        model=model,
+        temperature=0,
+        max_tokens=2048,
+        messages=[
+            {"role": "system", "content": _EXTRACT_PROMPT},
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:{mime_type};base64,{b64}"},
+                    },
+                ],
+            },
+        ],
+    )
+    return (response.choices[0].message.content or "").strip()
+
+
 class OpenAIVLMBackend(VLMBackend):
     def __init__(self, model: str | None = None):
         self.model = model or os.getenv("OPENAI_VLM_MODEL", "gpt-4o-mini")
@@ -42,22 +69,26 @@ class OpenAIVLMBackend(VLMBackend):
             raise RuntimeError("OPENAI_API_KEY 환경변수가 설정되지 않았습니다.")
 
         client = AsyncOpenAI(api_key=api_key)
-        b64 = base64.b64encode(image_bytes).decode("ascii")
-        response = await client.chat.completions.create(
-            model=self.model,
-            temperature=0,
-            max_tokens=2048,
-            messages=[
-                {"role": "system", "content": _EXTRACT_PROMPT},
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": f"data:{mime_type};base64,{b64}"},
-                        },
-                    ],
-                },
-            ],
-        )
-        return (response.choices[0].message.content or "").strip()
+        return await _call_vlm(client, self.model, image_bytes, mime_type)
+
+
+class OpenRouterVLMBackend(VLMBackend):
+    """OpenRouter 경유 VLM — 2026-10 VLM 모델 비교 평가 전용(gpt-6-luna, gemini-3.8-flash 등).
+    OpenAIVLMBackend와 동일하게 openai SDK를 직접 호출해 LangChain을 거치지 않는다
+    (트레이싱 차단 이유는 이 파일 상단 docstring 참고)."""
+
+    def __init__(self, model: str | None = None):
+        self.model = model or os.getenv("OPENROUTER_VLM_MODEL")
+        if not self.model:
+            raise RuntimeError(
+                "OPENROUTER_VLM_MODEL 환경변수가 설정되지 않았습니다 — 평가 비교 목적상 "
+                "기본 모델을 임의로 지정하지 않습니다."
+            )
+
+    async def extract_text(self, image_bytes: bytes, mime_type: str) -> str:
+        api_key = os.getenv("OPENROUTER_API_KEY", "")
+        if not api_key:
+            raise RuntimeError("OPENROUTER_API_KEY 환경변수가 설정되지 않았습니다.")
+
+        client = AsyncOpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
+        return await _call_vlm(client, self.model, image_bytes, mime_type)

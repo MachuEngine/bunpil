@@ -44,15 +44,26 @@ def test_plain_backends_are_not_langchain_traceable():
     2026-08-19: OpenAIVLMBackend도 같은 이유로 추가 — /exam/extract는 마스킹 전
     원본 이미지·VLM 원문을 다루므로, 이 백엔드가 실수로 langchain_openai.ChatOpenAI
     (Runnable)를 다시 쓰게 바뀌면 LANGCHAIN_TRACING_V2=true일 때 그 마스킹 전
-    데이터가 LangSmith로 샐 수 있다 — 이 테스트가 그 회귀를 구조적으로 차단한다."""
+    데이터가 LangSmith로 샐 수 있다 — 이 테스트가 그 회귀를 구조적으로 차단한다.
+
+    2026-10: OpenRouterVLMBackend(openai_vlm.py)·OllamaVLMBackend도 같은 경로(VLM
+    모델 비교 평가)에서 마스킹 전 이미지를 다루므로 같은 이유로 추가."""
     from langchain_core.runnables import Runnable
 
     from app.common.llm.backends.ollama import OllamaBackend
+    from app.common.llm.backends.ollama_vlm import OllamaVLMBackend
     from app.common.llm.backends.openai import OpenAIBackend
-    from app.common.llm.backends.openai_vlm import OpenAIVLMBackend
+    from app.common.llm.backends.openai_vlm import OpenAIVLMBackend, OpenRouterVLMBackend
     from app.common.llm.backends.runpod import RunPodBackend
 
-    for backend_cls in (OllamaBackend, OpenAIBackend, RunPodBackend, OpenAIVLMBackend):
+    for backend_cls in (
+        OllamaBackend,
+        OpenAIBackend,
+        RunPodBackend,
+        OpenAIVLMBackend,
+        OpenRouterVLMBackend,
+        OllamaVLMBackend,
+    ):
         assert not issubclass(backend_cls, Runnable)
 
 

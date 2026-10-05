@@ -6,8 +6,9 @@
 import pytest
 
 from app.common.llm.backends.ollama import OllamaBackend
+from app.common.llm.backends.ollama_vlm import OllamaVLMBackend
 from app.common.llm.backends.openai import OpenAIBackend
-from app.common.llm.backends.openai_vlm import OpenAIVLMBackend
+from app.common.llm.backends.openai_vlm import OpenAIVLMBackend, OpenRouterVLMBackend
 from app.common.llm.backends.openrouter import OpenRouterBackend
 from app.common.llm.backends.runpod import RunPodBackend
 from app.common.llm.factory import get_judge_backend, get_llm_backend, get_vlm_backend
@@ -87,19 +88,44 @@ def test_get_judge_backend_openrouter_with_judge_model_set(monkeypatch):
 
 @pytest.mark.parametrize(
     "env_value,expected_cls",
-    [(None, OpenAIVLMBackend), ("openai", OpenAIVLMBackend)],
+    [
+        (None, OpenAIVLMBackend),
+        ("openai", OpenAIVLMBackend),
+        ("openrouter", OpenRouterVLMBackend),
+        ("local", OllamaVLMBackend),
+    ],
 )
 def test_get_vlm_backend_recognized_values(monkeypatch, env_value, expected_cls):
     if env_value is None:
         monkeypatch.delenv("VLM_BACKEND", raising=False)
     else:
         monkeypatch.setenv("VLM_BACKEND", env_value)
+    # openrouter/local은 기본 모델을 임의로 두지 않으므로(평가 비교 목적) 명시값이 필요하다.
+    if env_value == "openrouter":
+        monkeypatch.setenv("OPENROUTER_VLM_MODEL", "dummy/vlm-model")
+    if env_value == "local":
+        monkeypatch.setenv("OLLAMA_VLM_MODEL", "dummy-vlm-model")
     assert isinstance(get_vlm_backend(), expected_cls)
 
 
 def test_get_vlm_backend_rejects_unrecognized_value(monkeypatch):
-    monkeypatch.setenv("VLM_BACKEND", "local")  # 아직 지원하지 않는 값
-    with pytest.raises(ValueError, match="local"):
+    monkeypatch.setenv("VLM_BACKEND", "runpod")  # VLM 경로에는 없는 값(LLM_BACKEND와 다름)
+    with pytest.raises(ValueError, match="runpod"):
+        get_vlm_backend()
+
+
+def test_get_vlm_backend_openrouter_without_model_fails(monkeypatch):
+    # 생성 모델처럼 기본값으로 조용히 폴백하지 않고 즉시 실패해야 한다(평가 비교 목적).
+    monkeypatch.setenv("VLM_BACKEND", "openrouter")
+    monkeypatch.delenv("OPENROUTER_VLM_MODEL", raising=False)
+    with pytest.raises(RuntimeError, match="OPENROUTER_VLM_MODEL"):
+        get_vlm_backend()
+
+
+def test_get_vlm_backend_local_without_model_fails(monkeypatch):
+    monkeypatch.setenv("VLM_BACKEND", "local")
+    monkeypatch.delenv("OLLAMA_VLM_MODEL", raising=False)
+    with pytest.raises(RuntimeError, match="OLLAMA_VLM_MODEL"):
         get_vlm_backend()
 
 
