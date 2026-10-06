@@ -1,0 +1,277 @@
+{
+  "_schema": {
+    "description": "vlm_labeling_sheet.json의 블라인드 id → 실제 후보 모델 매핑(라벨링 중 참조 금지)."
+  },
+  "map": {
+    "f01": {
+      "model": "gpt-4o-mini"
+    },
+    "f02": {
+      "model": "gpt-4o-mini"
+    },
+    "f03": {
+      "model": "gpt-6-luna"
+    },
+    "f04": {
+      "model": "gemini-3.8-flash"
+    },
+    "f05": {
+      "model": "gpt-6-luna"
+    },
+    "f06": {
+      "model": "gpt-4o-mini"
+    },
+    "f07": {
+      "model": "gpt-6-luna"
+    },
+    "f08": {
+      "model": "gemma3-12b"
+    },
+    "f09": {
+      "model": "gemini-3.8-flash"
+    },
+    "f10": {
+      "model": "qwen3-vl-8b"
+    },
+    "f11": {
+      "model": "gemini-3.8-flash"
+    },
+    "f12": {
+      "model": "qwen3-vl-8b"
+    },
+    "f13": {
+      "model": "gemini-3.8-flash"
+    },
+    "f14": {
+      "model": "gemma3-12b"
+    },
+    "f15": {
+      "model": "gpt-4o-mini"
+    },
+    "f16": {
+      "model": "gpt-6-luna"
+    },
+    "f17": {
+      "model": "gpt-6-luna"
+    },
+    "f18": {
+      "model": "gpt-4o-mini"
+    },
+    "f19": {
+      "model": "gemini-3.8-flash"
+    },
+    "f20": {
+      "model": "gemini-3.8-flash"
+    },
+    "f21": {
+      "model": "gpt-6-luna"
+    },
+    "f22": {
+      "model": "gemini-3.8-flash"
+    },
+    "f23": {
+      "model": "gpt-6-luna"
+    },
+    "f24": {
+      "model": "gemma3-12b"
+    },
+    "f25": {
+      "model": "gemma3-12b"
+    },
+    "f26": {
+      "model": "gemma3-12b"
+    },
+    "f27": {
+      "model": "gemma3-12b"
+    },
+    "f28": {
+      "model": "gemini-3.8-flash"
+    },
+    "f29": {
+      "model": "gpt-4o-mini"
+    },
+    "f30": {
+      "model": "qwen3-vl-8b"
+    },
+    "f31": {
+      "model": "gpt-4o-mini"
+    },
+    "f32": {
+      "model": "qwen3-vl-8b"
+    },
+    "f33": {
+      "model": "qwen3-vl-8b"
+    },
+    "f34": {
+      "model": "gemma3-12b"
+    },
+    "f35": {
+      "model": "gpt-4o-mini"
+    },
+    "f36": {
+      "model": "gemma3-12b"
+    },
+    "f37": {
+      "model": "gpt-4o-mini"
+    },
+    "f38": {
+      "model": "gemma3-12b"
+    },
+    "f39": {
+      "model": "gpt-4o-mini"
+    },
+    "f40": {
+      "model": "gpt-6-luna"
+    },
+    "f41": {
+      "model": "gpt-6-luna"
+    },
+    "f42": {
+      "model": "gemma3-12b"
+    },
+    "f43": {
+      "model": "gemma3-12b"
+    },
+    "f44": {
+      "model": "qwen3-vl-8b"
+    },
+    "f45": {
+      "model": "qwen3-vl-8b"
+    },
+    "f46": {
+      "model": "qwen3-vl-8b"
+    },
+    "f47": {
+      "model": "gpt-6-luna"
+    },
+    "f48": {
+      "model": "gemini-3.8-flash"
+    },
+    "f49": {
+      "model": "gemma3-12b"
+    },
+    "f50": {
+      "model": "gpt-4o-mini"
+    },
+    "f51": {
+      "model": "qwen3-vl-8b"
+    },
+    "f52": {
+      "model": "gpt-4o-mini"
+    },
+    "f53": {
+      "model": "gpt-4o-mini"
+    },
+    "f54": {
+      "model": "gemma3-12b"
+    },
+    "f55": {
+      "model": "gpt-6-luna"
+    },
+    "f56": {
+      "model": "gpt-6-luna"
+    },
+    "f57": {
+      "model": "gpt-6-luna"
+    },
+    "f58": {
+      "model": "gpt-4o-mini"
+    },
+    "f59": {
+      "model": "qwen3-vl-8b"
+    },
+    "f60": {
+      "model": "gemini-3.8-flash"
+    },
+    "f61": {
+      "model": "qwen3-vl-8b"
+    },
+    "f62": {
+      "model": "gpt-6-luna"
+    },
+    "f63": {
+      "model": "gemma3-12b"
+    },
+    "f64": {
+      "model": "gemma3-12b"
+    },
+    "f65": {
+      "model": "qwen3-vl-8b"
+    },
+    "f66": {
+      "model": "qwen3-vl-8b"
+    },
+    "f67": {
+      "model": "gemini-3.8-flash"
+    },
+    "f68": {
+      "model": "gpt-4o-mini"
+    },
+    "f69": {
+      "model": "gemma3-12b"
+    },
+    "f70": {
+      "model": "gemini-3.8-flash"
+    },
+    "f71": {
+      "model": "gpt-6-luna"
+    },
+    "f72": {
+      "model": "qwen3-vl-8b"
+    },
+    "f73": {
+      "model": "gpt-6-luna"
+    },
+    "f74": {
+      "model": "gpt-4o-mini"
+    },
+    "f75": {
+      "model": "gemma3-12b"
+    },
+    "f76": {
+      "model": "gemini-3.8-flash"
+    },
+    "f77": {
+      "model": "gpt-4o-mini"
+    },
+    "f78": {
+      "model": "qwen3-vl-8b"
+    },
+    "f79": {
+      "model": "gpt-6-luna"
+    },
+    "f80": {
+      "model": "gemma3-12b"
+    },
+    "f81": {
+      "model": "gemini-3.8-flash"
+    },
+    "f82": {
+      "model": "qwen3-vl-8b"
+    },
+    "f83": {
+      "model": "gemini-3.8-flash"
+    },
+    "f84": {
+      "model": "gemini-3.8-flash"
+    },
+    "f85": {
+      "model": "qwen3-vl-8b"
+    },
+    "f86": {
+      "model": "qwen3-vl-8b"
+    },
+    "f87": {
+      "model": "gpt-6-luna"
+    },
+    "f88": {
+      "model": "gpt-4o-mini"
+    },
+    "f89": {
+      "model": "gemini-3.8-flash"
+    },
+    "f90": {
+      "model": "gemini-3.8-flash"
+    }
+  }
+}

@@ -1,8 +1,9 @@
 import os
 
 from .backends.ollama import OllamaBackend
+from .backends.ollama_vlm import OllamaVLMBackend
 from .backends.openai import OpenAIBackend
-from .backends.openai_vlm import OpenAIVLMBackend
+from .backends.openai_vlm import OpenAIVLMBackend, OpenRouterVLMBackend
 from .backends.openrouter import OpenRouterBackend
 from .backends.runpod import RunPodBackend
 from .base import LLMBackend, VLMBackend
@@ -60,14 +61,20 @@ def get_judge_backend() -> LLMBackend:
 
 def get_vlm_backend() -> VLMBackend:
     # 2026-08-19: 이미지 → 텍스트 추출 전용(/exam/extract). 생성(LLM_BACKEND)·Judge
-    # (JUDGE_BACKEND)와 완전히 독립된 세 번째 축. OpenAIVLMBackend는 langchain_openai를
-    # 쓰지 않고 openai SDK를 직접 호출해 LangChain Runnable이 아니다 — 마스킹 전
-    # 원본 이미지·VLM 원문이 LangSmith로 새지 않도록 트레이싱을 원천 차단하기 위함
-    # (자세한 이유는 backends/openai_vlm.py 모듈 docstring). tracing.py의
-    # _PROD_BACKENDS는 LLM_BACKEND 기준 LangSmith 프로젝트명(dev/prod) 분기용일 뿐이라
-    # 이 함수와 무관하다.
-    # local/runpod VLM 경로는 요청받은 적이 없어 만들지 않았다 — 필요해지면 그때 추가.
+    # (JUDGE_BACKEND)와 완전히 독립된 세 번째 축. 여기서 만드는 세 백엔드 모두
+    # langchain_openai/LangChain Runnable을 쓰지 않는다 — 마스킹 전 원본 이미지·VLM
+    # 원문이 LangSmith로 새지 않도록 트레이싱을 원천 차단하기 위함(자세한 이유는
+    # backends/openai_vlm.py 모듈 docstring). tracing.py의 _PROD_BACKENDS는 LLM_BACKEND
+    # 기준 LangSmith 프로젝트명(dev/prod) 분기용일 뿐이라 이 함수와 무관하다.
+    # 2026-10: openrouter/local은 VLM 모델 비교 평가 전용으로 추가했다(runpod VLM 경로는
+    # 여전히 요청받은 적이 없어 미구현).
     backend = os.getenv("VLM_BACKEND", "openai")
+    if backend == "openrouter":
+        return OpenRouterVLMBackend()
+    if backend == "local":
+        return OllamaVLMBackend()
     if backend != "openai":
-        raise ValueError(f"VLM_BACKEND={backend!r}은 지원하지 않는 값입니다 (openai만 지원).")
+        raise ValueError(
+            f"VLM_BACKEND={backend!r}은 지원하지 않는 값입니다 (openai|openrouter|local)."
+        )
     return OpenAIVLMBackend()

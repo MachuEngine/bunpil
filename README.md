@@ -50,7 +50,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./assets/architecture-dark.svg">
-  <img src="./assets/architecture-light.svg" alt="분필 시스템 구성도 — 브라우저에서 FastAPI를 거쳐 출제 그래프(LangGraph)로 이어지고, ChromaDB·생성 LLM(Qwen2.5-14B)을 사용하며 judge 노드만 별도 Judge LLM(gpt-5.6-luna)을 사용하고, /exam/extract는 그래프를 거치지 않고 별도 VLM(gpt-4o-mini)을 호출해 이미지를 텍스트로 추출하는 구조도">
+  <img src="./assets/architecture-light.svg" alt="분필 시스템 구성도 — 브라우저에서 FastAPI를 거쳐 출제 그래프(LangGraph)로 이어지고, ChromaDB·생성 LLM(Qwen2.5-14B)을 사용하며 judge 노드만 별도 Judge LLM(gpt-5.6-luna)을 사용하고, /exam/extract는 그래프를 거치지 않고 별도 VLM(gpt-6-luna)을 호출해 이미지를 텍스트로 추출하는 구조도">
 </picture>
 
 > 🎯로 표시한 **Judge LLM은 생성 LLM과 완전히 다른 백엔드**입니다 — 문항을 쓰는 모델이 자기 글을 자기가 채점하지 않도록 의도적으로 분리했습니다(배경은 [아키텍처](#아키텍처) 참고).
@@ -199,7 +199,10 @@ API 키가 없거나 호출이 실패하면 조용히 폴백하지 않고 그대
 > 이미지 원본은 디스크에 저장하지 않고 요청을 처리하는 동안에만 다룹니다(예외 범위와 트레이싱
 > 차단 방식은 [DESIGN.md](./DESIGN.md) 6절).
 
-> 정확도는 **CER**(글자 단위 오류율, 낮을수록 좋음)로 쟀습니다. 글자만 있는 문제는 0.0071, 표·그래프가 낀 문제는 0.1066입니다(2026-08-20 최초 측정, `evals/eval_vlm.py`, 40건 골든셋 — 상세는 [MODEL_SELECTION.md](./MODEL_SELECTION.md) §7).
+> 정확도는 **CER**(글자 단위 오류율, 낮을수록 좋음)로 쟀습니다. 2026-10 재선정에서 모델을
+> gpt-4o-mini에서 **gpt-6-luna**로 바꾸면서, 글자만 있는 문제는 0.010→0.000, 표·그래프가
+> 낀 문제는 0.143→0.035로 줄었습니다(그림 90건+텍스트 20건, `evals/eval_vlm_compare.py`).
+> 전환 근거는 [MODEL_SELECTION.md](./MODEL_SELECTION.md) §7 "2차 선정" 참고.
 
 ```
 data: {"status": "truncated", "msg": "입력이 길어 앞부분만 반영되었습니다."}  # 8,000자 초과 시만
@@ -290,6 +293,8 @@ LLM의 자기 채점은 "기록"까지만 쓰입니다. 그 값으로 무엇을 
 | gpt-6-luna로 생성하면 일부 지문이 `400 No tool output found for function call`로 **통째로 실패** | 모델이 인자 JSON이 깨진 도구 호출을 내면 langchain-openai는 이를 `invalid_tool_calls`로 분리하지만, 다음 요청에는 다시 직렬화해 보냄. `agent_node`는 정상 `tool_calls`에만 응답해 "응답 없는 도구 호출"이 남았고 OpenAI 계열 API가 이를 거부함. Ollama는 관대해서 몇 달간 드러나지 않음 | `invalid_tool_calls`에도 오류 ToolMessage로 응답(노드 순서·재요청 흐름은 그대로). 실패했던 지문을 재실행해 400 없이 통과 확인, 회귀 테스트 추가 |
 | 합답형·자료형 문항의 정답유일성을 Judge가 판단할 근거가 없음 | `judge_one()`이 Judge에게 발문·선지·정답만 보내고 `<보기>`·자료(stimulus)를 빠뜨림. 기존 골든셋 30건은 전부 `<보기>` 없는 단순 객관식이라 드러나지 않음 | stimulus가 있으면 Judge 입력에 포함(없는 문항은 기존과 같은 입력). 새 평가셋은 절반이 합답형·자료형 |
 | main CI가 **2026-09-24부터 연속 실패** | `FlagEmbedding==1.2.11`이 내부에서 `peft`를 import하지만 의존성에 선언하지 않음. 로컬 `.venv`에는 우연히 설치돼 있어 로컬 테스트는 통과 | `requirements.txt`에 `peft==0.19.1` 고정. 새로 끌어오는 패키지 없음, CI 289개 통과 확인 |
+| VLM 그림 서술 Judge 사람 라벨 90건이 **5점·1점에만 몰려** κ 0.95가 나왔음 — 중간 품질을 구분하는지는 검증된 적이 없었음 | 라벨 분포를 보니 2~3점이 0건. 핵심 수치 오류처럼 "중간 정도로 나쁜" 서술에도 Judge가 높은 점수를 줄 가능성을 이 데이터로는 배제할 수 없었음 | 결함 40건(핵심 수치 변경·단위 삭제 등)을 인공 주입해 중간 구간을 채움. 합산 130건에서 κ가 0.89로 내려갔고, **핵심 수치 오류를 약하게 보는 것**(사람 2.0점을 luna는 3.1점)을 발견해 품질 감시 경보 기준을 "3점 이하"로 다시 잡음 |
+| `qwen3-vl:8b` 기본 태그로 VLM 추출을 돌리면 그림 61장 중 **25장이 빈 응답** | 이 태그는 생각(thinking) 버전이라, 출력 한도 2048토큰을 생각 과정에 다 써서 본문이 안 나옴(`think=false` 지정도 무시됨) | `qwen3-vl:8b-instruct`로 교체 — 추출에는 생각 과정이 필요 없음 |
 
 ---
 
@@ -353,6 +358,16 @@ Judge) 두 후보로 좁혀 91건으로 다시 비교하자 sonnet-5.5의 κ가 
 지금은 `JUDGE_BACKEND`가 **프로덕션 앱 실행에도 그대로 적용**되며, API 키가 없거나 호출이
 실패하면 조용히 폴백하지 않고 그대로 실패합니다(fail-fast).
 
+**VLM 모델(이미지→텍스트) — gpt-4o-mini에서 gpt-6-luna로 재선정(2026-10).** 1차 선정
+(2026-08)은 다른 모델과 비교 없이 gpt-4o-mini를 채택했습니다. 2026-10에 그림 서술
+Judge를 먼저 사람 라벨 130건으로 검증한 뒤(가장 정확한 Judge가 gpt-5.6-luna로, 문항
+품질 Judge인 sonnet-5.5와 달랐습니다) 후보 5종(API 3종·로컬 2종)을 비교하자 네 후보
+모두 gpt-4o-mini보다 뚜렷이 우세했고, 그중 gpt-6-luna가 그림 문항 CER(0.035)과 서술
+실패율(0%)에서 가장 좋았습니다. 운영 VLM을 gpt-6-luna로 재선정했습니다 — 로컬
+qwen3-vl:8b-instruct로 옮겨 이미지 외부 전송(하드룰 2 예외)을 없애는 방안은 아직
+검토 단계입니다. 비교 방법과 수치는 [MODEL_SELECTION.md](./MODEL_SELECTION.md) §7
+"2차 선정", 원자료는 [EVAL.md](./EVAL.md) 29절 참고.
+
 ---
 
 ## 품질 평가
@@ -405,7 +420,9 @@ Judge) 두 후보로 좁혀 91건으로 다시 비교하자 sonnet-5.5의 κ가 
 상세 비교와 통계 방법은 [EVAL.md](./EVAL.md), 선정 근거는 [MODEL_SELECTION.md](./MODEL_SELECTION.md) 2차 선정 절 참고.
 
 **한계**: 라벨러 1인(독립 라벨러 간 일치도 없음) · 합성 지문(실제 교사 입력 아님) · 객관식만(서술형
-제외) · 학생 난이도 "상" 문항 0건(중·하 난이도에서의 비교) · VLM 그림 서술 Judge 미검증(보류).
+제외) · 학생 난이도 "상" 문항 0건(중·하 난이도에서의 비교) · VLM 그림 서술 골든셋 신규 75건은
+Claude 합성 초안으로 사람 검수 전이고, Judge 검증에 쓴 결함 40건도 규칙 기반 인공 주입이라
+실제 VLM 오류 분포와 다를 수 있음.
 
 아래 접기 다섯 개에 근거를 나눠 담았습니다. 필요한 것만 펼쳐 보세요.
 
@@ -811,10 +828,12 @@ bunpil/
 │                         # (파일별 용도·라벨 필드는 data/golden/README.md 참고)
 ├── evals/                # 품질 평가 — eval_exam.py / eval_ragas.py (+ 공용 eval_lib.py)는 정기 실행
 │                         # eval_trajectory.py는 산출물이 아닌 과정(궤적) 집계 — LangSmith 트레이스만 읽음
-│                         # eval_vlm.py(2026-08-20)는 실행마다 실제 VLM·Judge API를 호출해 비용이
-│                         # 들어 정기 자동 실행 대상에 넣지 않음 — 필요할 때 수동 실행(MODEL_SELECTION.md 7절)
+│                         # eval_vlm.py(2026-08-20)·eval_vlm_compare.py(2026-10, 모델 선정용)는
+│                         # 실행마다 실제 VLM·Judge API를 호출해 비용이 들어 정기 자동 실행 대상에
+│                         # 넣지 않음 — 필요할 때 수동 실행(MODEL_SELECTION.md 7절, EVAL.md 29절)
 ├── golden_gen/           # 골든셋 생성 도구 — gen_structure_golden.py / gen_golden_retrieval.py /
-│                         # gen_vlm_golden.py(합성 시험 문제 이미지 40장 PIL 렌더링, 2026-08-20)
+│                         # gen_vlm_golden.py(합성 시험 문제 이미지, 2026-08-20 40장 PIL 렌더링 →
+│                         # 2026-10 그림 90장으로 확대해 총 115장)
 ├── experiments/          # 일회성 실험·비교 기록 (compare_*.py 등, 결과는 data/golden/_*.json에 아카이브)
 ├── tests/                # 유닛 테스트 82개 (LLM 호출 없음 — pytest tests/)
 ├── scripts/
@@ -854,7 +873,7 @@ bunpil/
 | `OPENROUTER_JUDGE_MODEL` | `JUDGE_BACKEND=openrouter`일 때 Judge 모델. 비어 있으면 생성 모델로 폴백하지 않고 실패(자기채점 방지) | — |
 | `OFFLINE_JUDGE_MODEL` | 오프라인 평가 Judge(OpenRouter 경유, 런타임 게이트와 분리). 채택 근거는 [MODEL_SELECTION.md](./MODEL_SELECTION.md) | `anthropic/claude-sonnet-5.5` |
 | `VLM_BACKEND` | 이미지→텍스트 추출 백엔드(`/exam/extract`). 생성/Judge와 완전히 독립. 현재 `openai`만 지원 | `openai` |
-| `OPENAI_VLM_MODEL` | 이미지 추출용 OpenAI Vision 모델명 | `gpt-4o-mini` |
+| `OPENAI_VLM_MODEL` | 이미지 추출용 OpenAI Vision 모델명 | `gpt-6-luna` |
 | `CHROMA_PERSIST_DIR` | ChromaDB 저장 경로 | `/data/chroma_db` (EC2) / `./chroma_db` (로컬) |
 | `BGE_EMBED_MODEL` | 임베딩 모델명 | `BAAI/bge-m3` |
 | `BGE_RERANK_MODEL` | 리랭킹 모델명 | `BAAI/bge-reranker-base` |
