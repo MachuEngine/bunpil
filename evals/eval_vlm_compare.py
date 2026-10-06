@@ -101,6 +101,9 @@ _CANDIDATE_ENV = {
     # instruct 버전으로 바꿨다. 한도를 늘리면 이미지당 5분 이상이라 운영 후보가 될 수 없다.
     "qwen3-vl-8b": {"VLM_BACKEND": "local", "OLLAMA_VLM_MODEL": "qwen3-vl:8b-instruct"},
     "gemma3-12b": {"VLM_BACKEND": "local", "OLLAMA_VLM_MODEL": "gemma3:12b"},
+    # 2026-10-06: 운영 전환 검증용 — 선정된 gpt-6-luna를 운영과 같은 OpenAI 직접 경로로 재측정한다
+    # (OpenRouter 경로는 max_tokens·temperature 차이를 흡수해 직접 경로 문제를 가렸다).
+    "gpt-6-luna-openai": {"VLM_BACKEND": "openai", "OPENAI_VLM_MODEL": "gpt-6-luna"},
 }
 _CANDIDATES = tuple(_CANDIDATE_ENV)
 _LOCAL_CANDIDATES = {"qwen3-vl-8b", "gemma3-12b"}
