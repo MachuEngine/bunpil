@@ -1,0 +1,221 @@
+{
+  "generation_model": "gpt-6-luna",
+  "judge_model": "anthropic/claude-sonnet-5.5",
+  "metric_descriptions": {
+    "정답유일성": "객관식 문항에 정답이 오직 하나인지(Judge 1~5)",
+    "오답매력도": "오답 선지가 그럴듯한지(Judge 1~5)",
+    "근거성": "교육과정 근거 충실도(Judge 1~5) — Judge 신뢰도(가중 κ) 미확정(0.56)이라 참고",
+    "overall": "세 기준 평균(Judge)",
+    "gate_pass_rate": "최종 게이트(구조 유사도 Judge) 통과율",
+    "count_ok_rate": "목표 문항 개수 달성률",
+    "avg_attempts": "세트당 평균 시도 수(적을수록 효율적)",
+    "latency_sec": "세트당 생성 소요 시간(초, 적을수록 빠름)",
+    "search_standards_calls": "세트당 search_standards 호출 수",
+    "standard_filled_rate": "저장된 문항 중 standard 필드가 채워진 비율",
+    "standard_code_rate": "standard 필드에 성취기준 코드 패턴이 있는 비율"
+  },
+  "groundedness_note": "근거성은 Judge 신뢰도(가중 κ) 미확정(0.56) 상태라 참고 지표로만 봅니다.",
+  "rule_metrics_by_condition": {
+    "normal": {
+      "n": 66,
+      "gate_pass_rate": 1.0,
+      "count_ok_rate": 1.0,
+      "avg_attempts": 1.288,
+      "avg_latency_sec": 50.743,
+      "avg_search_standards_calls": 3.439,
+      "standard_filled_rate": 0.868,
+      "standard_code_rate": 0.513
+    },
+    "no_retrieval": {
+      "n": 66,
+      "gate_pass_rate": 1.0,
+      "count_ok_rate": 1.0,
+      "avg_attempts": 1.242,
+      "avg_latency_sec": 47.648,
+      "avg_search_standards_calls": 3.939,
+      "standard_filled_rate": 0.0,
+      "standard_code_rate": 0.0
+    }
+  },
+  "quality_pairwise_condition": {
+    "정답유일성": {
+      "n": 33,
+      "mean_diff": 0.072,
+      "ci": [
+        -0.067,
+        0.223
+      ],
+      "verdict": "판정 불가(CI가 0을 포함)"
+    },
+    "오답매력도": {
+      "n": 33,
+      "mean_diff": -0.04,
+      "ci": [
+        -0.149,
+        0.07
+      ],
+      "verdict": "판정 불가(CI가 0을 포함)"
+    },
+    "근거성": {
+      "n": 33,
+      "mean_diff": -0.064,
+      "ci": [
+        -0.149,
+        0.017
+      ],
+      "verdict": "판정 불가(CI가 0을 포함)"
+    },
+    "overall": {
+      "n": 33,
+      "mean_diff": -0.011,
+      "ci": [
+        -0.101,
+        0.079
+      ],
+      "verdict": "판정 불가(CI가 0을 포함)"
+    }
+  },
+  "rule_pairwise_condition": {
+    "gate_pass_rate": {
+      "n": 33,
+      "mean_diff": 0.0,
+      "ci": [
+        0.0,
+        0.0
+      ],
+      "verdict": "판정 불가(CI가 0을 포함)"
+    },
+    "count_ok_rate": {
+      "n": 33,
+      "mean_diff": 0.0,
+      "ci": [
+        0.0,
+        0.0
+      ],
+      "verdict": "판정 불가(CI가 0을 포함)"
+    },
+    "avg_attempts": {
+      "n": 33,
+      "mean_diff": -0.045,
+      "ci": [
+        -0.182,
+        0.076
+      ],
+      "verdict": "판정 불가(CI가 0을 포함)"
+    },
+    "latency_sec": {
+      "n": 33,
+      "mean_diff": -3.095,
+      "ci": [
+        -8.038,
+        1.976
+      ],
+      "verdict": "판정 불가(CI가 0을 포함)"
+    },
+    "search_standards_calls": {
+      "n": 33,
+      "mean_diff": 0.5,
+      "ci": [
+        -0.258,
+        1.606
+      ],
+      "verdict": "판정 불가(CI가 0을 포함)"
+    },
+    "standard_filled_rate": {
+      "n": 33,
+      "mean_diff": -0.888,
+      "ci": [
+        -0.964,
+        -0.791
+      ],
+      "verdict": "normal가 더 우수"
+    },
+    "standard_code_rate": {
+      "n": 33,
+      "mean_diff": -0.498,
+      "ci": [
+        -0.629,
+        -0.374
+      ],
+      "verdict": "normal가 더 우수"
+    }
+  },
+  "repeat_noise": {
+    "normal": {
+      "정답유일성": {
+        "n": 33,
+        "mean_diff": -0.073,
+        "ci": [
+          -0.367,
+          0.235
+        ],
+        "verdict": "판정 불가(CI가 0을 포함)"
+      },
+      "오답매력도": {
+        "n": 33,
+        "mean_diff": -0.087,
+        "ci": [
+          -0.251,
+          0.067
+        ],
+        "verdict": "판정 불가(CI가 0을 포함)"
+      },
+      "근거성": {
+        "n": 33,
+        "mean_diff": -0.023,
+        "ci": [
+          -0.141,
+          0.089
+        ],
+        "verdict": "판정 불가(CI가 0을 포함)"
+      },
+      "overall": {
+        "n": 33,
+        "mean_diff": -0.061,
+        "ci": [
+          -0.231,
+          0.109
+        ],
+        "verdict": "판정 불가(CI가 0을 포함)"
+      }
+    },
+    "no_retrieval": {
+      "정답유일성": {
+        "n": 33,
+        "mean_diff": -0.065,
+        "ci": [
+          -0.333,
+          0.2
+        ],
+        "verdict": "판정 불가(CI가 0을 포함)"
+      },
+      "오답매력도": {
+        "n": 33,
+        "mean_diff": -0.024,
+        "ci": [
+          -0.253,
+          0.191
+        ],
+        "verdict": "판정 불가(CI가 0을 포함)"
+      },
+      "근거성": {
+        "n": 33,
+        "mean_diff": 0.027,
+        "ci": [
+          -0.08,
+          0.142
+        ],
+        "verdict": "판정 불가(CI가 0을 포함)"
+      },
+      "overall": {
+        "n": 33,
+        "mean_diff": -0.02,
+        "ci": [
+          -0.206,
+          0.155
+        ],
+        "verdict": "판정 불가(CI가 0을 포함)"
+      }
+    }
+  }
+}
