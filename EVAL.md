@@ -53,6 +53,7 @@
 | **4절 회차 로그** — "종합평균 4.06 첫 목표 달성"을 **생성 품질 달성**으로 읽는 것 | **8.1절** (2026-09-16 정정) | 4.06이 채점하는 ITEM_GOLDEN은 Claude가 합성한 **고정 30문항**이라 생성 모델을 한 번도 호출하지 않는다. 같은 4절이 이미 실측으로 기록해 둔 사실이다(생성 프롬프트 변경 전/후 평균이 **2.815로 동일**). 4.06은 **Judge 신뢰도 지표**이고, 실측 생성 품질은 8.1절의 **3.14**(잠정) |
 | **2026-07-24 측정된 문항 품질 Judge κ 0.468/0.595** | **28절** (2026-10 정정) | 이 κ가 채점하던 ITEM_GOLDEN은 **문항도 점수도 Claude가 합성한 것**이었다. 같은 Judge·같은 30건을 다시 돌려도 실행마다 0.468/0.595로 흔들렸다 — 신뢰도를 재는 측정 자체의 신뢰도가 낮았던 것. 실제 생성물 91건 + 사람 라벨 1인으로 대체하고, 오프라인 평가 Judge도 claude-sonnet-5.5로 교체했다 |
 | **14절 "후보 골든셋"** — 후보 10건 Recall@5 0.600, `reviewed: false` | **14절 내 정정 박스** | 검수 중 `cand_008` 라벨 오류를 고치자 해당 건이 미스로 바뀌어 **0.500(5/10)**. 같은 날 10건 전부 `reviewed: true`로 승격됐다. 원본(`regulations_retrieval_candidates.json`)이 기준 |
+| **VLM 그림 서술 Judge 미검증(보류)** — 2026-08 1차 선정 당시 기록 | **29절** (2026-10) | 15건 셋(`vlm_figure_judge_golden.json`)으로는 κ 신뢰구간이 너무 넓어 라벨링을 보류했던 상태. 그림 90건+결함 주입 40건(합산 130건) 사람 라벨로 검증을 완료해 luna κ 0.89·sonnet κ 0.63을 확인하고, 그림 서술 Judge=gpt-5.6-luna·경보 기준=3점 이하로 결정했다. 같은 작업에서 후보 5종 비교 결과 운영 VLM도 gpt-4o-mini→gpt-6-luna로 재선정됐다 |
 
 **아직 확정되지 않은 것** (뒤집힌 건 아니지만 그대로 인용하면 안 되는 값)
 
@@ -132,8 +133,8 @@ MASKING_GOLDEN 20건을 유닛테스트가 그대로 강제하도록 옮겼다.
 | ~~HALLUCINATION_GOLDEN~~ | — | — | **2026-08-03 삭제** (생기부 모듈과 함께, 14절) |
 | ITEM_GOLDEN | `data/golden/item_golden.json` | 30개 | human_score 1~5점 분포. 2026-07-09 `evals/eval_exam.py` 하드코딩에서 외부화. **합성(Claude가 문항·점수 모두 합성), 2026-10 정기 평가 기준에서 `item_quality_golden.json`으로 대체됨(이력 보존, 28절)** |
 | ITEM_QUALITY_GOLDEN | `data/golden/item_quality_golden.json` | 95개 중 라벨 사용 가능 91개(cannot_judge 4개 제외) | 실제 생성 모델 3종(qwen2.5-14b/gpt-6-luna/gemini-3.8-flash) 출력에서 (지문, 모델)마다 객관식 1개씩 뽑은 **사람 라벨 1인** 골든셋, 모델 정보는 블라인드 처리(매핑은 `_item_quality_model_map.json`). 2026-10부터 문항 품질 Judge 신뢰도의 정기 평가 기준(28절) |
-| VLM_EXTRACTION_GOLDEN | `data/golden/vlm_extraction_golden.json` | 40개 (text_only 20 · figure 15, 채점 기준 `figure_summary` 전량 사람 검수 완료 · adversarial 5) | 합성 시험 문제 이미지(PIL 렌더링, `golden_gen/gen_vlm_golden.py`). **출제 모듈이 아니라 `/exam/extract`(이미지→텍스트) 전용** — `evals/eval_exam.py`가 아닌 별도 `evals/eval_vlm.py`가 채점. 상세는 [MODEL_SELECTION.md](./MODEL_SELECTION.md) §7 |
-| VLM_FIGURE_JUDGE_GOLDEN | `data/golden/vlm_figure_judge_golden.json` | 15개 | VLM_EXTRACTION_GOLDEN의 figure 15건을 고쳐 재생성해 Judge 채점까지 고정해 둔 것. **라벨링은 보류**(15건으로는 kappa의 신뢰구간이 너무 넓어, 45건으로 확대 후 라벨링할 예정, MODEL_SELECTION.md §7) |
+| VLM_EXTRACTION_GOLDEN | `data/golden/vlm_extraction_golden.json` | **115개**(text_only 20 · figure 90[선 29·막대 21·원 20·표 20] · adversarial 5, 2026-10 확대 — 이전 문서엔 40개로 기록돼 있었으나 figure를 15→90으로 늘렸다) | 합성 시험 문제 이미지(PIL 렌더링, `golden_gen/gen_vlm_golden.py` + 신규 75건은 Claude 합성 초안, 기존 f01~f15만 사람 검수 완료). **출제 모듈이 아니라 `/exam/extract`(이미지→텍스트) 전용** — `evals/eval_exam.py`가 아닌 별도 `evals/eval_vlm.py`/`evals/eval_vlm_compare.py`가 채점. 상세는 [MODEL_SELECTION.md](./MODEL_SELECTION.md) §7, 29절 |
+| ~~VLM_FIGURE_JUDGE_GOLDEN~~ | `data/golden/vlm_figure_judge_golden.json` | 15개 | **2026-10 대체** — 15건으로는 kappa 신뢰구간이 너무 넓어 라벨링을 보류했던 셋. `evals/eval_vlm_compare.py` 하네스(그림 90건+결함 주입 40건, 사람 라벨 130건)로 대체됐다(29절, MODEL_SELECTION.md §7) |
 | example_question_retrieval_test | `data/golden/example_question_retrieval_test.json` | 8개 (reviewed 0개) | 주제어가 아닌 "실제 문제 문장" 스타일 query — standards 컬렉션과의 문체 격차 검증용, 라벨링 대기 |
 
 ## 3. 실행 방법
@@ -161,6 +162,15 @@ python evals/eval_item_quality_runs.py compare-generators
 
 # Judge 모델 후보 비교 (구조 유사도만, N회 반복 — 28절 "1차 선별")
 python experiments/compare_judge_models.py --judges or-claude-sonnet-5.5,or-gpt-5.6-luna --structure-only --repeat 2
+
+# VLM 모델 선정 — 그림 서술 Judge 검증 + 후보 5종 비교 (29절, 대량 호출이라 LANGCHAIN_TRACING_V2=false 권장)
+LANGCHAIN_TRACING_V2=false python evals/eval_vlm_compare.py extract --model gpt-6-luna
+LANGCHAIN_TRACING_V2=false python evals/eval_vlm_compare.py judge --judge-model openai/gpt-5.6-luna
+LANGCHAIN_TRACING_V2=false python evals/eval_vlm_compare.py reliability --judges openai/gpt-5.6-luna anthropic/claude-sonnet-5.5
+LANGCHAIN_TRACING_V2=false python evals/eval_vlm_compare.py make-defects
+LANGCHAIN_TRACING_V2=false python evals/eval_vlm_compare.py judge-defects --judge-model openai/gpt-5.6-luna
+LANGCHAIN_TRACING_V2=false python evals/eval_vlm_compare.py reliability-defects --judges openai/gpt-5.6-luna anthropic/claude-sonnet-5.5
+LANGCHAIN_TRACING_V2=false python evals/eval_vlm_compare.py compare --judge-model openai/gpt-5.6-luna
 ```
 
 > `eval_trajectory.py`는 모델을 호출하지 않고 LangSmith API만 읽는다(`LANGCHAIN_API_KEY` 필요).
@@ -204,6 +214,7 @@ Windows 콘솔에서 실행 시 `cp949` 인코딩 오류(`UnicodeEncodeError`)�
 | 2026.08.03 | **하이브리드 검색(BM25+dense, RRF) 도입 A/B** — 검색만 측정(LLM 미사용), 생성·Judge 모델 무관 | 0.955 (변화 없음) | **0.814** (dense-only 0.789) | — | — | — | standards MRR 0.892→**0.938**, regulations MRR 0.667→**0.667(변화 없음)**. 리랭커 이전 후보 포함률 9/10→**10/10**(`ret_015`를 BM25가 후보 12위로 처음 찾아냄) — 12절 참고 |
 | 2026.08.03 | **리랭커 조사 → `n_candidates` 20→10 변경** — 검색만 측정(LLM 미사용) | **1.000** ✅(첫 만점) | **0.854** | — | — | — | regulations Recall@5 0.900→**1.000**, MRR 0.667→**0.753**(12절 착수 시 주 목표 달성). 골든 22건 전수 대조에서 개선 3건·**악화 0건**, 리랭커 처리 쌍이 절반이라 **속도 2배**. 리랭커 ablation도 함께 측정(기여도 MRR +0.034~0.045, Recall엔 영향 없음) — 13절 참고 |
 | 2026.10.04 | 오프라인 Judge **claude-sonnet-5.5**(`OFFLINE_JUDGE_MODEL`, 런타임 게이트는 여전히 gpt-5.6-luna) — **문항 품질 Judge 신뢰도 골든셋을 ITEM_GOLDEN(합성)에서 item_quality_golden.json(사람 라벨 91건)으로 교체 후 첫 정기 평가**(`evals/eval_exam.py`, 28절) | **1.000**(변화 없음) | 0.854(변화 없음) | avg_overall **4.05**(참고값, pass_rate 0.70) | 정답유일성 **0.861**✅/오답매력도 **0.695**✅/근거성 0.561 미확정(CI 하한<0.4) — 기준별 가중 κ, ±1 일치율은 폐지하고 MAE로 대체(정답유일성 0.33/오답매력도 0.44/근거성 0.56) | — (아래 칸은 구 "세트제약/구조Judge" 자리) difficulty 일치 0.867·overall MAE **0.467**·편향 −0.02 판정 불가 — STRUCTURE_GOLDEN 45건(사람 라벨은 여전히 qwen 출력 기준, Judge만 sonnet으로 교체) |
+| 2026.10.06 | **VLM 모델 선정** — `/exam/extract` 전용, 출제 그래프·위 열(Recall@5/MRR/문항품질/kappa/±1일치율)과는 무관(해당 없음은 "—"로 표기, 29절) | — | — | — | — | — | 그림 서술 Judge 사람 라벨 130건: **gpt-5.6-luna κ 0.89**[0.82,0.93]·MAE 0.27 vs sonnet κ 0.63[0.48,0.75]·MAE 0.80 → 그림 서술 Judge=luna, 경보 기준=3점 이하 결정. 후보 5종 비교(그림 90+텍스트 20, luna Judge): gpt-6-luna 그림 CER **0.035**·서술 **4.98**·실패 0%(기준 gpt-4o-mini는 0.143·3.73·30%) — 운영 VLM도 gpt-4o-mini→**gpt-6-luna**로 재선정. OpenAI 직접 경로 호환 수정 후 115장 재측정: 텍스트 CER 0.000·그림 CER 0.038·서술 4.97·실패 0·3.6초/장(OpenRouter 측정치와 동급) |
 
 > 모델 교체 또는 프롬프트 튜닝 시마다 행 추가. 2026.07 Recall@5/MRR은 passage_text 리디자인으로 past_exams golden 항목이 제거되며 n이 28→21로 줄어 재측정한 값(검색은 LLM과 무관하므로 모델 열은 해당 없음).
 >
@@ -2999,7 +3010,7 @@ VLM 추출 CER·그림 서술 점수(`eval_vlm.py`가 결과를 파일로 저장
 - 구조 유사도 사람 라벨은 qwen 출력 45건뿐이라, API 출력에서의 구조 Judge 정확도는
   미검증이다(Judge 간 대조만 했다).
 - Judge 1차 선별은 45건으로 신뢰구간이 겹쳐 점추정치·비용 기반으로 후보를 좁혔다.
-- VLM 그림 서술 Judge는 미검증(보류) — MODEL_SELECTION.md §7.
+- ~~VLM 그림 서술 Judge는 미검증(보류)~~ — **2026-10-06 해소**, 29절.
 - 모델별 사람 점수는 n=25~33으로 참고용이다.
 
 ### 28.11 재현 명령
@@ -3024,3 +3035,181 @@ CHROMA_PERSIST_DIR=./chroma_db python evals/eval_exam.py
 # 저장된 원자료로 CI만 재계산(API 호출 없음)
 python evals/ci_report.py
 ```
+
+## 29. VLM 모델 선정 — 그림 서술 Judge 검증과 후보 5종 비교 (2026-10)
+
+`/exam/extract`(이미지→텍스트) 전용 평가다 — **출제 그래프와 무관**하고, 이 문서의 나머지
+절(`eval_exam.py` 대상)과는 골든셋·코드 경로가 완전히 분리돼 있다(1절 참고). 근거 데이터는
+`data/golden/vlm_extraction_golden.json`, `_vlm_runs/`, `_vlm_runs_archive/`,
+`_vlm_judged/`, `vlm_labeling_sheet.json`, `vlm_figure_human_labels.json`,
+`_vlm_judge_selection.json`, `_vlm_comparison.json`, `_vlm_defect_items.json`,
+`vlm_defect_labeling_sheet.json`, `vlm_defect_human_labels.json`, `_vlm_judged_defects/`,
+`_vlm_judge_selection_defects.json`(전부 커밋됨, 상세 파일 목록은
+`data/golden/README.md`). 스크립트는 `evals/eval_vlm_compare.py` 하나다.
+
+### 29.1 배경
+
+VLM은 2026-08 1차 선정(MODEL_SELECTION.md §7) 당시 gpt-4o-mini를 다른 모델과 비교 없이
+채택했고, 그림 서술 Judge도 미검증이었다(15건 셋 라벨링 보류). 2026-10 재생성에서 선
+그래프 4개 중 3개가 수치 없이 그래프 이름만 옮기는 약점이 관측돼 재선정에 착수했다.
+
+로컬 VLM을 후보에 넣은 이유는 생성·Judge 모델 선정(28절)과 다르다 — VLM 경로는 이미지
+원본을 마스킹할 방법이 없어, 마스킹 전 캡처가 외부로 나가는 **현재 유일한 하드룰 2
+예외**다(`app/common/llm/backends/openai_vlm.py` 상단 docstring). 로컬로 옮기면 이
+예외가 사라진다. 처음 계획은 API 후보만 넣는 것이었으나, 사용자 지적으로 로컬 2종
+(qwen3-vl·gemma3)을 추가했다.
+
+### 29.2 평가셋 — 그림 15 → 90건
+
+그림 15건을 90건(선 29·막대 21·원 20·표 20)으로 늘렸다. 신규 75건은 Claude가 합성한
+초안이고(기존 f01~f15만 사람 검수 완료), text_only 20 + adversarial 5를 더해 총
+**115장**이다. 45건으로는 κ 신뢰구간이 약 ±0.15~0.27로 넓을 것으로 추정돼(사용자 요청)
+90건까지 확대했다.
+
+### 29.3 후보 — qwen3-vl 생각 버전 실패 → instruct로 교체
+
+2026-10-05 확인 당시 조건: API는 OpenRouter 모델 목록, 로컬은 Ollama 라이브러리에서
+이미지 입력 지원 여부로 확인했다. 후보는 gpt-4o-mini(기준, OpenAI 직접) / gpt-6-luna·
+gemini-3.8-flash(OpenRouter) / qwen3-vl:8b-instruct·gemma3:12b(로컬 Ollama, 맥 M5
+24GB)다.
+
+| 제외한 후보 | 이유 |
+|---|---|
+| claude 계열 | 오프라인 Judge 제공사(Anthropic)와 겹치지 않게 제외 |
+| llama3.2-vision | 이미지 작업의 공식 지원 언어가 영어만 |
+| API 경유 qwen3-vl-32b | 로컬 두 후보가 "자체 호스팅이냐"는 질문에 직접 답해(메타 정보 혼입) 제외 |
+| gpt-6.1-sol·gemini-3.5-flash-lite | 비용·후보 중복 |
+
+기본 태그 `qwen3-vl:8b`는 생각(thinking) 버전이라 출력 한도 2048토큰을 생각에 다 써서,
+그림 61장 중 25장이 빈 응답으로 돌아왔다(`done_reason=length`, `think=false` 지정도
+무시됨). 추출에는 생각 과정이 필요 없어 instruct 버전(`qwen3-vl:8b-instruct`)으로
+교체했다 — 증거는 `data/golden/_vlm_runs_archive/qwen3-vl-8b-thinking.jsonl`에 보존.
+
+### 29.4 그림 서술 Judge 검증 — 1회차는 양 끝에만 몰려 결함 셋으로 보완
+
+사람 라벨 1회차 90건(블라인드, 후보당 18건) 점수 분포: 5점 76·4점 6·1점 8(2·3점 없음).
+1회차만으로는 gpt-5.6-luna κ 0.95[0.87,0.98]·MAE 0.13·편향 0.00, claude-sonnet-5.5 κ
+0.57[0.31,0.74]·MAE 0.81·편향 −0.76 — luna가 짝지은 비교에서 우세했다(오차 차이
+0.67[0.49,0.86]). 실패 8건은 둘 다 검출했고, 정상 82건에서 오경보는 luna 0건·sonnet
+3건이었다.
+
+문제는 **사람 점수가 양 끝에만 몰려 있어 중간 품질을 구분하는지는 검증되지 않는다**는
+점이었다. 결함 주입 40건(정상 서술에 핵심 수치 변경·사소한 수치 변경·항목 삭제·단위
+삭제·수치를 경향 문장으로 대체 각 6건 + 원본 10건, 블라인드)으로 보완했다. 단위·척도
+누락은 1회차 사례(f42·f67·f83=4점)와 맞춰 4점으로 통일했다(사용자 결정).
+
+합산 130건: **luna κ 0.89[0.82,0.93]·MAE 0.27**, **sonnet κ 0.63[0.48,0.75]·MAE 0.80**.
+결함셋 단독 짝 비교는 판정 불가(−0.22[−0.49,+0.07]).
+
+결함 유형별 평균(사람/luna/sonnet):
+
+| 결함 유형 | 사람 | luna | sonnet |
+|---|---|---|---|
+| 원본 | 5.0 | 4.9 | 3.9 |
+| 핵심 수치 변경 | 2.0 | 3.1 | 2.0 |
+| 사소한 수치 변경 | 4.0 | 4.0 | 3.2 |
+| 항목 삭제 | 3.0 | 4.0 | 2.7 |
+| 단위 삭제 | 4.0 | 5.0 | 4.3 |
+| 경향 문장 대체 | 2.3 | 1.9 | 1.6 |
+
+luna는 정상을 정상으로 잘 보지만 핵심 수치 오류를 약하게 보고 단위 누락을 놓친다. sonnet은
+심각도 구분은 비슷하나 정상도 깎는다.
+
+경보 기준별(치명 결함=사람 ≤2점 20건 / 정상=사람 ≥4점 107건) 검출·오경보:
+
+| 경보 기준 | luna 검출/오경보 | sonnet 검출/오경보 |
+|---|---|---|
+| ≤2 | 11/20(55%) · 0 | 16/20(80%) · 5(5%) |
+| **≤3** | **16/20(80%) · 0** | 19/20(95%) · 22(21%) |
+| ≤3.5 | 17/20(85%) · 0 | — |
+
+**결정**: VLM 그림 서술 Judge = **gpt-5.6-luna**, 품질 감시 경보 기준 = **Judge 점수 3
+이하**(오경보 0, 검출 80%). 문항 품질 오프라인 Judge는 sonnet(28.4절) — **과제별로 더
+정확한 Judge가 다르다**는 점이 이번에도 실측으로 확인됐다.
+
+### 29.5 후보 비교 — luna Judge, 그림 90 + 텍스트 이미지 20
+
+| 후보 | 텍스트 CER | 그림 CER | 서술 점수 | 서술 실패(≤2) | 이미지당 시간 | 이미지 외부 전송 |
+|---|---|---|---|---|---|---|
+| gpt-4o-mini(기준) | 0.010 | 0.143 | 3.73 | 30% | 6.5초 | 예 |
+| gpt-6-luna | 0.000 | **0.035** | **4.98** | **0%** | 4.1초 | 예 |
+| gemini-3.8-flash | 0.005 | 0.033 | 4.90 | 1.5% | 4.6초 | 예 |
+| qwen3-vl:8b-instruct | 0.007 | 0.058 | 4.93 | 0% | 9.6초(맥) | 아니오 |
+| gemma3:12b | 0.018 | 0.105 | 4.87 | 2.2% | 11.8초(맥) | 아니오 |
+
+gpt-4o-mini 대비 네 후보 모두 서술 점수가 +1.1~1.3 높다(CI가 0을 포함하지 않음). CER은
+gemma만 판정 불가고 나머지 셋은 우세하다. 상위 넷의 서술 점수는 4.9 안팎으로 차이가
+미미하고, 차이는 CER에서 난다 — luna·gemini가 최상(둘 차이는 판정 불가), qwen3-vl은
+luna보다 CER이 유의하게 +0.02 높다.
+
+adversarial 5건은 정답 누설 없음. 개인정보 시험 a05에서 luna·gemma가 "실패"로 집계됐지만
+학생 이름 머리글을 통째로 옮기지 않은 경우라 실제로는 개인정보가 출력에 없었다(판정 방식의
+한계).
+
+비용: gpt-4o-mini는 이미지당 약 $0.0039(입력을 약 25,700토큰으로 크게 잡는 방식), luna·
+gemini는 OpenRouter 2장에 $0.003. 이번 VLM 작업 전체 비용은 OpenRouter $2.88 + 결함 셋
+Judge 약 $0.3 + OpenAI 약 $0.45. 로컬 지연은 맥 M5 기준이라 운영 GPU와 다르다.
+
+### 29.6 결정과 단계적 전환
+
+운영 VLM = **gpt-6-luna**(MODEL_SELECTION.md §7 "2차 선정"). 단계적으로 (1) OpenAI 직접
+경로로 gpt-4o-mini → gpt-6-luna(이미지 전송처는 그대로 OpenAI), (2) 생성 모델 운영
+전환 때 GPU 실행처를 정하면서 로컬 qwen3-vl:8b-instruct로 옮겨 이미지 외부 전송 예외
+(하드룰 2)를 없애는 방안을 검토한다. EC2 실제 배포는 생성 모델·런타임 게이트 전환과
+함께 묶는 별도 운영 전환 작업으로 남겨 뒀다.
+
+### 29.7 직접 경로 호환 문제와 재측정
+
+구현 중 OpenAI 직접 경로로 gpt-6-luna를 호출하면 400 오류가 났다 — `max_tokens`를
+거부하고 `max_completion_tokens`를 요구하며, `temperature`도 거부한다. OpenRouter
+경유는 이 차이를 흡수해 평가에서는 전혀 드러나지 않았다 — 백엔드를 수정해야 발견된
+문제다(`app/common/llm/backends/openai_vlm.py`).
+
+백엔드 수정 후 운영 경로 그대로 115장을 재측정하니 텍스트 CER 0.000, 그림 CER 0.038,
+서술 점수 4.97, 서술 실패 0건, 이미지당 3.6초로 OpenRouter 결과(0.035, 4.98)와 같은
+수준이었다(`data/golden/_vlm_runs/gpt-6-luna-openai.jsonl`).
+
+### 29.8 한계
+
+- 라벨러 1인 — 독립 라벨러 간 κ는 없다.
+- 이미지가 합성(신규 75건 Claude 초안, 사람 검수 전)이고, 결함은 인공 주입이라 실제 VLM
+  오류 분포와 다를 수 있다.
+- 사람 점수 3점 구간은 3건뿐이고, 실패 검출 표본이 20건이라 검출률 신뢰구간이 넓다.
+- 로컬 지연은 맥 M5 기준(운영 GPU와 다름), 비용은 토큰 기록이 없어 OpenRouter 계정
+  사용액 차이와 1장 실측으로 추정한 값이다.
+
+### 29.9 재현 명령
+
+```bash
+# 골든셋 이미지를 실제 VLM으로 추출(모델별 반복, 이어서 실행 가능)
+LANGCHAIN_TRACING_V2=false python evals/eval_vlm_compare.py extract --model gpt-6-luna
+
+# 그림 항목의 서술을 Judge로 채점
+LANGCHAIN_TRACING_V2=false python evals/eval_vlm_compare.py judge --judge-model openai/gpt-5.6-luna
+
+# 블라인드 라벨링 시트 생성 → (사람이 채점) → 반영
+python evals/eval_vlm_compare.py export-sheet
+python evals/eval_vlm_compare.py import-sheet
+
+# 사람 라벨 vs Judge 후보 신뢰도(κ·MAE·편향)
+LANGCHAIN_TRACING_V2=false python evals/eval_vlm_compare.py reliability --judges openai/gpt-5.6-luna anthropic/claude-sonnet-5.5
+
+# 결함 주입 셋 생성 → 라벨 반영 → Judge 채점 → 합산 신뢰도(29.4절)
+python evals/eval_vlm_compare.py make-defects
+python evals/eval_vlm_compare.py import-defect-sheet
+LANGCHAIN_TRACING_V2=false python evals/eval_vlm_compare.py judge-defects --judge-model openai/gpt-5.6-luna
+LANGCHAIN_TRACING_V2=false python evals/eval_vlm_compare.py reliability-defects --judges openai/gpt-5.6-luna anthropic/claude-sonnet-5.5
+
+# 후보 5종을 정확도·서술 품질·adversarial·지연으로 종합 비교(29.5절)
+LANGCHAIN_TRACING_V2=false python evals/eval_vlm_compare.py compare --judge-model openai/gpt-5.6-luna --baseline gpt-4o-mini
+```
+
+> 대량 호출이라 `LANGCHAIN_TRACING_V2=false`를 권장한다 — 켜 두면 LangSmith 무료 플랜
+> 월간 트레이스 한도를 금방 넘긴다(아래 참고).
+
+### 29.10 부수 발견 — LangSmith 월간 한도 초과
+
+이번 평가의 대량 호출로 LangSmith 무료 플랜 월간 트레이스 한도를 넘겼다(429 "Monthly
+unique traces usage limit exceeded"). 이번 달 남은 기간은 운영 트레이싱도 기록되지
+않는다. 대량 평가를 돌릴 때는 `LANGCHAIN_TRACING_V2=false`로 평가 트레이스를 애초에
+LangSmith에 보내지 않는 쪽을 권장한다.

@@ -113,10 +113,11 @@ avg_overall은 **그 Judge가 매긴 점수**다. Judge를 못 믿으면 avg_ove
 - ~~구조 Judge 후보가 한 번도 서로 비교된 적 없었다(gpt-5.6-luna 단일 기준)~~ → 5개 후보를
   비교해 오프라인 평가 Judge는 claude-sonnet-5.5로 교체(EVAL.md 28.3·28.4절). 런타임
   구조 게이트는 아직 gpt-5.6-luna 그대로, 운영 전환 시 같이 교체 예정
-- ~~VLM 그림 서술 Judge는 신뢰도를 재는 절차 자체가 없었다~~ → 15건 셋
-  (`vlm_figure_judge_golden.json`)과 측정 스크립트(`evals/eval_vlm_judge_reliability.py`)는
-  준비됐고, **라벨링만 보류** 상태로 바뀜(15건으로는 κ의 신뢰구간이 너무 넓어 45건으로
-  확대 후 진행 예정, MODEL_SELECTION.md §7)
+- ~~VLM 그림 서술 Judge는 신뢰도를 재는 절차 자체가 없었다~~ → 그림 90건+결함 주입 40건
+  (합산 130건) 사람 라벨로 검증 완료 — gpt-5.6-luna κ 0.89 vs claude-sonnet-5.5 κ 0.63,
+  그림 서술 Judge=luna·경보 기준=Judge 점수 3 이하로 결정했다. 같은 작업에서 후보 5종을
+  비교해 운영 VLM도 gpt-4o-mini→**gpt-6-luna**로 재선정됐다(EVAL.md 29절,
+  MODEL_SELECTION.md §7 "2차 선정")
 
 **여전히 남아 있는/새로 확인된 한계**
 
@@ -138,6 +139,12 @@ avg_overall은 **그 Judge가 매긴 점수**다. Judge를 못 믿으면 avg_ove
    점추정치·비용 기준으로 후보를 좁혔다
 9. **근거성 κ(0.561)는 미확정**이다(CI 하한 0.347 < 목표 0.4) — 세 기준 중 유일하게
    아직 "확정"이 아니다
+10. **VLM 그림 골든셋 신규 75건은 Claude 합성 초안, 사람 검수 전**(기존 f01~f15 15건만
+    사람 검수 완료)이고, Judge 검증에 쓴 결함 40건도 규칙 기반 인공 주입이라 실제 VLM
+    오류 분포와 다를 수 있다(EVAL.md 29.8절)
+11. **로컬 VLM 전환은 검토 단계**다 — 이미지 외부 전송(하드룰 2 예외)을 없애는 방안으로
+    qwen3-vl:8b-instruct를 올렸지만, 실제 전환은 생성 모델 GPU 실행처를 정할 때로
+    미뤄 뒀다(MODEL_SELECTION.md §7 "2차 선정")
 
 > 열린 이슈 전체는 [5절](#5-현재-열린-이슈-2026-10-04-기준), 어떤 스크립트가 뭘 담당하는지는
 > [EVAL_MAP.md](./EVAL_MAP.md), 회차별 raw 로그와 시행착오는 [EVAL.md](./EVAL.md).
@@ -537,19 +544,20 @@ Relevancy가 이미 쓴 문항을 재사용한다(`eval_ragas()`/`build_sample()
 > ※ 실사용 관측(production observability)이 아니라 `LANGCHAIN_TRACING_V2=true`로 돌린
 > 로컬·eval 트레이스를 모은 값이다(RunPod 크레딧이 떨어져 실사용 트래픽이 없다).
 
-#### (4) `evals/eval_vlm.py` — 7개 (2026-08-20 신규, `vlm_extraction_golden.json` 40건)
+#### (4) `evals/eval_vlm.py`/`evals/eval_vlm_compare.py` — 7개 (`vlm_extraction_golden.json`
+**115건**, 2026-08-20 신규·2026-10 확대)
 
 **출제 그래프와는 무관한 별도 파이프라인**이다 — `/exam/extract`(이미지 캡처 →
 텍스트, 마스킹 전 원본 이미지를 VLM에 직접 넘기는 유일한 경로, 하드룰 2 예외)만
-채점한다. 골든셋을 3종(text_only 20·figure 15·adversarial 5)으로 나눠 각기 다른
-잣대로 잰다.
+채점한다. 골든셋을 3종(text_only 20·figure 90·adversarial 5)으로 나눠 각기 다른
+잣대로 잰다(figure는 2026-08에 15건이었다가 2026-10에 90건으로 확대, EVAL.md 29.2절).
 
 | 그룹 | 지표 | 정의 · 구하는 법 | 무엇을 보나 |
 |---|---|---|---|
 | text_only (n=20) | `cer` | 문자 오류율(Character Error Rate) — 정답 원문 대비 편집거리 ÷ 길이 | 텍스트만 있는 문항을 얼마나 그대로 재현하는가 |
 | | `wer` | 단어 오류율(Word Error Rate) — 〃 (단어 단위) | 〃 |
-| figure (n=15) | `cer`/`wer` | 위와 동일 방식, 단 텍스트 부분(`[자료: ...]` 블록 제외)만 채점 | 표·그래프·지도가 섞여도 발문·선지는 그대로 옮기는가 |
-| | `judge_score` | `[자료: ...]` 서술이 원래 자료를 얼마나 잘 담았는지 Judge가 1~5로 채점 | 비텍스트 자료를 말로 잘 옮기는가. 채점 기준(`figure_summary`)은 2026-08-20 전량 사람 검수 완료. **Judge가 그 기준을 사람과 얼마나 일치하게 적용하는지(kappa 등 신뢰도)는, 2026-10에 15건 셋(`vlm_figure_judge_golden.json`)과 측정 스크립트(`evals/eval_vlm_judge_reliability.py`)까지는 준비했으나 라벨링은 보류 중이다**(15건으로는 κ 신뢰구간이 너무 넓어 45건으로 확대 후 진행 예정)〔문서: `evals/eval_vlm.py`·`evals/eval_vlm_judge_reliability.py` 리포트 안내문〕 |
+| figure (n=90) | `cer`/`wer` | 위와 동일 방식, 단 텍스트 부분(`[자료: ...]` 블록 제외)만 채점 | 표·그래프·지도가 섞여도 발문·선지는 그대로 옮기는가 |
+| | `judge_score` | `[자료: ...]` 서술이 원래 자료를 얼마나 잘 담았는지 Judge가 1~5로 채점 | 비텍스트 자료를 말로 잘 옮기는가. 채점 기준(`figure_summary`)은 전량 사람 검수 완료(기존 f01~f15 15건, 신규 75건은 Claude 합성 초안). **Judge가 그 기준을 사람과 얼마나 일치하게 적용하는지(kappa 등 신뢰도)는 2026-10에 사람 라벨 130건(그림 90건+결함 주입 40건)으로 검증을 끝냈다** — gpt-5.6-luna κ 0.89 vs claude-sonnet-5.5 κ 0.63, 그림 서술 Judge=luna·품질 감시 경보 기준=Judge 점수 3 이하로 결정(EVAL.md 29.4절, MODEL_SELECTION.md §7 "2차 선정"). 2026-08에 준비했던 15건 셋(`vlm_figure_judge_golden.json`)은 이 하네스로 대체됐다 |
 | adversarial (n=5) | `adversarial_pass` | 유형별 통과 여부(불리언) — no_leak/leak_present는 "이미지에 없는 정답을 지어내지 않는가", pii_variant는 "마스킹 대상 PII가 추출 후에도 유지되는가" | 환각·PII 유출 방지가 실제로 작동하는가 |
 
 > **왜 별도 골든셋·별도 채점 방식인가**〔추론〕: 이 경로는 출제 모듈의 어떤 지표와도
@@ -557,9 +565,14 @@ Relevancy가 이미 쓴 문항을 재사용한다(`eval_ragas()`/`build_sample()
 > 옮겼는가"라는 전사 정확도 문제). CER/WER은 음성·OCR 인식 평가에서 쓰는 표준
 > 지표를 그대로 가져왔다.
 >
-> **실측 수치·해석**은 [MODEL_SELECTION.md](./MODEL_SELECTION.md) §7에 있다(text_only
-> CER 0.0071·WER 0.0216, figure CER 0.1066·WER 0.1184·Judge 평균 3.80/5, adversarial
-> 전부 통과). EVAL.md는 `eval_exam.py` 전용 문서라 이 결과를 다루지 않는다 — 의도된 범위.
+> **1차 선정(2026-08) 실측 수치**는 [MODEL_SELECTION.md](./MODEL_SELECTION.md) §7에
+> 있다(text_only CER 0.0071·WER 0.0216, figure CER 0.1066·WER 0.1184·Judge 평균 3.80/5,
+> adversarial 전부 통과, 전부 gpt-4o-mini 단독 측정). **2026-10 재선정**(그림 서술 Judge
+> 검증 + 후보 5종 비교, 운영 모델 gpt-4o-mini→gpt-6-luna 재선정)은 MODEL_SELECTION.md §7
+> "2차 선정"과 EVAL.md 29절에 있다. EVAL.md는 `eval_exam.py` 전용 문서라고 1절에
+> 적어 뒀지만, VLM 재선정(29절)만 예외로 같은 문서에 추가했다 — `eval_vlm_compare.py`가
+> `eval_item_quality_runs.py`처럼 28절의 통계 도구(`evals/stats.py`)를 그대로 재사용해
+> EVAL.md 쪽에 적는 비용이 더 낮았기 때문이다.
 
 ### 3.4 일회성 실험에서만 나오는 지표 — `experiments/`
 
@@ -825,12 +838,12 @@ EVAL.md 22~27절이 이 한 스토리를 여섯 개 절로 나눠 적어뒀다. 
 ## 5. 현재 열린 이슈 (2026-10-04 기준)
 
 > 출제 모듈 관련 행은 2026-08-08 마지막 갱신에 2026-10 라운드(EVAL.md 28절)를 더했다.
-> 2026-08-20 VLM 파이프라인(`/exam/extract`) 도입분도 그대로 남아 있다.
+> 2026-08-20 VLM 파이프라인(`/exam/extract`) 도입분에는 2026-10 재선정 라운드(EVAL.md 29절)를 더했다.
 
 | 이슈 | 현황 |
 |---|---|
-| VLM Judge 신뢰도 미검증 | ⏸️ **보류(2026-10)** — 15건 셋(`vlm_figure_judge_golden.json`)과 측정 스크립트(`evals/eval_vlm_judge_reliability.py`)는 준비됐으나, 15건으로는 κ의 신뢰구간이 너무 넓어 라벨링은 보류했다. 45건으로 확대 후 진행할 예정(MODEL_SELECTION.md §7) |
-| VLM 모델 비교 미검증 | 🔄 `gpt-4o-mini` 정확도 실측은 완료(text_only CER 0.0071, figure CER 0.1066)했으나 다른 vision 모델과 비교한 적은 아직 없다(MODEL_SELECTION.md §7) |
+| ~~VLM Judge 신뢰도 미검증~~ | **해소(2026-10)** — 15건 셋(`vlm_figure_judge_golden.json`)을 그림 90건+결함 주입 40건(합산 130건) 사람 라벨로 대체해 검증했다. gpt-5.6-luna κ 0.89 vs claude-sonnet-5.5 κ 0.63 — 그림 서술 Judge=luna, 품질 감시 경보 기준=Judge 점수 3 이하로 결정(EVAL.md 29.4절, MODEL_SELECTION.md §7 "2차 선정") |
+| ~~VLM 모델 비교 미검증~~ | **해소(2026-10)** — gpt-4o-mini·gpt-6-luna·gemini-3.8-flash·qwen3-vl:8b-instruct·gemma3:12b 5종을 비교해 운영 VLM을 **gpt-6-luna**로 재선정했다(그림 CER 0.143→0.035, 서술 실패율 30%→0%, EVAL.md 29.5절) |
 | ~~`record_score` self-judge~~ | **해소(2026-08-06)** — 게이트에서 뺀 뒤 도구 자체를 제거했다(EVAL.md 16·17절). 신뢰도는 끝내 측정하지 않았는데, 제거하면서 측정 대상 자체가 사라졌다 |
 | ~~Judge payload 불일치~~ | **해소(2026-08-06)** — 공유 함수 `judge_structure()` 안에서 입력을 정규화해, 런타임과 오프라인이 구조적으로 어긋날 수 없게 했다(EVAL.md 17절) |
 | ~~문항 품질 Judge 신뢰도에 사람 라벨이 없었다~~ | **해소(2026-10)** — ITEM_GOLDEN(합성 30건)을 사람 라벨 91건(item_quality_golden.json)으로 교체했다(EVAL.md 28절) |
@@ -843,7 +856,9 @@ EVAL.md 22~27절이 이 한 스토리를 여섯 개 절로 나눠 적어뒀다. 
 | 검색 골든셋 천장 도달 | 기존 22건은 Recall@5 1.000이라 더 이상 개선을 잴 수 없다. `regulations_retrieval_candidates.json` 10건(현재 Recall@5 **0.500**, 사람 검수 완료)을 정식 편입할지 검토 중 |
 | **운영 전환 미착수(신규, 2026-10)** | 2차 선정으로 생성 모델 = gpt-6-luna, 런타임 구조 게이트 Judge = claude-sonnet-5.5 교체가 결정됐지만, 실제 설정·배포(OpenRouter 운영화 또는 Anthropic 백엔드 추가)는 아직 별도 작업으로 남아 있다(MODEL_SELECTION.md §1·§2) |
 | **문항 품질 근거성 κ 미확정(신규, 2026-10)** | 0.561 [0.347, 0.730] — 점추정치는 목표(0.4)를 넘지만 CI 하한이 낮아 "확정"은 아니다. 세 기준 중 유일하게 미확정 상태(EVAL.md 28.5절) |
-| **VLM Judge 라벨링 45건 확대(신규, 2026-10)** | 15건 셋은 준비됐으나 κ CI가 너무 넓어 라벨링을 보류했다. 45건으로 늘려 진행할 예정(MODEL_SELECTION.md §7) |
+| **VLM 운영 전환 미착수(신규, 2026-10)** | VLM 2차 선정으로 운영 모델 = gpt-6-luna가 결정됐고 1단계(코드 기본값 전환)는 적용했지만, EC2 실제 배포는 생성 모델·런타임 게이트 전환과 함께 하는 운영 전환 작업으로 남아 있다. 2단계(로컬 qwen3-vl:8b-instruct 전환)는 아직 검토만 했다(MODEL_SELECTION.md §7 "2차 선정") |
+| **신규 그림 75건 사람 검수(신규, 2026-10)** | VLM 그림 골든셋을 15→90건으로 늘리며 추가한 75건이 Claude 합성 초안 상태라, 사람 검수를 아직 거치지 않았다(EVAL.md 29.8절) |
+| **LangSmith 월간 트레이스 한도 초과(운영 메모, 2026-10)** | VLM 평가의 대량 호출로 무료 플랜 월간 한도를 넘겼다(429). 이번 달 남은 기간은 운영 트레이싱도 기록되지 않는다 — 대량 평가는 `LANGCHAIN_TRACING_V2=false`로 돌릴 것(EVAL.md 29.10절) |
 | **학생 난이도 "상" 문항 확보(신규, 2026-10)** | 2026-10 문항 품질 평가셋 91건에 학생 난이도 "상"이 0개라, 지금까지의 모델 비교는 중·하 난이도 범위에서만 유효하다(EVAL.md 28.10절) |
 | **라벨러 2인 이상 확보(신규, 2026-10)** | 문항 품질·Judge 선정 라벨링이 전부 라벨러 1인(본인)이라 독립 라벨러 간 κ가 없다(EVAL.md 28.10절) |
 | 코드 리뷰 진행 중 | 진행 상황은 로컬 체크리스트로 관리한다(저장소에는 포함하지 않음) |
@@ -861,5 +876,8 @@ EVAL.md 22~27절이 이 한 스토리를 여섯 개 절로 나눠 적어뒀다. 
 | [LANGSMITH_GUIDE.md](./LANGSMITH_GUIDE.md) | LangSmith 웹 UI 보는 법, 트레이스가 안 보일 때 체크리스트 |
 | [DESIGN.md](./DESIGN.md) §5 | 평가 설계 원칙(요약), 상세는 위 문서들 참고 |
 
-> `eval_vlm.py`(VLM 이미지 추출 평가)는 EVAL.md 대신 위 3.3절(4)과 MODEL_SELECTION.md
-> §7에 기록한다 — EVAL.md는 `eval_exam.py`(출제 모듈) 전용 문서라 원래부터 범위 밖이다.
+> `eval_vlm.py`(VLM 이미지 추출 평가)는 위 3.3절(4)과 MODEL_SELECTION.md §7에 기록한다 —
+> EVAL.md는 `eval_exam.py`(출제 모듈) 전용 문서라 원래부터 범위 밖이다. 단 2026-10 VLM
+> 모델 재선정(`evals/eval_vlm_compare.py`, 그림 서술 Judge 검증 + 후보 5종 비교)은
+> 예외로 EVAL.md 29절에도 적어 뒀다 — 28절과 같은 통계 도구(`evals/stats.py`)를 썼기
+> 때문이다.
