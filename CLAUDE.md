@@ -15,7 +15,7 @@
 
 - Python / FastAPI (비동기)
 - LangGraph(출제 agent)
-- ChromaDB + BGE-reranker, 임베딩 BGE-M3 — **임베딩·리랭킹은 CPU**
+- ChromaDB + BGE-reranker, 임베딩 BGE-M3 — **임베딩·리랭킹은 CPU**(2026-10부터 생성 경로 미사용, 검색 평가용)
 - LLM: 생성 Qwen2.5 14B(RunPod은 AWQ 양자화, vLLM 배포) / Judge gpt-5.6-luna(OpenAI, 기본) — 생성 모델과 완전히 분리된 별도 백엔드(judge 노드). 근거는 MODEL_SELECTION.md
 - UI: Next.js (frontend/)
 - 배포: AWS EC2(앱) + RunPod 서버리스(GPU), Caddy HTTPS

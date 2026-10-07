@@ -43,11 +43,15 @@
 
 | 도구 | 역할 | 구현 |
 |---|---|---|
-| 성취기준 검색 | `search_standards` — 성취기준 원문 검색 | ChromaDB + Rerank |
 | 형식 검증 | `validate_item_format` — 문항 형식 자기교정 | 함수 |
 | 저장 | `save_item` — 검증 통과 문항 저장 | 함수 |
 | 폐기 | `discard_item` — 승인 불가 문항을 ID로 제거 | 함수 |
 | 제출 신호 | `submit_for_review` — 작성 완료 신호(인자 없음) | 함수 |
+
+> **2026-10-07**: `search_standards`(성취기준 RAG 검색)를 TOOLS에서 제외했다(5→4개) —
+> 검색 유무에 따른 문항 품질 차이가 판정 불가였고, 검색이 하는 일은 `save_item`의
+> `standard` 칸을 채우는 것뿐인데 그 표시를 사용자가 쓰지 않았다(EVAL.md 30절). 함수와
+> 검색 모듈·인덱스는 검색 평가·실험 재현용으로 유지한다. 노드 순서는 바뀌지 않았다.
 
 **노드**: `plan → agent → judge → validate → (재시도: agent | 종료)`. `judge` 노드는 도구가
 아니라 그래프 노드 — `agent`가 `submit_for_review`를 호출해 작성을 끝내면, `judge`가
@@ -57,7 +61,7 @@
 
 ```
 spec:                    { passage_text(예시 문제 원문), num_items(생성 개수, 기본 2) }
-draft_items:             [ { 문항, 제시문(stimulus), 선지(4~5), 정답, 유형, 난이도, 성취기준 } ]  # judge_score·상태는 2026-08-06 제거(EVAL.md 17절)
+draft_items:             [ { 문항, 제시문(stimulus), 선지(4~5), 정답, 유형, 난이도 } ]  # judge_score·상태는 2026-08-06 제거(EVAL.md 17절), 성취기준은 2026-10-07 제거(RAG 제거)
 similarity_judge_result: { type_ratio_score, difficulty_match, overall_score } — judge_node가 기록
 budget:                  남은 재시도 횟수 (세트 전체 단위, 무한루프 방지)
 ```
@@ -96,7 +100,7 @@ budget:                  남은 재시도 횟수 (세트 전체 단위, 무한�
 > - **규칙 오판 수정**: 5지선다는 선지 줄에서 `④` 뒤에 `⑤`가 올 때만(본문 "⑤번" 언급 제외), 줄 머리의
 >   `(가)`+`(나)` 텍스트 자료도 제시문으로 본다.
 
-> **2026-07-21 변경**: `standards`를 교사 입력으로 받던 것을 폐지 — UI에서 성취기준 입력창을 제거하고 `spec`에서도 해당 필드를 삭제했다. 대신 에이전트가 `search_standards` 도구로 문항 주제에 맞는 성취기준을 스스로 검색해 `save_item`의 `standard` 인자를 채운다(가능하면 검색, 관련 자료가 없으면 빈 값으로 진행 — 저장을 막지 않음).
+> **2026-07-21 변경**: `standards`를 교사 입력으로 받던 것을 폐지 — UI에서 성취기준 입력창을 제거하고 `spec`에서도 해당 필드를 삭제했다. 이후 에이전트가 `search_standards` 도구로 성취기준을 검색해 `save_item`의 `standard` 인자를 채우도록 했으나, 이 경로 자체가 **2026-10-07 제거됐다**(위 "도구(Tools)" 각주, EVAL.md 30절) — `standard` 필드와 화면 표시도 함께 제거됨.
 
 ### 모듈 ③ 생기부 윤문 도우미 — **2026-08-03 제거됨**
 
@@ -117,8 +121,8 @@ PII 마스킹(`app/common/privacy.py`)은 출제 경로가 계속 쓰므로 유�
 |---|---|
 | 백엔드 | FastAPI (비동기) |
 | 오케스트레이션 | LangGraph(출제 agent) |
-| 벡터스토어 | ChromaDB + Rerank (BGE-reranker) |
-| 임베딩 | BGE-M3 |
+| 벡터스토어 | ChromaDB + Rerank (BGE-reranker) — **2026-10-07부터 생성 경로 미사용**, 검색 평가용 |
+| 임베딩 | BGE-M3 — 상동, 검색 평가용 |
 | LLM 서빙 | vLLM + Qwen2.5 (프로덕션) |
 | Judge(평가) 모델 | OpenAI gpt-5.6-luna(기본, `JUDGE_BACKEND=openai`) / Ollama 로컬(대안) — 2026-07-23부터 오프라인 eval뿐 아니라 런타임(`judge_node`)에도 적용, 생성 백엔드와 완전히 독립. 채택 근거는 MODEL_SELECTION.md |
 | 검증 | LLM as a Judge |
@@ -135,7 +139,7 @@ PII 마스킹(`app/common/privacy.py`)은 출제 경로가 계속 쓰므로 유�
 |---|---|---|---|
 | 생기부 기재요령 | 학교생활기록부 종합지원포털(star.moe.go.kr) 자료실 | PDF 다운로드 | **검색 eval 전용** — 생기부 모듈 제거 후 런타임 미사용, 검색 골든셋 22건 중 10건이 이 코퍼스라 유지 |
 | 학생부 작성·관리 지침(훈령) | 동 포털 | PDF | **검색 eval 전용** — 위 기재요령과 함께 `regulations` 컬렉션에 적재되나 생기부 모듈 제거 후 런타임 미사용(`search_regulations` 도구도 2026-08-03 제거됨) |
-| 사회과 성취기준 | 국가교육과정정보센터(NCIC) | 문서 조회 | `search_standards` RAG |
+| 사회과 성취기준 | 국가교육과정정보센터(NCIC) | 문서 조회 | **검색 eval 전용**(2026-10-07부터) — `search_standards`는 TOOLS에서 제외, 검색 평가·실험 재현용으로 유지 |
 | 교사가 붙여넣은 예시 문제 | 교사 런타임 입력(`passage_text`) | 0 | ChromaDB 미적재, 프롬프트에만 사용 후 폐기 |
 | 윤문 Few-shot 예시 | 직접 합성 | 가상 시나리오 | 실데이터 금지 |
 | 규정 위반 테스트 문장 | 직접 합성 | 위반 일부 심기 | 평가용 |

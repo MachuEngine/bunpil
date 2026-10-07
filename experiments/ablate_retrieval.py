@@ -32,6 +32,12 @@ Judge(기본 anthropic/claude-sonnet-5.5)로 비교한다.
 찍지 않는다(run 파일의 items 보존은 gen_item_quality_golden.py와 같은 전례를 따름 —
 합성 데이터, 사람 라벨링 재료는 아니고 Judge 비교 재료). 자가 점검은 검색 결과의 "종류"
 (자료없음/결과없음/결과있음)만 출력하고 원문은 출력하지 않는다.
+
+2026-10-07 이후 주의: 이 실험 결과(검색 유무가 문항 품질을 바꾸지 않음)에 따라
+`app/modules/exam/tools.py`의 `TOOLS`에서 `search_standards`를 제외했다(커밋
+b1dc8c4). 그 뒤로는 `normal` 조건에서도 에이전트가 이 도구를 호출할 수 없어
+"검색 켠 상태"가 성립하지 않는다 — 재현은 이 변경 이전 커밋(04dcd22)을 체크아웃한
+상태에서만 의미가 있다. 함수(`search_standards`) 자체는 재현용으로 남아 있다.
 """
 import argparse
 import json

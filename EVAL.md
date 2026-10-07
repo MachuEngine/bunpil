@@ -54,6 +54,7 @@
 | **2026-07-24 측정된 문항 품질 Judge κ 0.468/0.595** | **28절** (2026-10 정정) | 이 κ가 채점하던 ITEM_GOLDEN은 **문항도 점수도 Claude가 합성한 것**이었다. 같은 Judge·같은 30건을 다시 돌려도 실행마다 0.468/0.595로 흔들렸다 — 신뢰도를 재는 측정 자체의 신뢰도가 낮았던 것. 실제 생성물 91건 + 사람 라벨 1인으로 대체하고, 오프라인 평가 Judge도 claude-sonnet-5.5로 교체했다 |
 | **14절 "후보 골든셋"** — 후보 10건 Recall@5 0.600, `reviewed: false` | **14절 내 정정 박스** | 검수 중 `cand_008` 라벨 오류를 고치자 해당 건이 미스로 바뀌어 **0.500(5/10)**. 같은 날 10건 전부 `reviewed: true`로 승격됐다. 원본(`regulations_retrieval_candidates.json`)이 기준 |
 | **VLM 그림 서술 Judge 미검증(보류)** — 2026-08 1차 선정 당시 기록 | **29절** (2026-10) | 15건 셋(`vlm_figure_judge_golden.json`)으로는 κ 신뢰구간이 너무 넓어 라벨링을 보류했던 상태. 그림 90건+결함 주입 40건(합산 130건) 사람 라벨로 검증을 완료해 luna κ 0.89·sonnet κ 0.63을 확인하고, 그림 서술 Judge=gpt-5.6-luna·경보 기준=3점 이하로 결정했다. 같은 작업에서 후보 5종 비교 결과 운영 VLM도 gpt-4o-mini→gpt-6-luna로 재선정됐다 |
+| **28절 생성 모델 2차 비교** — luna/gemini는 검색이 정상이라는 전제로 읽은 수치 | **30절** (2026-10-07) | 로컬 `.env`의 `CHROMA_PERSIST_DIR`이 배포 경로라 비교 33세트 내내 `search_standards`가 `OSError`로 실패했다. luna·gemini 결론(검색 유무가 품질을 바꾸지 않음, 30절 실험으로 별도 확인)은 유지되나, qwen은 세트당 평균 13.5회 검색 오류로 턴을 썼을 수 있어 비교에서 불리했을 가능성이 있다 — qwen 재실행 대기 |
 
 **아직 확정되지 않은 것** (뒤집힌 건 아니지만 그대로 인용하면 안 되는 값)
 
@@ -102,6 +103,11 @@
 MASKING_GOLDEN 20건을 유닛테스트가 그대로 강제하도록 옮겼다.
 
 ### 출제 모듈 RAG 품질 (`eval_ragas.py`)
+
+> **2026-10-07부터 지표 의미 소멸**: 30절 실험으로 검색 결과가 생성 품질에 기여하지
+> 않음이 확인돼 생성 경로에서 RAG를 뺐다. 아래 Faithfulness/Answer Relevancy는 검색
+> 컨텍스트와 생성물의 관계를 재는 지표라 더 잴 대상이 없다. 코드·수치는 이력 보존용으로
+> 지우지 않고 그대로 둔다.
 
 | 지표 | 방식 | 상태 |
 |---|---|---|
@@ -2924,6 +2930,11 @@ gpt-5.6-luna 그대로이고, 운영 전환 시 claude-sonnet-5.5로 교체한�
 
 ### 28.6 생성 모델 비교 — 33지문, 짝지은 비교는 같은 지문 기준 클러스터 부트스트랩
 
+> **각주(2026-10-07)**: 이 비교는 검색 고장 상태에서 실행됐다 — 로컬 `CHROMA_PERSIST_DIR`
+> 경로 문제로 33세트 내내 `search_standards`가 실패했다. luna·gemini는 검색 유무가
+> 품질에 영향을 주지 않는다는 결론(30절)이라 아래 수치는 유지되지만, qwen은 검색 오류로
+> 턴을 썼을 수 있어 불리했을 가능성이 있다. 상세는 30절.
+
 `data/golden/_generator_comparison.json`. 세 모델(qwen2.5:14b 로컬·gpt-6-luna·
 gemini-3.8-flash)을 같은 33개 지문으로, 운영 경로(`_build_spec` → 그래프, `budget=5`)
 그대로 생성했다.
@@ -3213,3 +3224,118 @@ LANGCHAIN_TRACING_V2=false python evals/eval_vlm_compare.py compare --judge-mode
 unique traces usage limit exceeded"). 이번 달 남은 기간은 운영 트레이싱도 기록되지
 않는다. 대량 평가를 돌릴 때는 `LANGCHAIN_TRACING_V2=false`로 평가 트레이스를 애초에
 LangSmith에 보내지 않는 쪽을 권장한다.
+
+## 30. 생성 경로 RAG 제거 — 검색 제거 실험과 결정 (2026-10)
+
+### 30.0 배경
+
+28절 생성 모델 2차 비교에서 세 모델 모두 `search_standards`(성취기준 검색)를 호출은
+하지만, 저장된 문항의 `standard` 필드는 일부만 채워지고 그 값에 성취기준 코드가 있는
+경우는 드물었다. 검색이 생성 품질에 실제로 기여하는지, 아니면 호출만 하고 결과를
+안 쓰는지가 불분명해 직접 떼어보는 실험을 했다.
+
+### 30.1 실험 설계
+
+`experiments/ablate_retrieval.py`(커밋 04dcd22, 2026-10-07). 운영 생성 모델
+gpt-6-luna, 합성 지문 33개 × 조건 2(`normal`/검색 사용, `no_retrieval`/검색 끔 —
+`app.modules.exam.tools.get_retriever`를 빈 결과만 돌려주는 가짜로 monkeypatch) ×
+반복 2회, 운영 경로(`_build_spec` → 그래프, `budget=5`) 그대로 생성했다. 도구 자체와
+프롬프트는 그대로 두고 검색 계층만 껐다(프롬프트가 이미 "관련 자료가 없으면 성취기준
+없이 진행"을 지시하므로, 끈다고 에이전트가 멈추지는 않는다). Judge는
+claude-sonnet-5.5, 지문 단위 클러스터 부트스트랩으로 짝 비교했다(28.0절과 같은 방식 —
+같은 지문에서 나온 문항은 독립이 아니므로 지문 단위로 묶어야 신뢰구간이 과신되지 않음).
+
+### 30.2 결과 — 품질 차이 전부 판정 불가, 검색이 하는 일은 표시뿐
+
+짝 비교(`normal` − `no_retrieval`, 두 반복을 지문 안에서 평균, n=33):
+
+| 지표 | 평균 차이 | 95% CI | 판정 |
+|---|---|---|---|
+| 정답유일성 | +0.07 | [−0.07, +0.22] | 판정 불가 |
+| 오답매력도 | −0.04 | [−0.15, +0.07] | 판정 불가 |
+| 근거성 | −0.06 | [−0.15, +0.02] | 판정 불가(Judge κ 0.56 미확정이라 참고) |
+| overall | −0.01 | [−0.10, +0.08] | 판정 불가 |
+
+같은 조건에서 반복(r1 vs r2) 간 차이도 최대 0.09로, 조건 차이(최대 0.07)와 비슷한
+크기다 — "검색을 꺼서 떨어졌다"고 보기엔 조건 차이가 반복 잡음보다 크지 않다. 게이트
+통과율·목표 개수 달성률은 두 조건 모두 100%로 동일, 세트당 지연은 `normal` 51초 대
+`no_retrieval` 48초(CI [−8.0, +2.0], 판정 불가)다.
+
+검색이 실제로 하는 일은 문항의 `standard` 필드(화면의 "성취기준: ...")를 채우는
+것뿐이었다 — 기재율 `normal` 87%(66건 중 87%) 대 `no_retrieval` 0%(CI가 0을 포함하지
+않아 확정). 기재된 값 중 성취기준 코드 패턴(예: "9사(일사)01-01")이 있는 비율은 51%였다.
+
+### 30.3 코드 실재 확인
+
+`normal` 조건에서 인용된 성취기준 코드를 전수 조사해, 78개 전부 코퍼스(교육과정
+성취기준 컬렉션)에 실재함을 확인했다 — 모델이 코드를 지어내지는 않았다. 다만 이
+코드가 있다고 해서 문항 품질(정답유일성·오답매력도·근거성)이 달라지지는 않았다(30.2절).
+
+### 30.4 기각한 대안 — "근거 확인 버튼"
+
+검색을 생성에서 빼더라도 "이 문항의 근거를 교육과정에서 확인해보기" 같은 보조
+기능으로 쓸 수 있는지 검토했다. 기각했다 — 교육과정 문서(성취기준·내용 요소)에는
+"사실"이 없다. 예를 들어 지문에 등장하는 헌법재판소 권한 목록, 합성 자료의 통계
+수치 같은 것은 교육과정 문서로 사실 확인이 불가능한 영역이라, 버튼을 눌러도 검색이
+확인해줄 수 있는 게 없다. 쓰임새가 불확실한 채로 유지 비용(인덱스·임베딩·리랭커)만
+지는 셈이라 접었다.
+
+### 30.5 결정 (2026-10-07, 사용자)
+
+생성 경로에서 RAG를 뺀다(커밋 b1dc8c4). `TOOLS`를 5개에서 4개로 줄이고(`search_standards`
+제외), 시스템 프롬프트의 검색 단계를 지우고, `standard` 필드와 화면 표시를 제거했다.
+검색 모듈 import는 함수 안으로 옮겨 런타임이 FlagEmbedding을 더는 불러오지 않는다
+(회귀 테스트 `tests/test_exam_tools_no_eager_rag_import.py`로 고정). 노드 순서는
+바꾸지 않았다.
+
+**유지한 것**: `app/common/rag` 모듈, 인덱스(`chroma_db`), 인덱싱 스크립트, 검색
+평가(Recall@5·MRR, `evals/eval_exam.py`), `experiments/ablate_retrieval.py`(재현용)
+— `search_standards` 함수 자체도 실험·테스트가 쓰므로 지우지 않았다. 생성 경로에서
+빠졌으니 임베딩(BGE-M3)·리랭커(BGE-reranker) 선정은 더 이상 필요 없어졌다
+(MODEL_SELECTION.md §3~5).
+
+### 30.6 부수 발견과 수정 — 검색 고장이 도구 오류 메시지로 삼켜짐
+
+이 실험을 준비하며, 로컬 `.env`의 `CHROMA_PERSIST_DIR`이 배포 경로(`/data/chroma_db`)로
+설정돼 있어 로컬에서 `RAGStore`를 초기화하면 `OSError`가 난다는 걸 발견했다. 그런데
+`agent_node`가 도구 실행 예외를 잡아 메시지로 모델에 돌려주기만 해서(28.8절 결함
+목록과는 다른 경로), 2026-10 생성 모델 2차 비교(`golden_gen/gen_item_quality_golden.py`,
+28.6절) 내내 `search_standards`가 이 `OSError`로 실패했는데도 실행 로그에 드러나지
+않았다.
+
+수정(커밋 92ac550): `evals/local_env.use_local_chroma_dir()`를 신설해 로컬 `.env` 값이
+배포 경로일 때 `./chroma_db`로 되돌리고(셸에서 명시한 값은 존중), 검색을 쓰는 평가·
+실험·생성 스크립트 16개에 적용했다. `agent_node`의 도구 실행 예외는 도구 이름과
+예외 타입만 warning으로 로그에 남기도록 했다(원문은 남기지 않음, 하드룰 4). 생성
+하네스에는 세트별 `tool_errors` 집계를 추가했다.
+
+### 30.7 영향 — qwen 재실행 대기
+
+이 수정이 28.6절의 결론 자체를 뒤집지는 않는다. gpt-6-luna·gemini-3.8-flash는 30.2절
+실험으로 "검색 유무가 품질을 바꾸지 않는다"는 게 별도로 확인됐으므로, 검색이 고장난
+상태로 측정됐어도 결론은 유지된다. 다만 **qwen2.5:14b(로컬)는 세트당 평균 13.5회
+검색 오류가 났고, 그만큼 턴을 오류 복구에 썼을 수 있어 28.6절 비교에서 실제보다
+불리하게 나왔을 가능성이 있다**. qwen 재실행은 사용자가 맥을 켜 둘 수 있을 때로
+미뤄뒀다(범위 밖, 메모리에 기록).
+
+수정 이후 스모크로 재확인: gpt-6-luna, 지문 4개, 게이트 통과 4/4, `tool_errors` 0건,
+세트당 평균 24초(검색 제거로 호출 한 단계가 줄어든 효과로 추정, 엄밀한 비교는 아님).
+
+### 30.8 재현 명령
+
+```bash
+# 생성 (조건 2 × 반복 2, 이어서 실행 가능)
+CHROMA_PERSIST_DIR=./chroma_db python experiments/ablate_retrieval.py generate --condition normal --repeat-index 1
+CHROMA_PERSIST_DIR=./chroma_db python experiments/ablate_retrieval.py generate --condition normal --repeat-index 2
+CHROMA_PERSIST_DIR=./chroma_db python experiments/ablate_retrieval.py generate --condition no_retrieval --repeat-index 1
+CHROMA_PERSIST_DIR=./chroma_db python experiments/ablate_retrieval.py generate --condition no_retrieval --repeat-index 2
+
+# 채점 → 짝 비교 + 규칙 지표 + 반복 간 잡음
+python experiments/ablate_retrieval.py judge --judge-model anthropic/claude-sonnet-5.5
+python experiments/ablate_retrieval.py compare --judge-model anthropic/claude-sonnet-5.5
+```
+
+> **재현은 커밋 04dcd22 기준이다.** 이후 코드(b1dc8c4)는 `TOOLS`에서
+> `search_standards`를 뺐기 때문에, 지금 코드로 실행하면 `normal` 조건도 사실상
+> 검색을 안 쓰는 상태가 돼 비교 자체가 성립하지 않는다. `search_standards` 함수는
+> 실험 재현용으로만 남겨뒀다.
