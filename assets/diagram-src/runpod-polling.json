@@ -1,0 +1,63 @@
+{
+  "schema_version": 2,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "RunPod 작업 폴링 흐름",
+    "output": ".archify/lifecycle-runpod-polling-20261008-090500/runpod-polling.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/MachuEngine/bunpil.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "d2706168dd4f3af499361855d7fa65dbabebdb7f"
+    },
+    "legend": {
+      "entries": {
+        "start": { "label": "시작" },
+        "active": { "label": "진행" },
+        "waiting": { "label": "대기" },
+        "decision": { "label": "상태 확인" },
+        "success": { "label": "성공 종료" },
+        "failure": { "label": "예외 종료" }
+      }
+    }
+  },
+  "lanes": [
+    { "id": "main", "label": "정상 흐름" },
+    { "id": "waiting", "label": "대기" },
+    { "id": "terminal", "label": "예외 종료" }
+  ],
+  "states": [
+    { "id": "submit", "type": "start", "label": "POST /run", "sublabel": "job 제출, read timeout 35초", "lane": "main", "col": 0,
+      "sources": [{ "path": "app/common/llm/backends/runpod.py", "line": 55, "end_line": 81 }, { "path": "app/common/llm/backends/runpod.py", "line": 117, "end_line": 120, "label": "제출 타임아웃" }] },
+    { "id": "jobid", "type": "active", "label": "job id 수신", "sublabel": "같은 id로만 조회", "lane": "main", "col": 1,
+      "sources": [{ "path": "app/common/llm/backends/runpod.py", "line": 76, "end_line": 81 }] },
+    { "id": "poll", "type": "decision", "label": "GET /status/{id}", "sublabel": "5초 간격, 최대 60회", "lane": "main", "col": 2,
+      "sources": [{ "path": "app/common/llm/backends/runpod.py", "line": 83, "end_line": 99 }, { "path": "app/common/llm/backends/runpod.py", "line": 26, "end_line": 27, "label": "간격과 횟수" }] },
+    { "id": "completed", "type": "success", "label": "output 반환", "sublabel": "COMPLETED", "lane": "main", "col": 3,
+      "sources": [{ "path": "app/common/llm/backends/runpod.py", "line": 100, "end_line": 104 }] },
+    { "id": "inflight", "type": "waiting", "label": "IN_QUEUE, IN_PROGRESS", "sublabel": "5초 대기 후 다시 조회", "lane": "waiting", "col": 1 },
+    { "id": "submitfail", "type": "failure", "label": "제출 실패", "sublabel": "응답 없음은 재제출 안 함", "lane": "terminal", "col": 0,
+      "sources": [{ "path": "app/common/llm/backends/runpod.py", "line": 69, "end_line": 73 }] },
+    { "id": "timeout", "type": "failure", "label": "TimeoutError", "sublabel": "60회 초과 (5분)", "lane": "terminal", "col": 1,
+      "sources": [{ "path": "app/common/llm/backends/runpod.py", "line": 108 }] },
+    { "id": "jobfailed", "type": "failure", "label": "RuntimeError", "sublabel": "FAILED, CANCELLED", "lane": "terminal", "col": 2,
+      "sources": [{ "path": "app/common/llm/backends/runpod.py", "line": 105, "end_line": 106 }] }
+  ],
+  "transitions": [
+    { "from": "submit", "to": "jobid", "label": "id" },
+    { "from": "jobid", "to": "poll", "label": "5초 대기" },
+    { "from": "poll", "to": "completed", "label": "COMPLETED", "variant": "emphasis" },
+    { "from": "poll", "to": "inflight", "label": "아직 실행 중", "variant": "dashed" },
+    { "from": "inflight", "to": "poll", "label": "재조회", "variant": "dashed" },
+    { "from": "submit", "to": "submitfail", "label": "타임아웃", "variant": "security" },
+    { "from": "inflight", "to": "timeout", "label": "60회 소진", "variant": "security" },
+    { "from": "poll", "to": "jobfailed", "label": "FAILED", "variant": "security" }
+  ],
+  "cards": [
+    { "dot": "amber", "title": "대기 한도", "items": [
+      "5초 간격으로 최대 60회, 약 5분까지 기다림 (Caddy read_timeout 300초와 같은 값)",
+      "제출 응답을 못 받으면 같은 작업이 두 번 실행될 수 있어 재제출하지 않음"
+    ] }
+  ]
+}

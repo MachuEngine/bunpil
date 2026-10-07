@@ -1,0 +1,234 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "배포 구성 (현재 내려 둠)",
+    "output": ".archify/architecture-deploy-20261008-091000/deploy.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/MachuEngine/bunpil.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "d2706168dd4f3af499361855d7fa65dbabebdb7f"
+    },
+    "legend": {
+      "entries": {
+        "frontend": {
+          "label": "화면 컨테이너"
+        },
+        "backend": {
+          "label": "앱 컨테이너"
+        },
+        "cloud": {
+          "label": "외부 API"
+        },
+        "security": {
+          "label": "프록시, TLS"
+        },
+        "external": {
+          "label": "사용자"
+        }
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "browser",
+      "type": "external",
+      "label": "교사 브라우저",
+      "sublabel": "your-domain.com",
+      "pos": [
+        40,
+        70
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "caddy",
+      "type": "security",
+      "label": "Caddy",
+      "sublabel": "HTTPS, Let's Encrypt",
+      "tag": "본문 64KB, 이미지 5MB",
+      "pos": [
+        290,
+        70
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "Caddyfile",
+          "line": 11,
+          "end_line": 41
+        }
+      ]
+    },
+    {
+      "id": "nextjs",
+      "type": "frontend",
+      "label": "Next.js 컨테이너",
+      "sublabel": "127.0.0.1:3000, /api 프록시",
+      "pos": [
+        590,
+        70
+      ],
+      "size": [
+        190,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docker-compose.yml",
+          "line": 20,
+          "end_line": 31
+        }
+      ]
+    },
+    {
+      "id": "app",
+      "type": "backend",
+      "label": "FastAPI 컨테이너",
+      "sublabel": "127.0.0.1:8765, LangGraph",
+      "pos": [
+        950,
+        70
+      ],
+      "size": [
+        190,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docker-compose.yml",
+          "line": 1,
+          "end_line": 15
+        }
+      ]
+    },
+    {
+      "id": "runpod",
+      "type": "cloud",
+      "label": "RunPod 서버리스",
+      "sublabel": "vLLM, Qwen2.5-14B-AWQ",
+      "pos": [
+        830,
+        270
+      ],
+      "size": [
+        190,
+        64
+      ],
+      "sources": [
+        {
+          "path": "runpod_handler/handler.py",
+          "line": 52,
+          "end_line": 55
+        }
+      ]
+    },
+    {
+      "id": "openai",
+      "type": "cloud",
+      "label": "OpenAI API",
+      "sublabel": "Judge gpt-5.6-luna, VLM gpt-6-luna",
+      "pos": [
+        1070,
+        270
+      ],
+      "size": [
+        220,
+        64
+      ],
+      "sources": [
+        {
+          "path": ".env.example",
+          "line": 18,
+          "end_line": 29,
+          "label": "JUDGE_BACKEND"
+        },
+        {
+          "path": ".env.example",
+          "line": 47,
+          "end_line": 48,
+          "label": "VLM_BACKEND"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "AWS EC2, Docker Compose (2026-10 삭제)",
+      "wraps": [
+        "caddy",
+        "nextjs",
+        "app"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "호스트 내부에만 포트 공개",
+      "wraps": [
+        "nextjs",
+        "app"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "browser-caddy",
+      "from": "browser",
+      "to": "caddy",
+      "label": "HTTPS :443",
+      "variant": "emphasis"
+    },
+    {
+      "id": "caddy-next",
+      "from": "caddy",
+      "to": "nextjs",
+      "label": "localhost:3000"
+    },
+    {
+      "id": "next-app",
+      "from": "nextjs",
+      "to": "app",
+      "label": "BACKEND_URL (app:8765)"
+    },
+    {
+      "id": "app-runpod",
+      "from": "app",
+      "to": "runpod",
+      "label": "생성 (LLM_BACKEND=runpod)"
+    },
+    {
+      "id": "app-openai",
+      "from": "app",
+      "to": "openai",
+      "label": "Judge, VLM"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "요청 경로",
+      "items": [
+        "Caddy는 Next.js(3000)만 프록시하고, /api 라우트가 컨테이너 내부에서 FastAPI로 다시 전달",
+        "SSE 스트리밍을 위해 flush_interval -1, 생성이 길어 read_timeout 300초"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "현재 상태",
+      "items": [
+        "EC2는 2026-10에 삭제, RunPod는 2026-07부터 크레딧 소진으로 정지",
+        "deploy/ 스크립트와 docker-compose.yml로 다시 띄울 수 있음",
+        "결제 알람: CloudWatch가 10달러를 넘으면 SNS로 메일 발송 (deploy/billing_alarm.sh)"
+      ]
+    }
+  ]
+}

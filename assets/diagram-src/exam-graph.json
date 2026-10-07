@@ -1,0 +1,208 @@
+{
+  "schema_version": 2,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "출제 그래프 상태 흐름 (LangGraph)",
+    "output": ".archify/lifecycle-exam-graph-20261007-215523/exam-graph.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/MachuEngine/bunpil.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "d2706168dd4f3af499361855d7fa65dbabebdb7f"
+    },
+    "legend": {
+      "entries": {
+        "start": {
+          "label": "시작"
+        },
+        "active": {
+          "label": "실행 노드"
+        },
+        "decision": {
+          "label": "코드 게이트"
+        },
+        "success": {
+          "label": "통과 종료"
+        },
+        "failure": {
+          "label": "소진 종료"
+        },
+        "external": {
+          "label": "외부 Judge"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "그래프 노드"
+    },
+    {
+      "id": "terminal",
+      "label": "종료"
+    }
+  ],
+  "states": [
+    {
+      "id": "start",
+      "type": "start",
+      "label": "START",
+      "sublabel": "spec, budget=5",
+      "lane": "main",
+      "col": 0,
+      "sources": [
+        {
+          "path": "app/main.py",
+          "line": 185,
+          "label": "graph.invoke"
+        }
+      ]
+    },
+    {
+      "id": "plan",
+      "type": "active",
+      "label": "plan",
+      "sublabel": "세션 초기화, 1회만",
+      "lane": "main",
+      "col": 1,
+      "sources": [
+        {
+          "path": "app/modules/exam/graph.py",
+          "line": 54,
+          "end_line": 68
+        }
+      ]
+    },
+    {
+      "id": "agent",
+      "type": "active",
+      "label": "agent",
+      "sublabel": "도구 루프로 문항 작성",
+      "tag": "budget -1",
+      "lane": "main",
+      "col": 2,
+      "sources": [
+        {
+          "path": "app/modules/exam/graph.py",
+          "line": 227,
+          "end_line": 345
+        }
+      ]
+    },
+    {
+      "id": "judge",
+      "type": "external",
+      "label": "judge",
+      "sublabel": "외부 Judge가 구조 채점",
+      "lane": "main",
+      "col": 3,
+      "sources": [
+        {
+          "path": "app/modules/exam/graph.py",
+          "line": 348,
+          "end_line": 368
+        }
+      ]
+    },
+    {
+      "id": "validate",
+      "type": "decision",
+      "label": "validate",
+      "sublabel": "개수와 Judge 점수 판정",
+      "tag": "코드",
+      "lane": "main",
+      "col": 4,
+      "sources": [
+        {
+          "path": "app/modules/exam/graph.py",
+          "line": 398,
+          "end_line": 437
+        },
+        {
+          "path": "app/modules/exam/graph.py",
+          "line": 440,
+          "end_line": 445,
+          "label": "should_retry"
+        }
+      ]
+    },
+    {
+      "id": "passed",
+      "type": "success",
+      "label": "END (통과)",
+      "sublabel": "validation_passed=True",
+      "lane": "terminal",
+      "col": 4
+    },
+    {
+      "id": "exhausted",
+      "type": "failure",
+      "label": "END (재시도 소진)",
+      "sublabel": "문항은 반환, 통과 표시 없음",
+      "lane": "terminal",
+      "col": 3
+    }
+  ],
+  "transitions": [
+    {
+      "from": "start",
+      "to": "plan"
+    },
+    {
+      "from": "plan",
+      "to": "agent"
+    },
+    {
+      "from": "agent",
+      "to": "judge",
+      "label": "submit"
+    },
+    {
+      "from": "judge",
+      "to": "validate"
+    },
+    {
+      "from": "validate",
+      "to": "agent",
+      "label": "미달, budget > 0",
+      "variant": "dashed",
+      "route": "top-channel",
+      "fromSide": "top",
+      "toSide": "top"
+    },
+    {
+      "from": "validate",
+      "to": "passed",
+      "label": "통과",
+      "variant": "emphasis"
+    },
+    {
+      "from": "validate",
+      "to": "exhausted",
+      "label": "미달, budget = 0",
+      "variant": "security"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "validate 통과 조건 (모두 충족)",
+      "items": [
+        "문항 개수 = 요청 개수 (코드가 직접 셈)",
+        "type_ratio_score ≥ 0.5",
+        "difficulty_match = true",
+        "overall_score ≥ 3"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "재시도",
+      "items": [
+        "budget 5에서 시작해 agent를 한 번 돌 때마다 1씩 줄어듦",
+        "재시도 때는 저장된 문항을 유지하고 미달 사유를 프롬프트에 넣어 부족분만 작성"
+      ]
+    }
+  ]
+}

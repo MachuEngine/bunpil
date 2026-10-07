@@ -1,0 +1,309 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "문항 생성 루프 (agent 노드)",
+    "output": ".archify/workflow-exam-loop-20261007-214046/exam-loop.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/MachuEngine/bunpil.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "d2706168dd4f3af499361855d7fa65dbabebdb7f"
+    },
+    "legend": {
+      "entries": {
+        "frontend": {
+          "label": "화면"
+        },
+        "backend": {
+          "label": "생성 LLM 단계"
+        },
+        "database": {
+          "label": "저장소"
+        },
+        "cloud": {
+          "label": "외부 모델"
+        },
+        "security": {
+          "label": "거부, 재시도"
+        },
+        "messagebus": {
+          "label": "도구 (코드 판정)"
+        },
+        "external": {
+          "label": "그래프 노드"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "recover",
+      "label": "응답 형식 오류",
+      "variant": "exception"
+    },
+    {
+      "id": "agent",
+      "label": "agent 노드 (생성 LLM)"
+    },
+    {
+      "id": "tools",
+      "label": "도구 4개 (코드가 판정)"
+    },
+    {
+      "id": "graph",
+      "label": "그래프"
+    }
+  ],
+  "mainPath": [
+    "prompt",
+    "llm",
+    "checkfmt",
+    "save",
+    "submit",
+    "judge"
+  ],
+  "nodes": [
+    {
+      "id": "prompt",
+      "lane": "agent",
+      "col": 0,
+      "type": "backend",
+      "label": "프롬프트 구성",
+      "sublabel": "남은 문항 수, 이전 피드백",
+      "width": 160,
+      "sources": [
+        {
+          "path": "app/modules/exam/graph.py",
+          "line": 241,
+          "end_line": 252,
+          "label": "_build_system_prompt 호출"
+        }
+      ]
+    },
+    {
+      "id": "llm",
+      "lane": "agent",
+      "col": 1,
+      "type": "backend",
+      "label": "LLM 응답",
+      "sublabel": "도구 호출 선택",
+      "tag": "최대 14턴",
+      "width": 150,
+      "sources": [
+        {
+          "path": "app/modules/exam/graph.py",
+          "line": 277,
+          "end_line": 279,
+          "label": "for _ in range(14)"
+        }
+      ]
+    },
+    {
+      "id": "checkfmt",
+      "lane": "tools",
+      "col": 2,
+      "type": "messagebus",
+      "label": "validate_item_format",
+      "sublabel": "선지 수, 정답, 보기 형식",
+      "width": 180,
+      "sources": [
+        {
+          "path": "app/modules/exam/tools.py",
+          "line": 187,
+          "end_line": 204
+        }
+      ]
+    },
+    {
+      "id": "save",
+      "lane": "tools",
+      "col": 3,
+      "type": "messagebus",
+      "label": "save_item",
+      "sublabel": "형식, 개수, 한국어, 복사, 중복 검사",
+      "width": 200,
+      "sources": [
+        {
+          "path": "app/modules/exam/tools.py",
+          "line": 306,
+          "end_line": 350
+        }
+      ]
+    },
+    {
+      "id": "submit",
+      "lane": "tools",
+      "col": 4,
+      "type": "messagebus",
+      "label": "submit_for_review",
+      "sublabel": "작성이 끝났다는 신호",
+      "width": 170,
+      "sources": [
+        {
+          "path": "app/modules/exam/tools.py",
+          "line": 364,
+          "end_line": 374
+        }
+      ]
+    },
+    {
+      "id": "judge",
+      "lane": "graph",
+      "col": 5,
+      "type": "external",
+      "label": "judge 노드로",
+      "sublabel": "외부 Judge가 채점",
+      "width": 150,
+      "sources": [
+        {
+          "path": "app/modules/exam/graph.py",
+          "line": 336,
+          "end_line": 340,
+          "label": "submit 후 루프 종료"
+        }
+      ]
+    },
+    {
+      "id": "malformed",
+      "lane": "recover",
+      "col": 1,
+      "type": "security",
+      "label": "형식 깨진 응답",
+      "sublabel": "다시 호출 요청, 연속 3회까지",
+      "width": 170,
+      "sources": [
+        {
+          "path": "app/modules/exam/graph.py",
+          "line": 301,
+          "end_line": 316
+        }
+      ]
+    },
+    {
+      "id": "toolmsg",
+      "lane": "agent",
+      "col": 3,
+      "type": "messagebus",
+      "label": "ToolMessage 반환",
+      "sublabel": "저장 완료, 거부 사유, 오류",
+      "width": 190,
+      "sources": [
+        {
+          "path": "app/modules/exam/graph.py",
+          "line": 319,
+          "end_line": 336,
+          "label": "도구 결과와 오류"
+        }
+      ]
+    },
+    {
+      "id": "discard",
+      "lane": "tools",
+      "col": 1,
+      "type": "messagebus",
+      "label": "discard_item",
+      "sublabel": "교체할 문항 폐기",
+      "width": 150,
+      "sources": [
+        {
+          "path": "app/modules/exam/tools.py",
+          "line": 353,
+          "end_line": 361
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "prompt-llm",
+      "from": "prompt",
+      "to": "llm"
+    },
+    {
+      "id": "llm-check",
+      "from": "llm",
+      "to": "checkfmt",
+      "label": "tool call",
+      "variant": "emphasis"
+    },
+    {
+      "id": "check-save",
+      "from": "checkfmt",
+      "to": "save",
+      "label": "통과",
+      "variant": "emphasis"
+    },
+    {
+      "id": "save-submit",
+      "from": "save",
+      "to": "submit",
+      "label": "목표 개수 저장",
+      "variant": "emphasis"
+    },
+    {
+      "id": "submit-judge",
+      "from": "submit",
+      "to": "judge",
+      "variant": "emphasis"
+    },
+    {
+      "id": "check-msg",
+      "from": "checkfmt",
+      "to": "toolmsg",
+      "label": "형식 오류",
+      "role": "error",
+      "variant": "security"
+    },
+    {
+      "id": "save-msg",
+      "from": "save",
+      "to": "toolmsg",
+      "label": "저장 결과"
+    },
+    {
+      "id": "msg-llm",
+      "from": "toolmsg",
+      "to": "llm",
+      "label": "다음 턴",
+      "role": "return",
+      "variant": "dashed"
+    },
+    {
+      "id": "llm-malformed",
+      "from": "llm",
+      "to": "malformed",
+      "label": "호출 없음, 미완료",
+      "role": "error",
+      "variant": "security"
+    },
+    {
+      "id": "llm-discard",
+      "from": "llm",
+      "to": "discard",
+      "label": "교체 필요",
+      "role": "branch",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "루프 규칙",
+      "items": [
+        "모든 도구 결과는 ToolMessage로 LLM에 돌아가 다음 행동을 정함",
+        "재시도 때는 저장된 문항을 유지하고 부족한 개수만 이어서 작성",
+        "save_item 거부: 형식 오류, 목표 개수 초과, 한국어 아님, 예시 복사, 세트 내 중복"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "2026-10 기준 변경",
+      "items": [
+        "search_standards(성취기준 검색)는 생성 경로에서 제거",
+        "record_score(자기 채점)는 2026-08에 제거, 채점은 judge 노드가 담당"
+      ]
+    }
+  ]
+}
