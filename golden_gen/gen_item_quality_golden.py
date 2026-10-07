@@ -34,9 +34,17 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from dotenv import load_dotenv
+
+# CHROMA_PERSIST_DIR: 로컬 .env는 배포 경로(/data/chroma_db)로 설정돼 있어 로컬에서
+# 그대로 실행하면 RAGStore 초기화가 실패한다(evals/local_env.py 참고). 셸 명시 여부는
+# load_dotenv() 호출 전에 캡처해야 한다.
+_had_chroma_dir = "CHROMA_PERSIST_DIR" in os.environ
 load_dotenv()
 
-from langchain_core.messages import AIMessage, HumanMessage
+from evals.local_env import use_local_chroma_dir
+use_local_chroma_dir(_had_chroma_dir)
+
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
 _GOLDEN_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "golden")
 _INPUTS_PATH = os.path.join(_GOLDEN_DIR, "item_quality_inputs.json")
@@ -74,6 +82,9 @@ _SMOKE_FORMAT_ORDER = ("mc4", "mc5", "bogi_combo", "data")
 
 _BROKEN_TOOL_CALL_NOTE = "도구 호출 형식이 손상"
 _INCOMPLETE_NOTE = "아직 목표 문항 저장과 제출이 끝나지 않았습니다"
+# graph.py agent_node가 도구 실행 예외·invalid_tool_calls에 돌려주는 ToolMessage의
+# 공통 접두사(2026-10-07) — 도구별 오류 횟수 집계(tool_errors)에 쓴다.
+_TOOL_CALL_ERROR_PREFIX = "도구 호출 오류"
 
 
 def _run_path(model: str, smoke: bool) -> str:
@@ -158,10 +169,18 @@ def select_entries(
 def _summarize_agent_messages(messages: list) -> dict:
     """한 번의 agent_node 실행(시도 1회)이 만든 메시지 리스트에서 집계값을 뽑는다.
 
-    반환: {"tool_calls": {도구명: 호출 수}, "malformed_retries": int, "incomplete_retries": int,
-    "input_tokens": int|None, "output_tokens": int|None}. 토큰은 AIMessage.usage_metadata가
-    하나도 없으면 None(없으면 null), 하나라도 있으면 있는 것만 합산한다."""
+    반환: {"tool_calls": {도구명: 호출 수}, "tool_errors": {도구명: 오류 ToolMessage 수},
+    "malformed_retries": int, "incomplete_retries": int, "input_tokens": int|None,
+    "output_tokens": int|None}. 토큰은 AIMessage.usage_metadata가 하나도 없으면
+    None(없으면 null), 하나라도 있으면 있는 것만 합산한다.
+
+    2026-10-07: tool_errors는 graph.py agent_node가 도구 실행 예외·깨진 인자에
+    "도구 호출 오류"로 시작하는 ToolMessage를 돌려준 횟수를 도구별로 센다 — 검색
+    백엔드 고장처럼 조용히 삼켜지던 환경 문제를 집계로 드러내기 위함(로그 경고와
+    별개로, 생성 하네스 쪽 가시성)."""
     tool_calls: dict[str, int] = {}
+    tool_errors: dict[str, int] = {}
+    call_id_to_tool: dict[str, str] = {}
     malformed_retries = 0
     incomplete_retries = 0
     input_tokens = None
@@ -172,11 +191,18 @@ def _summarize_agent_messages(messages: list) -> dict:
         if isinstance(m, AIMessage):
             for tc in getattr(m, "tool_calls", []) or []:
                 tool_calls[tc["name"]] = tool_calls.get(tc["name"], 0) + 1
+                if tc.get("id"):
+                    call_id_to_tool[tc["id"]] = tc["name"]
             meta = getattr(m, "usage_metadata", None)
             if meta:
                 has_tokens = True
                 input_tokens = (input_tokens or 0) + (meta.get("input_tokens") or 0)
                 output_tokens = (output_tokens or 0) + (meta.get("output_tokens") or 0)
+        elif isinstance(m, ToolMessage):
+            content = str(m.content or "")
+            if content.startswith(_TOOL_CALL_ERROR_PREFIX):
+                tool_name = call_id_to_tool.get(m.tool_call_id, "unknown")
+                tool_errors[tool_name] = tool_errors.get(tool_name, 0) + 1
         elif isinstance(m, HumanMessage):
             # 첫 HumanMessage는 agent_node가 매 시도 시작 시 보내는 고정 지시문("위 지침에
             # 따라 문항을 작성하세요") — 재요청이 아니므로 집계에서 제외한다.
@@ -192,6 +218,7 @@ def _summarize_agent_messages(messages: list) -> dict:
         input_tokens = output_tokens = None
     return {
         "tool_calls": tool_calls,
+        "tool_errors": tool_errors,
         "malformed_retries": malformed_retries,
         "incomplete_retries": incomplete_retries,
         "input_tokens": input_tokens,
@@ -350,6 +377,13 @@ def summarize_model(records: list[dict]) -> dict:
     malformed_total = sum(
         sum(a.get("malformed_retries", 0) for a in r.get("attempt_log", [])) for r in ok
     )
+    # 2026-10-07: 도구 오류(ToolMessage "도구 호출 오류"로 시작) 합계 — 0이 아니면
+    # 검색 백엔드 고장 같은 환경 문제를 바로 알 수 있다(graph.py agent_node 경고 로그와
+    # 별개로, 생성 하네스 쪽 가시성).
+    tool_errors_total = sum(
+        sum((a.get("tool_errors") or {}).values())
+        for r in ok for a in r.get("attempt_log", [])
+    )
     avg_wall_clock = (sum(r.get("wall_clock_sec", 0.0) for r in records) / n) if n else 0.0
     costs = [r["cost_usd_est"] for r in ok if r.get("cost_usd_est") is not None]
     avg_cost = (sum(costs) / len(costs)) if costs else None
@@ -360,6 +394,7 @@ def summarize_model(records: list[dict]) -> dict:
         "validate_rate": (validated / len(ok)) if ok else 0.0,
         "avg_attempts": avg_attempts,
         "malformed_total": malformed_total,
+        "tool_errors_total": tool_errors_total,
         "avg_wall_clock_sec": avg_wall_clock,
         "avg_cost_usd": avg_cost,
     }
@@ -368,7 +403,7 @@ def summarize_model(records: list[dict]) -> dict:
 def cmd_summarize(args: argparse.Namespace) -> None:
     header = (
         f"{'model':<18}{'n':>4}{'err':>5}{'count_ok%':>11}{'valid%':>9}"
-        f"{'attempts':>10}{'malform':>9}{'sec':>8}{'cost$':>9}"
+        f"{'attempts':>10}{'malform':>9}{'tool_err':>10}{'sec':>8}{'cost$':>9}"
     )
     print(header)
     print("-" * len(header))
@@ -379,7 +414,7 @@ def cmd_summarize(args: argparse.Namespace) -> None:
         print(
             f"{model:<18}{s['n_runs']:>4}{s['n_errors']:>5}"
             f"{s['count_match_rate']*100:>10.1f}%{s['validate_rate']*100:>8.1f}%"
-            f"{s['avg_attempts']:>10.2f}{s['malformed_total']:>9}"
+            f"{s['avg_attempts']:>10.2f}{s['malformed_total']:>9}{s['tool_errors_total']:>10}"
             f"{s['avg_wall_clock_sec']:>8.1f}{cost_str:>9}"
         )
 

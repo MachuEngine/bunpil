@@ -79,7 +79,7 @@ def main() -> None:
 
     print("=== 출제 모듈 통합 테스트 (passage_text 리디자인) ===\n")
     print(f"입력 지문 길이: {len(passage_text)}자 ({'<보기> 5지선다 예시 1개' if bogi else '예시 문항 2개'}, 요청 num_items={num_items})")
-    print("\nReAct 에이전트 출제 시작...")
+    print("\n출제 워크플로 실행...")
 
     init_session()
     graph = get_exam_graph()

@@ -7,7 +7,8 @@ export interface ExamItem {
   answer: string;
   item_type: "객관식" | "서술형";
   difficulty: "상" | "중" | "하";
-  standard: string;
+  // 2026-10-07: `standard` 제거 — 생성 경로에서 성취기준 검색(search_standards)을 뺀
+  // 결정과 함께. 이 필드가 채우던 화면 표시(성취기준: ...)를 사용자가 쓰지 않았다.
   // 2026-08-06: `judge_score`·`status` 제거 — AI가 자기 문항에 스스로 매기던 점수라
   // 검증된 적이 없었고, 교사 화면에 "품질"로 보이는 것이 오해를 유발했다(EVAL.md 17절).
 }
