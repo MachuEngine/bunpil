@@ -50,15 +50,13 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./assets/architecture-dark.svg">
-  <img src="./assets/architecture-light.svg" alt="분필 시스템 구성도 — 브라우저에서 FastAPI를 거쳐 출제 그래프(LangGraph)로 이어지고, ChromaDB·생성 LLM(Qwen2.5-14B)을 사용하며 judge 노드만 별도 Judge LLM(gpt-5.6-luna)을 사용하고, /exam/extract는 그래프를 거치지 않고 별도 VLM(gpt-6-luna)을 호출해 이미지를 텍스트로 추출하는 구조도">
+  <img src="./assets/architecture-light.svg" alt="분필 시스템 구성도. 교사 브라우저에서 Next.js 프록시를 거쳐 FastAPI로 들어온 입력은 PII 마스킹 후 출제 그래프(LangGraph)로 넘어가고, agent는 생성 LLM(Qwen2.5-14B)을, judge 노드는 별도 Judge LLM(gpt-5.6-luna)을 호출한다. 캡처 이미지는 마스킹 전에 VLM(gpt-6-luna)으로 보내고 추출 텍스트를 마스킹한다.">
 </picture>
 
-> 🎯로 표시한 **Judge LLM은 생성 LLM과 완전히 다른 백엔드**입니다 — 문항을 쓰는 모델이 자기 글을 자기가 채점하지 않도록 의도적으로 분리했습니다(배경은 [아키텍처](#아키텍처) 참고).
+> 그림의 **Judge LLM은 생성 LLM과 완전히 다른 백엔드**입니다 — 문항을 쓰는 모델이 자기 글을 자기가 채점하지 않도록 의도적으로 분리했습니다(배경은 [아키텍처](#아키텍처) 참고).
 >
-> ⚠️ 이 구성도는 ChromaDB(성취기준 RAG)를 출제 그래프가 쓰는 백엔드로 그리고 있지만,
-> **2026-10-07부터 생성 경로에서 제외**돼 지금은 검색 평가용으로만 쓰입니다(아래
-> "[RAG를 생성 경로에서 뺀 이유](#rag를-생성-경로에서-뺀-이유)" 참고). SVG 자체는 아직
-> 갱신하지 않았습니다.
+> ChromaDB(성취기준 RAG)는 2026-10-07부터 생성 경로에서 빠져 그림에 없습니다. 지금은 검색 평가용으로만 씁니다(아래
+> "[RAG를 생성 경로에서 뺀 이유](#rag를-생성-경로에서-뺀-이유)" 참고).
 
 ### 구현 현황
 
@@ -146,12 +144,10 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./assets/exam-loop-dark.svg">
-  <img src="./assets/exam-loop-light.svg" alt="문항 생성 루프 — search_standards로 성취기준을 검색한 뒤 validate_item_format 통과 시 save_item까지 반복하고 submit_for_review로 judge 노드에 넘기는 흐름도">
+  <img src="./assets/exam-loop-light.svg" alt="문항 생성 루프. agent 노드의 LLM이 validate_item_format, save_item 순서로 도구를 호출하고, 형식 오류나 저장 거부 사유는 ToolMessage로 LLM에 돌아가 다음 턴을 정한다. 목표 개수를 저장하면 submit_for_review로 judge 노드에 넘긴다. 교체가 필요하면 discard_item을 호출하고, 형식이 깨진 응답은 연속 3회까지 다시 요청한다.">
 </picture>
 
-> ⚠️ 이 흐름도는 `search_standards` 호출을 생성 루프의 첫 단계로 그리고 있지만,
-> **2026-10-07부터 생성 경로에서 제외**돼 지금은 `validate_item_format`부터 시작합니다
-> (아래 참고). SVG 자체는 아직 갱신하지 않았습니다.
+> `search_standards`는 2026-10-07부터 생성 경로에서 빠져 루프는 `validate_item_format`부터 시작합니다(아래 참고).
 
 ### RAG를 생성 경로에서 뺀 이유
 
@@ -188,7 +184,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./assets/exam-graph-dark.svg">
-  <img src="./assets/exam-graph-light.svg" alt="LangGraph 상태 흐름 — START에서 plan, agent, judge를 거쳐 validate가 문항 개수와 Judge 점수 기준값을 판정하고, 미달 시 agent로 재시도, 통과하거나 재시도 횟수를 다 쓰면 END로 가는 상태도">
+  <img src="./assets/exam-graph-light.svg" alt="LangGraph 상태 흐름. START에서 plan, agent, judge를 거쳐 validate가 문항 개수와 Judge 점수 기준값을 판정한다. 미달이고 budget이 남으면 agent로 재시도하고, 통과하면 END(통과)로, budget을 다 쓰면 문항은 반환하되 통과 표시 없이 END로 간다.">
 </picture>
 
 <details>
@@ -268,14 +264,14 @@ LangGraph 에이전트는 BaseChatModel 인터페이스만 알면 되고, RunPod
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./assets/runpod-backend-dark.svg">
-  <img src="./assets/runpod-backend-light.svg" alt="ChatRunPod ↔ RunPodBackend — LangGraph 평가-수정 루프 워크플로가 BaseChatModel 인터페이스로 ChatRunPod를 호출하고, ChatRunPod가 RunPodBackend를 거쳐 RunPod 서버리스 GPU(vLLM)와 통신하는 구조도">
+  <img src="./assets/runpod-backend-light.svg" alt="RunPod 백엔드 계층. agent 노드가 BaseChatModel 어댑터인 ChatRunPod를 호출하고, ChatRunPod는 메시지와 tool_calls를 변환해 RunPodBackend.generate_chat()을 부른다. 요청 분석과 해설은 FastAPI가 RunPodBackend.generate()를 바로 호출한다. RunPodBackend는 HTTPS /run, /status로 RunPod 서버리스(vLLM, Qwen2.5-14B-AWQ)와 통신한다.">
 </picture>
 
 RunPodBackend는 비동기 `/run`으로 작업을 한 번만 제출한 뒤 동일한 `job_id`를 폴링해, 긴 생성(멀티턴 도구 호출 루프)도 중복 실행 없이 안전하게 기다립니다.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./assets/runpod-polling-dark.svg">
-  <img src="./assets/runpod-polling-light.svg" alt="RunPod 폴링 루프 — POST /run 제출 후 job_id를 받아 최대 60회, 5초 간격으로 상태를 폴링하고, COMPLETED/FAILED/CANCELLED/타임아웃에 따라 결과를 분기하는 흐름도">
+  <img src="./assets/runpod-polling-light.svg" alt="RunPod 작업 폴링 흐름. POST /run으로 제출해 job id를 받고, 5초 간격으로 최대 60회 GET /status를 조회한다. COMPLETED면 output을 반환하고, IN_QUEUE나 IN_PROGRESS면 대기 후 다시 조회한다. 제출 응답이 없으면 재제출 없이 실패, FAILED나 CANCELLED면 RuntimeError, 60회를 넘기면 TimeoutError로 끝난다.">
 </picture>
 
 > `/run` 제출 응답을 받지 못하면 job 자체는 이미 실행 중일 수 있으므로, 무작정 재제출하지 않고 명확한 예외로 상위 로직에 알립니다.
@@ -740,7 +736,7 @@ CHROMA_PERSIST_DIR=./chroma_db .venv/bin/python evals/eval_exam.py
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./assets/deploy-architecture-dark.svg">
-  <img src="./assets/deploy-architecture-light.svg" alt="배포 아키텍처 — 브라우저에서 Caddy(HTTPS)를 거쳐 Next.js frontend, EC2의 FastAPI+ChromaDB로 이어지고, EC2가 RunPod 서버리스(vLLM)를 호출하며 EBS에 ChromaDB를 저장하는 구조도">
+  <img src="./assets/deploy-architecture-light.svg" alt="배포 구성(현재 내려 둠). 교사 브라우저가 HTTPS로 EC2의 Caddy에 접속하고, Caddy는 호스트 내부 포트의 Next.js 컨테이너로, Next.js는 BACKEND_URL로 FastAPI 컨테이너로 전달한다. FastAPI는 생성에 RunPod 서버리스를, Judge와 VLM에 OpenAI API를 호출한다.">
 </picture>
 
 > **프론트엔드 배포**: `docker-compose.yml`의 `frontend` 서비스가 3000 포트로 UI를 서빙합니다
@@ -834,7 +830,7 @@ bash deploy/billing_alarm.sh   # 월 $10 초과 시 이메일 알람
 |---|---|
 | EC2 t3.medium | 약 $30 |
 | RunPod 서버리스 (추론만 과금, `min workers=1`) | 약 $5~15 |
-| EBS 10GB | 약 $1 |
+| EBS | 약 $1 |
 | **합계** | **약 $36~46** |
 
 데모나 개발 중에는 EC2를 필요할 때만 켜서 아낄 수 있습니다. `min workers=0`으로 두면 RunPod 비용을 크게 줄일 수 있습니다(대신 첫 호출에 30~60초가 더 걸립니다).

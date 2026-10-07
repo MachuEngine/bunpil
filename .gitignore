@@ -37,3 +37,6 @@ SELF_INTRO.md
 blog_draft.md
 CODE_REVIEW_CHECKLIST.md
 
+
+# archify 작업 폴더(렌더 HTML·영수증). 다이어그램 원본 JSON은 assets/diagram-src/
+.archify/

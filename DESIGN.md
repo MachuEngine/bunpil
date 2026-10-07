@@ -229,7 +229,7 @@ PII 마스킹(`app/common/privacy.py`)은 출제 경로가 계속 쓰므로 유�
               · ChromaDB는 EBS 볼륨에 저장                  · 콜드스타트 수초~수십초
 ```
 
-- **앱 = AWS EC2** (t3.medium, ~4GB): FastAPI·agent·ChromaDB 구동 (UI는 Next.js, `frontend/`). ChromaDB는 EBS 볼륨에 영구 저장. IAM·보안그룹·SSH·Docker 표준 배포 절차를 따른다.
+- **앱 = AWS EC2** (t3.medium): FastAPI·agent·ChromaDB 구동 (UI는 Next.js, `frontend/`). ChromaDB는 EBS 볼륨에 영구 저장. IAM·보안그룹·SSH·Docker 표준 배포 절차를 따른다.
 - **GPU = RunPod Serverless**: 추론만 요청당 과금, 유휴 시 0. 비싼 GPU 비용만 pay-per-use.
 - **HTTPS**: Caddy 리버스 프록시로 자동 발급(+도메인) → 표준 배포 실습 포함.
 - 요청 흐름: 브라우저 → EC2(마스킹·오케스트레이션) → RunPod 서버리스 호출 → 응답. 앱 로직 stateless, Chroma만 EBS 영구.
@@ -242,7 +242,7 @@ PII 마스킹(`app/common/privacy.py`)은 출제 경로가 계속 쓰므로 유�
 |---|---|
 | EC2 t3.medium (상시) | ~$30 |
 | RunPod 서버리스 GPU (추론) | ~$1–5 |
-| 스토리지(EBS·볼륨 수 GB) | ~$1 |
+| 스토리지(EBS) | ~$1 |
 | **합계** | **~$32–36** |
 
 - 데모·개발 단계는 EC2를 필요할 때만 켜서 더 절감 가능.

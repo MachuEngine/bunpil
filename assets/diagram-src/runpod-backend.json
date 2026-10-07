@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "RunPod 백엔드 계층 (ChatRunPod, RunPodBackend)",
+    "output": ".archify/architecture-runpod-backend-20261008-090000/runpod-backend.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/MachuEngine/bunpil.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "d2706168dd4f3af499361855d7fa65dbabebdb7f"
+    },
+    "legend": {
+      "entries": {
+        "backend": { "label": "앱 코드" },
+        "cloud": { "label": "외부 GPU" }
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "agentnode", "type": "backend", "label": "agent 노드", "sublabel": "bind_tools(TOOLS)",
+      "pos": [40, 200], "size": [170, 64],
+      "sources": [{ "path": "app/modules/exam/graph.py", "line": 265, "end_line": 266, "label": "get_langchain_model" }]
+    },
+    {
+      "id": "chatrunpod", "type": "backend", "label": "ChatRunPod", "sublabel": "메시지, tool_calls 형식 변환",
+      "tag": "BaseChatModel",
+      "pos": [290, 200], "size": [200, 64],
+      "sources": [
+        { "path": "app/common/llm/backends/chat_runpod.py", "line": 164, "end_line": 171, "label": "어댑터 클래스" },
+        { "path": "app/common/llm/backends/chat_runpod.py", "line": 236, "end_line": 243, "label": "RunPodBackend 호출" }
+      ]
+    },
+    {
+      "id": "backend", "type": "backend", "label": "RunPodBackend", "sublabel": "/run 제출, /status 폴링",
+      "pos": [620, 200], "size": [190, 64],
+      "sources": [
+        { "path": "app/common/llm/backends/runpod.py", "line": 30, "end_line": 54 },
+        { "path": "app/common/llm/backends/runpod.py", "line": 110, "end_line": 129, "label": "generate, generate_chat" }
+      ]
+    },
+    {
+      "id": "fastapi", "type": "backend", "label": "FastAPI", "sublabel": "요청 분석, 해설",
+      "pos": [630, 40], "size": [170, 64],
+      "sources": [
+        { "path": "app/main.py", "line": 147, "end_line": 163, "label": "_analyze_request" },
+        { "path": "app/modules/exam/explain.py", "line": 40, "end_line": 46, "label": "explain_item" },
+        { "path": "app/common/llm/factory.py", "line": 12, "end_line": 17, "label": "LLM_BACKEND=runpod" }
+      ]
+    },
+    {
+      "id": "runpod", "type": "cloud", "label": "RunPod 서버리스", "sublabel": "handler.py, vLLM",
+      "tag": "Qwen2.5-14B-AWQ",
+      "pos": [970, 200], "size": [190, 64],
+      "sources": [
+        { "path": "runpod_handler/handler.py", "line": 52, "end_line": 55, "label": "AWQ 모델 로드" },
+        { "path": "runpod_handler/handler.py", "line": 110, "label": "handler" },
+        { "path": "runpod_handler/handler.py", "line": 154, "label": "serverless.start" }
+      ]
+    }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "앱 프로세스 (FastAPI 컨테이너)", "wraps": ["agentnode", "chatrunpod", "backend", "fastapi"] }
+  ],
+  "connections": [
+    { "id": "agent-chat", "from": "agentnode", "to": "chatrunpod", "label": "invoke", "variant": "emphasis" },
+    { "id": "chat-backend", "from": "chatrunpod", "to": "backend", "label": "generate_chat()", "variant": "emphasis" },
+    { "id": "backend-runpod", "from": "backend", "to": "runpod", "label": "HTTPS /run, /status", "variant": "emphasis" },
+    { "id": "fastapi-backend", "from": "fastapi", "to": "backend", "label": "generate()", "variant": "dashed" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald", "title": "계층을 나눈 이유",
+      "items": [
+        "ChatRunPod는 LangGraph가 요구하는 BaseChatModel 인터페이스와 tool_calls 변환만 맡음",
+        "HTTP 통신과 폴링은 RunPodBackend가 전담",
+        "도구 호출이 없는 요청 분석과 해설은 RunPodBackend를 바로 호출"
+      ]
+    },
+    {
+      "dot": "slate", "title": "현재 상태",
+      "items": [
+        "RunPod 엔드포인트는 2026-07부터 크레딧 소진으로 정지, 설정은 그대로 남아 있음"
+      ]
+    }
+  ]
+}
