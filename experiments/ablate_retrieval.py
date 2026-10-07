@@ -46,11 +46,13 @@ from dotenv import load_dotenv
 
 # CHROMA_PERSIST_DIR: 로컬 .env는 /data/chroma_db로 설정돼 있어(배포 환경 기준) 로컬에서
 # 실행하면 실패한다. 셸에 이미 설정돼 있으면(배포 환경 등) 그 값을 존중하고, 없으면
-# load_dotenv()가 .env 값으로 채우기 전에 미리 표시해둔 뒤 ./chroma_db로 덮어쓴다.
+# load_dotenv()가 .env 값으로 채우기 전에 미리 표시해둔 뒤 로컬 경로로 덮어쓴다
+# (공용 헬퍼로 교체, 2026-10-07 — evals/eval_exam.py 등 다른 스크립트와 로직 통일).
 _had_chroma_dir = "CHROMA_PERSIST_DIR" in os.environ
 load_dotenv()
-if not _had_chroma_dir:
-    os.environ["CHROMA_PERSIST_DIR"] = "./chroma_db"
+
+from evals.local_env import use_local_chroma_dir
+use_local_chroma_dir(_had_chroma_dir)
 
 _GOLDEN_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "golden")
 _INPUTS_PATH = os.path.join(_GOLDEN_DIR, "item_quality_inputs.json")

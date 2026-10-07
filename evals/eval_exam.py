@@ -31,11 +31,18 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from dotenv import load_dotenv
+
+# CHROMA_PERSIST_DIR: 로컬 .env는 배포 경로(/data/chroma_db)로 설정돼 있어 로컬에서
+# 그대로 실행하면 RAGStore 초기화가 실패한다(evals/local_env.py 참고). 셸 명시 여부는
+# load_dotenv() 호출 전에 캡처해야 한다.
+_had_chroma_dir = "CHROMA_PERSIST_DIR" in os.environ
 load_dotenv()
 
 os.environ.setdefault("LLM_BACKEND", "local")
 os.environ.setdefault("OLLAMA_MODEL", "qwen2.5:1.5b")
-os.environ.setdefault("CHROMA_PERSIST_DIR", "./chroma_db")
+
+from evals.local_env import use_local_chroma_dir
+use_local_chroma_dir(_had_chroma_dir)
 
 from app.common.llm.tracing import init_langsmith_project
 init_langsmith_project()
