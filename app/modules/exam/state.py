@@ -19,7 +19,9 @@ class DraftItem(TypedDict):
     answer: str
     item_type: str           # "객관식" | "서술형"
     difficulty: str          # "상" | "중" | "하"
-    standard: str
+    # 2026-10-07: `standard` 제거 — search_standards를 생성 경로에서 뺀 결정과 함께
+    # (experiments/ablate_retrieval.py 근거). 이 칸이 하던 일은 사용자가 쓰지 않는
+    # 화면 표시뿐이었다.
     # 2026-08-06: `judge_score`·`status` 제거 — 출처였던 record_score(에이전트 자기채점)를
     # 도구에서 걷어냈다(EVAL.md 17절). 문항 품질 판정은 judge_node의 구조 유사도 채점이 담당.
 

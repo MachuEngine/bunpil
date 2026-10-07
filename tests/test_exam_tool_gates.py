@@ -14,7 +14,6 @@ VALID_ITEM = {
     "answer": "①",
     "item_type": "객관식",
     "difficulty": "중",
-    "standard": "",
 }
 
 
@@ -44,6 +43,22 @@ def test_saved_item_exposes_no_self_assigned_score():
     assert "judge_score" not in item
     assert "status" not in item
     assert "record_score" not in {t.name for t in TOOLS}
+
+
+def test_search_standards_excluded_from_tools_and_saved_item():
+    """2026-10-07: 생성 경로 RAG 제거(experiments/ablate_retrieval.py 근거) — TOOLS에
+    search_standards가 없어야 하고(5개 → 4개), 저장된 문항에도 standard 필드가 없어야
+    한다. 함수 자체(search_standards)는 실험 재현용으로 남아 있어야 한다."""
+    import app.modules.exam.tools as tools_module
+
+    init_session("합성 예시", target_num=1)
+    save_item.invoke(VALID_ITEM)
+    item = get_draft_items()[0]
+
+    assert "search_standards" not in {t.name for t in TOOLS}
+    assert len(TOOLS) == 4
+    assert "standard" not in item
+    assert hasattr(tools_module, "search_standards")
 
 
 def test_target_cap_requires_discard_before_replacement():
@@ -84,9 +99,8 @@ def test_judge_payload_is_identical_for_runtime_and_offline():
 
     assert runtime_payload.keys() == golden_payload.keys()
     assert runtime_payload == golden_payload
-    # item_id·standard 같은 런타임 전용 필드는 Judge에게 새어나가면 안 된다
+    # item_id 같은 런타임 전용 필드는 Judge에게 새어나가면 안 된다
     assert "item_id" in runtime_item and "item_id" not in runtime_payload
-    assert "standard" in runtime_item and "standard" not in runtime_payload
 
 
 # ── 2026-09: 형식 인식 — 5지선다·<보기>(stimulus) ────────────────────────

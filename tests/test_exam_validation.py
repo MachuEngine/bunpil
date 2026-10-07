@@ -8,7 +8,6 @@ _ITEM = {
     "answer": "①",
     "item_type": "객관식",
     "difficulty": "중",
-    "standard": "",
 }
 
 

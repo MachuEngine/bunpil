@@ -7,8 +7,6 @@ logger = logging.getLogger(__name__)
 
 from langchain_core.tools import tool
 
-from app.common.rag import get_retriever, get_store
-
 # ── 세션 컨텍스트 ──
 # _request_ctx: 요청별 독립 dict. asyncio.to_thread + contextvars.copy_context()로
 # 요청 간 격리 보장. 같은 요청의 worker 스레드들은 동일 dict 객체를 공유하므로
@@ -96,7 +94,7 @@ def init_session(passage_text: str = "", target_num: int = 0, fmt: dict | None =
 def get_draft_items() -> list:
     """지금까지 저장된 문항들을 반환한다(각 dict는 호출부가 만져도 안전하도록 얕은 복사).
 
-    item = {item_id, question, stimulus, options, answer, item_type, difficulty, standard}
+    item = {item_id, question, stimulus, options, answer, item_type, difficulty}
 
     2026-08-06: 이전엔 여기서 `judge_score`·`status` 두 필드를 덧붙였다. 그 값의 출처인
     `record_score`(에이전트 자기채점)를 제거하면서 함께 걷어냈다 — 자세한 배경은
@@ -147,6 +145,31 @@ context (dict)
 # regulations 항목이라, 지우면 Recall@5 히스토리가 n=22→12로 끊긴다). 인덱싱 스크립트
 # (`scripts/index_regulations.py`)와 코퍼스도 그 이유로 유지한다.
 
+def get_retriever():
+    """`app.common.rag.get_retriever`로의 지연 import 래퍼.
+
+    tools.py 상단에서 바로 import하면 `import app.modules.exam.tools`(또는 graph.py)
+    만으로 FlagEmbedding(BGE-M3 임베더) 로딩이 즉시 시작됐다 — search_standards가
+    TOOLS에서 빠진 지금은 이 비용을 생성 경로가 전혀 쓰지 않는데도 치르고 있었다.
+    이름은 그대로 `get_retriever`로 둔다 — experiments/ablate_retrieval.py가
+    `tools_module.get_retriever = ...`로 monkeypatch해 검색을 끄고 켜는데(검색 제거
+    실험 재현), 함수 안에서 바로 `from app.common.rag import get_retriever`를 쓰면
+    그 import가 매번 원본을 다시 가져와 패치를 무시하게 된다."""
+    from app.common.rag import get_retriever as _real_get_retriever
+    return _real_get_retriever()
+
+
+def get_store():
+    """`get_retriever()`와 같은 이유의 지연 import 래퍼(get_store용)."""
+    from app.common.rag import get_store as _real_get_store
+    return _real_get_store()
+
+
+# 2026-10-07: TOOLS에서 제외(5개 → 4개) — experiments/ablate_retrieval.py 실험 결과,
+# 검색을 켜고 꺼도 문항 품질(정답유일성·오답매력도·근거성)이 판정 불가 수준으로 같았고
+# (최대 0.07점 차이, 반복 간 잡음과 같은 크기), 검색이 실제로 하는 일은 save_item의
+# `standard` 칸을 채우는 것뿐이었는데 그 표시를 사용자(지인 교사)가 쓰지 않는다. 함수는
+# 지우지 않고 남긴다 — 이 실험의 재현(위 스크립트)과 아래 테스트가 이 함수를 그대로 쓴다.
 @tool
 def search_standards(query: str) -> str:
     """성취기준 관련 내용을 사회과 교육과정(2022 개정) standards 컬렉션에서 검색합니다.
@@ -281,7 +304,7 @@ def _check_similarity(question: str, stimulus: str = "") -> str | None:
 
 
 @tool
-def save_item(question: str, options: list, answer: str, item_type: str, difficulty: str = "중", standard: str = "", stimulus: str = "") -> str:
+def save_item(question: str, options: list, answer: str, item_type: str, difficulty: str = "중", stimulus: str = "") -> str:
     """검증된 문항을 저장합니다. 에이전트가 직접 작성한 내용을 저장합니다.
     (다음 문항은 저장이 거부됩니다 — 한국어가 아닌 문항, 예시 문제를 그대로 복사한 문항,
     이미 저장된 문항과 동일한 문항. 거부 시 안내에 따라 새로 작성해 재시도하세요.)
@@ -290,7 +313,6 @@ def save_item(question: str, options: list, answer: str, item_type: str, difficu
     answer: 정답 (객관식: 선지 기호 하나, 서술형: "")
     item_type: 객관식|서술형
     difficulty: 상|중|하
-    standard: 성취기준명 (선택)
     stimulus: <보기>·자료 등 발문과 선지 사이의 제시문 (없으면 "")
     """
     ctx = _get_ctx()
@@ -323,7 +345,6 @@ def save_item(question: str, options: list, answer: str, item_type: str, difficu
         "answer": answer,
         "item_type": item_type,
         "difficulty": difficulty,
-        "standard": standard,
     }
     ctx["items"].append(item)
     return f"저장 완료 (item_id={item_id})."
@@ -358,8 +379,8 @@ def submit_for_review() -> str:
 # 없어졌다. 반면 시스템 프롬프트가 이를 "save_item 다음 턴에" 부르도록 강제해
 # 문항당 4턴 중 1턴(25%)을 쓰고 있었고, 실측 거부율도 0.500이라 실패 시 턴을 더
 # 낭비했다. 14턴 한도가 실제 병목(문항 수가 늘수록 개수 미달)이라 걷어냈다 — EVAL.md 17절.
+# 2026-10-07: `search_standards` 제거(5→4개) — 위 함수 정의부 주석 참고.
 TOOLS = [
-    search_standards,
     validate_item_format,
     save_item,
     discard_item,

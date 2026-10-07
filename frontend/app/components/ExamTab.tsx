@@ -67,12 +67,6 @@ function ItemCard({
               {item.answer}
             </p>
           )}
-          {item.standard && (
-            <p className="text-[13px] text-[#6E7469] mt-1">
-              성취기준: {item.standard}
-            </p>
-          )}
-
           {/* 해설 보기 — 누르기 전에는 정답도 숨긴다(카드를 펼친 것만으로 정답이 보이지 않게) */}
           <div className="mt-3" onClick={(e) => e.stopPropagation()}>
             {!showAnswer ? (

@@ -85,6 +85,13 @@ def test_gate_and_prompt_use_same_format():
     assert "①②③④⑤ 형식으로 5개" in prompt
 
 
+def test_system_prompt_does_not_mention_search_standards():
+    """2026-10-07: 생성 경로 RAG 제거 — 프롬프트가 더 이상 search_standards를
+    지시하지 않아야 한다(experiments/ablate_retrieval.py 근거)."""
+    prompt = _build_system_prompt(FOUR, 1, [], "", rule_format(FOUR))
+    assert "search_standards" not in prompt
+
+
 def test_combo_instruction_is_outside_stimulus_branch():
     fmt = {"num_options": 4, "has_stimulus": False, "combo": True, "has_essay": False}
     assert "합답형" in _build_system_prompt(FOUR, 1, [], "", fmt)
