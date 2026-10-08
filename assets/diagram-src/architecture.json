@@ -2,313 +2,97 @@
   "schema_version": 1,
   "diagram_type": "architecture",
   "meta": {
-    "title": "분필 시스템 구성도",
-    "output": ".archify/architecture-bunpil-overview-20261007-213826/bunpil-overview.html",
+    "title": "분필 아키텍처: 런타임과 오프라인 평가",
+    "output": ".archify/architecture-readme-hero-20261008-224710/architecture.html",
     "quality_profile": "showcase",
     "repository": {
       "url": "https://github.com/MachuEngine/bunpil.git",
       "provider": "github",
       "link_mode": "web",
-      "revision": "d2706168dd4f3af499361855d7fa65dbabebdb7f"
+      "revision": "77999c974e252748ced675b527f54e589aa91a56"
+    },
+    "legend": {
+      "entries": {
+        "backend": { "label": "앱 코드" },
+        "cloud": { "label": "모델" },
+        "database": { "label": "사람 라벨" },
+        "security": { "label": "개인정보 보호" },
+        "external": { "label": "사용자" }
+      }
     }
   },
   "components": [
-    {
-      "id": "teacher",
-      "type": "external",
-      "label": "교사 브라우저",
-      "sublabel": "예시 문제, 화면 캡처",
-      "pos": [
-        40,
-        220
-      ],
-      "size": [
-        160,
-        64
-      ]
-    },
-    {
-      "id": "nextjs",
-      "type": "frontend",
-      "label": "Next.js",
-      "sublabel": "frontend/app/api 프록시",
-      "pos": [
-        260,
-        220
-      ],
-      "size": [
-        160,
-        64
-      ],
+    { "id": "teacher", "type": "external", "label": "교사", "sublabel": "예시 문제, 캡처",
+      "pos": [40, 60], "size": [140, 64] },
+    { "id": "fastapi", "type": "backend", "label": "FastAPI", "sublabel": "Next.js 프록시 경유",
+      "pos": [240, 60], "size": [170, 64],
       "sources": [
-        {
-          "path": "frontend/app/api/exam/stream/route.ts",
-          "line": 3,
-          "end_line": 17,
-          "label": "BACKEND_URL로 전달"
-        }
-      ]
-    },
-    {
-      "id": "fastapi",
-      "type": "backend",
-      "label": "FastAPI",
-      "sublabel": "app/main.py",
-      "pos": [
-        535,
-        220
-      ],
-      "size": [
-        150,
-        64
-      ],
+        { "path": "frontend/app/api/exam/stream/route.ts", "line": 3, "end_line": 17, "label": "Next.js 프록시" },
+        { "path": "app/main.py", "line": 275, "end_line": 282, "label": "/exam/stream" }
+      ] },
+    { "id": "masking", "type": "security", "label": "PII 마스킹", "sublabel": "mask_pii(), 모델 호출 전",
+      "pos": [510, 60], "size": [160, 64],
       "sources": [
-        {
-          "path": "app/main.py",
-          "line": 275,
-          "end_line": 282,
-          "label": "/exam/stream"
-        },
-        {
-          "path": "app/main.py",
-          "line": 439,
-          "end_line": 458,
-          "label": "/exam/explain"
-        },
-        {
-          "path": "app/main.py",
-          "line": 357,
-          "end_line": 385,
-          "label": "/exam/extract"
-        }
-      ]
-    },
-    {
-      "id": "masking",
-      "type": "security",
-      "label": "PII 마스킹",
-      "sublabel": "mask_pii(), 모델 호출 전",
-      "pos": [
-        790,
-        220
-      ],
-      "size": [
-        160,
-        64
-      ],
-      "sources": [
-        {
-          "path": "app/main.py",
-          "line": 166,
-          "end_line": 174,
-          "label": "_build_spec"
-        },
-        {
-          "path": "app/common/privacy.py",
-          "line": 57,
-          "label": "mask_pii"
-        }
-      ]
-    },
-    {
-      "id": "graph",
-      "type": "backend",
-      "label": "출제 그래프 (LangGraph)",
-      "sublabel": "plan → agent → judge → validate",
+        { "path": "app/main.py", "line": 166, "end_line": 174, "label": "_build_spec" },
+        { "path": "app/common/privacy.py", "line": 57, "label": "mask_pii" }
+      ] },
+    { "id": "graph", "type": "backend", "label": "출제 그래프 (LangGraph)", "sublabel": "plan → agent → judge → validate",
       "tag": "재시도 최대 5회",
-      "pos": [
-        1060,
-        220
-      ],
-      "size": [
-        220,
-        64
-      ],
+      "pos": [780, 60], "size": [220, 64],
       "sources": [
-        {
-          "path": "app/modules/exam/graph.py",
-          "line": 448,
-          "end_line": 461,
-          "label": "build_exam_graph"
-        },
-        {
-          "path": "app/main.py",
-          "line": 177,
-          "end_line": 189,
-          "label": "budget=5"
-        }
-      ]
-    },
-    {
-      "id": "genllm",
-      "type": "cloud",
-      "label": "생성 LLM",
-      "sublabel": "Qwen2.5-14B, Ollama 또는 RunPod",
-      "pos": [
-        1030,
-        420
-      ],
-      "size": [
-        200,
-        64
-      ],
+        { "path": "app/modules/exam/graph.py", "line": 448, "end_line": 461, "label": "build_exam_graph" },
+        { "path": "app/main.py", "line": 185, "label": "budget=5" }
+      ] },
+    { "id": "vlm", "type": "cloud", "label": "VLM", "sublabel": "gpt-6-luna",
+      "pos": [240, 260], "size": [170, 64],
       "sources": [
-        {
-          "path": "app/modules/exam/llm.py",
-          "line": 8,
-          "end_line": 36,
-          "label": "get_langchain_model"
-        },
-        {
-          "path": "app/common/llm/factory.py",
-          "line": 12,
-          "end_line": 26,
-          "label": "get_llm_backend"
-        }
-      ]
-    },
-    {
-      "id": "judgellm",
-      "type": "cloud",
-      "label": "Judge LLM",
-      "sublabel": "gpt-5.6-luna, 생성과 분리",
-      "pos": [
-        1260,
-        420
-      ],
-      "size": [
-        180,
-        64
-      ],
+        { "path": "app/common/llm/factory.py", "line": 62, "end_line": 80, "label": "get_vlm_backend" },
+        { "path": "app/main.py", "line": 374, "end_line": 378, "label": "추출 후 마스킹" }
+      ] },
+    { "id": "genllm", "type": "cloud", "label": "생성 LLM", "sublabel": "Qwen2.5-14B (코드 기본값)",
+      "pos": [700, 260], "size": [170, 64],
       "sources": [
-        {
-          "path": "app/modules/exam/graph.py",
-          "line": 349,
-          "end_line": 368,
-          "label": "judge_node"
-        },
-        {
-          "path": "app/common/llm/factory.py",
-          "line": 29,
-          "end_line": 59,
-          "label": "get_judge_backend"
-        }
-      ]
-    },
-    {
-      "id": "vlm",
-      "type": "cloud",
-      "label": "VLM",
-      "sublabel": "gpt-6-luna (OpenAI)",
-      "pos": [
-        650,
-        40
-      ],
-      "size": [
-        170,
-        64
-      ],
+        { "path": "app/modules/exam/llm.py", "line": 8, "end_line": 36, "label": "get_langchain_model" },
+        { "path": "app/common/llm/factory.py", "line": 12, "end_line": 26, "label": "get_llm_backend" }
+      ] },
+    { "id": "rtjudge", "type": "cloud", "label": "런타임 Judge", "sublabel": "gpt-5.6-luna, 생성과 분리",
+      "pos": [1040, 260], "size": [170, 64],
       "sources": [
-        {
-          "path": "app/common/llm/factory.py",
-          "line": 62,
-          "end_line": 80,
-          "label": "get_vlm_backend"
-        },
-        {
-          "path": "app/main.py",
-          "line": 374,
-          "end_line": 378,
-          "label": "추출 후 마스킹"
-        }
-      ]
-    }
+        { "path": "app/modules/exam/graph.py", "line": 348, "end_line": 368, "label": "judge_node" },
+        { "path": "app/common/llm/factory.py", "line": 29, "end_line": 59, "label": "get_judge_backend" }
+      ] },
+    { "id": "labels", "type": "database", "label": "사람 라벨", "sublabel": "문항 91건, VLM 서술 130건",
+      "pos": [359, 470], "size": [200, 64],
+      "sources": [
+        { "path": "data/golden/item_quality_golden.json", "line": 1, "label": "문항 라벨" },
+        { "path": "data/golden/vlm_figure_human_labels.json", "line": 1, "label": "VLM 라벨" }
+      ] },
+    { "id": "offjudge", "type": "cloud", "label": "오프라인 Judge", "sublabel": "claude-sonnet-5.5",
+      "pos": [625, 470], "size": [170, 64],
+      "sources": [
+        { "path": "evals/eval_lib.py", "line": 44, "end_line": 56, "label": "get_offline_judge_backend" },
+        { "path": "evals/eval_lib.py", "line": 327, "end_line": 350, "label": "κ 계산" }
+      ] },
+    { "id": "harness", "type": "backend", "label": "평가 하네스", "sublabel": "후보 모델로 33지문 생성",
+      "pos": [875, 470], "size": [170, 64],
+      "sources": [
+        { "path": "golden_gen/gen_item_quality_golden.py", "line": 229, "end_line": 260, "label": "_run_passage" }
+      ] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "오프라인 평가", "wraps": ["labels", "offjudge", "harness"] }
   ],
   "connections": [
-    {
-      "id": "teacher-to-next",
-      "from": "teacher",
-      "to": "nextjs",
-      "label": "HTTPS",
-      "variant": "emphasis"
-    },
-    {
-      "id": "next-to-api",
-      "from": "nextjs",
-      "to": "fastapi",
-      "label": "/api/* 프록시"
-    },
-    {
-      "id": "api-to-mask",
-      "from": "fastapi",
-      "to": "masking",
-      "label": "입력 텍스트"
-    },
-    {
-      "id": "mask-to-graph",
-      "from": "masking",
-      "to": "graph",
-      "label": "마스킹된 spec",
-      "variant": "emphasis"
-    },
-    {
-      "id": "graph-to-gen",
-      "from": "graph",
-      "to": "genllm",
-      "label": "agent: 도구 호출"
-    },
-    {
-      "id": "graph-to-judge",
-      "from": "graph",
-      "to": "judgellm",
-      "label": "judge: 구조 채점"
-    },
-    {
-      "id": "mask-to-gen",
-      "from": "masking",
-      "to": "genllm",
-      "label": "요청 분석, 해설",
-      "variant": "dashed"
-    },
-    {
-      "id": "api-to-vlm",
-      "from": "fastapi",
-      "to": "vlm",
-      "label": "캡처 이미지 (마스킹 전)",
-      "variant": "security"
-    },
-    {
-      "id": "vlm-to-mask",
-      "from": "vlm",
-      "to": "masking",
-      "label": "추출 텍스트"
-    }
-  ],
-  "cards": [
-    {
-      "dot": "rose",
-      "title": "보안 규칙",
-      "items": [
-        "모든 텍스트는 모델 호출 전에 mask_pii()로 마스킹",
-        "캡처 이미지는 원본을 마스킹할 수 없어 VLM 호출 뒤 추출 텍스트를 마스킹 (유일한 예외)",
-        "서버는 생성 문항을 저장하지 않음. 해설은 브라우저가 문항을 다시 보내 요청"
-      ]
-    },
-    {
-      "dot": "violet",
-      "title": "모델 구성 (코드 기본값)",
-      "items": [
-        "생성: Qwen2.5-14B (LLM_BACKEND=local 또는 runpod)",
-        "런타임 Judge: gpt-5.6-luna (JUDGE_BACKEND=openai)",
-        "VLM: gpt-6-luna (VLM_BACKEND=openai), 추출 결과는 입력창만 채움"
-      ]
-    },
-    {
-      "dot": "slate",
-      "title": "생성 경로에서 뺀 것",
-      "items": [
-        "성취기준 검색(RAG)과 ChromaDB는 2026-10에 생성 경로에서 제거, 검색 평가용으로만 유지"
-      ]
-    }
+    { "id": "teacher-api", "from": "teacher", "to": "fastapi", "label": "HTTPS", "variant": "emphasis" },
+    { "id": "api-mask", "from": "fastapi", "to": "masking", "label": "입력 텍스트" },
+    { "id": "mask-graph", "from": "masking", "to": "graph", "label": "마스킹된 spec", "variant": "emphasis" },
+    { "id": "graph-gen", "from": "graph", "to": "genllm", "label": "agent: 도구 호출" },
+    { "id": "graph-judge", "from": "graph", "to": "rtjudge", "label": "judge: 구조 채점" },
+    { "id": "mask-gen", "from": "masking", "to": "genllm", "label": "요청 분석, 해설", "variant": "dashed" },
+    { "id": "api-vlm", "from": "fastapi", "to": "vlm", "label": "캡처 이미지 (마스킹 전)", "variant": "security" },
+    { "id": "vlm-mask", "from": "vlm", "to": "masking", "label": "추출 텍스트" },
+    { "id": "harness-graph", "from": "harness", "to": "graph", "label": "같은 그래프 코드로 실행", "variant": "dashed" },
+    { "id": "harness-judge", "from": "harness", "to": "offjudge", "label": "문항 채점" },
+    { "id": "labels-judge", "from": "labels", "to": "offjudge", "label": "κ로 검증" }
   ]
 }
