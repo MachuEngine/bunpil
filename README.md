@@ -2,7 +2,7 @@
 
 # 분필 (bunpil)
 
-**고등학교 사회 교사를 위한 AI 문항 출제 워크플로**
+**AI 문항 출제 워크플로**
 
 ![Skills](https://skillicons.dev/icons?i=python,fastapi,typescript,nextjs,tailwind,docker,react,aws)
 
@@ -23,8 +23,6 @@
 
 > [!NOTE]
 > 2026-10에 포트폴리오로 마무리한 프로젝트입니다. 지인 교사 1인이 실제 수업에 썼고, 지금은 서비스를 내린 상태입니다. 배포 구성은 [docs/DEPLOY.md](./docs/DEPLOY.md)의 절차로 다시 띄울 수 있습니다.
-
-<img width="1173" height="562" alt="분필 웹 UI 실행 화면" src="https://github.com/user-attachments/assets/e82129c1-e4f2-4e49-8cf9-cb3a8c7aebcd" />
 
 ## 아키텍처
 
