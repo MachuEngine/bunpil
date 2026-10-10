@@ -16,6 +16,9 @@ FlagEmbedding==1.2.11
 peft==0.19.1
 torch==2.12.1
 numpy==1.26.4
+# FlagEmbedding 1.2.11이 끌어오는 datasets의 간접 의존성. pyarrow 26.0.0(2026-10-09)부터
+# NumPy 2.0 이상을 요구해 numpy==1.26.4와 충돌하므로(2026-10 CI 실패 원인) 명시적으로 고정한다.
+pyarrow==24.0.0
 
 # Phase 2 — LLM 추상화 레이어
 httpx==0.28.1
