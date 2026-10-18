@@ -1,6 +1,6 @@
 """LangSmith 프로젝트를 LLM_BACKEND에 따라 dev/prod로 자동 분기.
 
-로컬(Ollama)과 프로덕션(RunPod/OpenAI) 트레이스가 같은 LangSmith 프로젝트로 섞이면,
+로컬(Ollama)과 프로덕션(local 이외 백엔드) 트레이스가 같은 LangSmith 프로젝트로 섞이면,
 로컬 개발 중 발생하는 노이즈(실험적 프롬프트 변경·재시도·모델 비교 실험 등)가
 프로덕션 통계를 오염시킨다. .env에 LANGCHAIN_PROJECT를 정적으로 박아두고 사람이
 환경마다 다르게 관리하는 방식은 실수로 같은 값이 배포될 위험이 있어, 대신
@@ -14,8 +14,9 @@ import os
 # 실제 서빙(프로덕션) 백엔드 — local(Ollama)만 순수 로컬 개발용이고 나머지는 전부 실제
 # 트래픽일 수 있다고 간주. app/common/llm/factory.py에 새 백엔드가 추가되면 여기도
 # 같이 갱신해야 한다(반대쪽에도 참조 주석 있음).
-# openrouter는 평가(모델 비교) 전용이라 의도적으로 제외 — dev LangSmith 프로젝트로 간다.
-_PROD_BACKENDS = {"runpod", "openai"}
+# openrouter는 2026-10부터 운영 생성·Judge 경로라 prod로 분류한다. 같은 백엔드를 쓰는
+# 평가 스크립트도 트레이싱을 켜면 prod로 기록되므로 대량 평가는 LANGCHAIN_TRACING_V2=false로 실행.
+_PROD_BACKENDS = {"runpod", "openai", "openrouter"}
 
 
 def init_langsmith_project() -> None:

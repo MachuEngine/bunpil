@@ -34,7 +34,7 @@ Settings → API Keys에서 발급. `.env`에 미리 넣어두면 매번 셸에 
 | 실행 시 `LLM_BACKEND` | 실제 LangSmith 프로젝트명 |
 |---|---|
 | `local` (Ollama) | `bunpil-dev` |
-| `runpod` / `openai` | `bunpil-prod` |
+| `runpod` / `openai` / `openrouter` | `bunpil-prod` |
 
 `LANGCHAIN_PROJECT`를 `.env`에서 건드리지 않았다면(기본값 `bunpil`) 위처럼 자동으로
 `-dev`/`-prod` 접미사가 붙는다. **로컬에서 eval을 돌렸다면 LangSmith 왼쪽 프로젝트

@@ -141,5 +141,5 @@ bash deploy/billing_alarm.sh   # 월 $10 초과 시 이메일 알람
 | `RAG_HYBRID` | 단어 기반(BM25) + 의미 기반(dense) 하이브리드 검색 사용 여부. `false`면 의미 기반 단독으로 되돌아갑니다(재인덱싱 불필요). 근거는 [MODEL_SELECTION.md](../MODEL_SELECTION.md) 5절 | `true` |
 | `LANGCHAIN_TRACING_V2` | LangSmith 트레이싱 (`true` / `false`). 2026-07-24부터 프로덕션 API 서버에도 적용됨(PII 마스킹 후, 하드룰 3 예외) | `false` |
 | `LANGCHAIN_API_KEY` | LangSmith API 키 | — (선택) |
-| `LANGCHAIN_PROJECT` | LangSmith 프로젝트 이름의 앞부분. 기본값 `bunpil`을 그대로 두면 `LLM_BACKEND` 값에 따라 접미사가 자동으로 붙습니다 — `local`이면 `-dev`, `runpod`나 `openai`처럼 실제 서빙 백엔드면 `-prod`(`app/common/llm/tracing.py`). 로컬 개발 기록이 프로덕션 통계를 흐리지 않도록 나눈 것입니다. `bunpil`이 아닌 값을 직접 넣으면 그 값을 그대로 씁니다 | `bunpil` → `bunpil-dev` / `bunpil-prod` |
+| `LANGCHAIN_PROJECT` | LangSmith 프로젝트 이름의 앞부분. 기본값 `bunpil`을 그대로 두면 `LLM_BACKEND` 값에 따라 접미사가 자동으로 붙습니다 — `local`이면 `-dev`, `runpod`, `openai`, `openrouter`처럼 실제 서빙 백엔드면 `-prod`(`app/common/llm/tracing.py`). 로컬 개발 기록이 프로덕션 통계를 흐리지 않도록 나눈 것입니다. `bunpil`이 아닌 값을 직접 넣으면 그 값을 그대로 씁니다 | `bunpil` → `bunpil-dev` / `bunpil-prod` |
 
