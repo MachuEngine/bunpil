@@ -1,0 +1,39 @@
+# Render Blueprint: 백엔드(FastAPI, 루트 Dockerfile)를 Render 무료 플랜에 올리는 설정.
+# sync: false인 시크릿은 git에 남기지 않고 Render 대시보드에서 직접 입력한다.
+# BUNPIL_API_KEY는 Render가 생성하므로, 서비스 Environment 탭의 값을 Vercel 환경변수에 복사한다.
+services:
+  - type: web
+    name: bunpil-api
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: main
+    autoDeployTrigger: checksPass
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: "8765"
+      - key: LLM_BACKEND
+        value: openrouter
+      - key: OPENROUTER_MODEL
+        value: openai/gpt-6-luna
+      - key: JUDGE_BACKEND
+        value: openrouter
+      - key: OPENROUTER_JUDGE_MODEL
+        value: anthropic/claude-sonnet-5.5
+      - key: VLM_BACKEND
+        value: openai
+      - key: OPENAI_VLM_MODEL
+        value: gpt-6-luna
+      - key: LANGCHAIN_TRACING_V2
+        value: "false"
+      - key: LANGCHAIN_PROJECT
+        value: bunpil
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: BUNPIL_API_KEY
+        generateValue: true

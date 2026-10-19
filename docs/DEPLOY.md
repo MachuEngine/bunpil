@@ -1,12 +1,52 @@
 # 분필 배포와 환경변수
 
-> README에서 옮긴 배포 절차와 환경변수 표입니다(2026-10-08). 서비스는 지금 내려 둔 상태이고, 아래는 다시 띄울 때의 절차입니다.
+> README에서 옮긴 배포 절차와 환경변수 표입니다(2026-10-08). 현재 배포 방식은 Render 무료(백엔드) + Vercel Hobby(프론트엔드)이고, 기존 EC2 절차는 "대안: EC2 배포"에 남겨 뒀습니다.
 
-## 배포 (프로덕션)
+## 배포 (Render + Vercel, 무료)
 
-> **현재 배포는 내려 둔 상태입니다.** EC2 인스턴스는 비용 때문에 삭제했고, RunPod 서버리스는
-> 2026-07-22부터 크레딧 소진으로 비활성 상태입니다. 분필은 포트폴리오로 마무리해 다시 띄울
-> 계획은 없지만, 코드와 설정은 레포에 그대로 남아 있어 아래 절차대로 재현할 수 있습니다.
+> **현재 배포 방식은 Render 무료 플랜(백엔드) + Vercel Hobby(프론트엔드)입니다**(2026-10-19 결정, EC2 비용 때문).
+> 기존 EC2 + Caddy 절차는 아래 "대안: EC2 배포"에 그대로 남겨 뒀습니다. 운영 모델은 전부 API라서
+> RunPod 서버리스는 2026-10 이후 쓰지 않습니다.
+
+구성: 교사 브라우저 → Vercel(Next.js) → Render(FastAPI, singapore) → OpenRouter/OpenAI.
+Vercel 함수가 서버 측에서 Render를 호출하므로 `BUNPIL_API_KEY`는 브라우저에 노출되지 않습니다.
+두 플랫폼이 HTTPS를 제공하므로 Caddy와 DNS 설정은 필요 없습니다.
+
+### 사전 준비
+
+OpenRouter 키에는 월 지출 한도를, OpenAI에는 사용 한도를 설정하는 것을 권장합니다. Vercel 주소를 아는 사람은 누구나
+출제를 돌릴 수 있기 때문입니다. 동시 2건 제한 기준으로 쉬지 않고 돌려도 시간당 약 240건, 약 $2.5가 상한입니다
+(요청당 약 $0.0104, 2026-10-18 로컬 부하 테스트 실측).
+
+### Render (백엔드)
+
+1. 이 저장소를 `main`에 push합니다.
+2. Render 대시보드에서 New → Blueprint로 저장소를 연결합니다(루트의 `render.yaml` 사용).
+3. `OPENROUTER_API_KEY`, `OPENAI_API_KEY`를 입력합니다(`sync: false`라 git에는 남지 않습니다).
+4. `BUNPIL_API_KEY`는 Render가 생성합니다. 서비스의 Environment 탭에서 값을 확인합니다.
+
+`autoDeployTrigger: checksPass`라서 `.github/workflows/ci.yml`이 통과한 커밋만 자동 배포됩니다.
+LangSmith 트레이싱을 켜려면 대시보드에서 `LANGCHAIN_TRACING_V2=true`와 `LANGCHAIN_API_KEY`를 추가합니다.
+
+### Vercel (프론트엔드)
+
+1. 저장소를 Import하고 Root Directory를 `frontend`로 지정합니다.
+2. 환경변수 `BACKEND_URL`(Render 서비스 주소, 예: `https://bunpil-api.onrender.com`)과 `BUNPIL_API_KEY`(Render 값을 복사)를 입력합니다.
+3. Fluid compute가 켜져 있는지 확인합니다. Hobby 함수는 최대 300초이고, 출제 SSE가 이 안에 끝나야 합니다.
+4. 함수 리전을 `icn1`(서울) 또는 `sin1`로 지정합니다.
+
+### 제약
+
+| 항목 | 내용 | 영향 |
+|---|---|---|
+| Render 무료 플랜 절전 | 15분 동안 요청이 없으면 정지하고, 깨우는 데 약 1분이 걸립니다 | 정지 뒤 첫 요청은 1분 30초~2분 걸릴 것으로 예상합니다(측정이 아니라 추정) |
+| 메모리 512MB, CPU 0.1 | 로컬에서 같은 제한을 건 컨테이너로 측정하면 대기 254MB, 최고 289MB, 기동 52초였습니다 | `<보기>` 출제 요청은 첫 요청 39초, 두 번째 25초였습니다(2026-10-19, arm64 맥에서 측정해 Render x86과 다를 수 있음) |
+| Vercel 요청 본문 4.5MB 고정 | 이미지 업로드 요청이 이 크기를 넘으면 Vercel이 거부합니다 | 프론트엔드가 4MB를 넘는 이미지를 업로드 전에 막습니다 |
+| Vercel Hobby | 비상업용 플랜입니다 | 상업적 용도로는 쓸 수 없습니다 |
+
+---
+
+## 대안: EC2 배포 (Docker + Caddy)
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/deploy-architecture-dark.svg">
@@ -20,17 +60,19 @@
 > `app`과 `frontend`가 함께 뜹니다.
 
 <details>
-<summary><b>대안: 외부 호스팅(Vercel 등)에 frontend만 분리 배포 (펼치기)</b></summary>
+<summary><b>EC2 대안에서 frontend만 Vercel로 분리하기 (펼치기)</b></summary>
 
-지금은 EC2 안에서 `frontend` 컨테이너를 상시 프로세스로 돌립니다. 기존 인프라만으로 해결되고 새 계정도 필요 없기 때문입니다.
+EC2 대안 구성은 EC2 안에서 `frontend` 컨테이너를 상시 프로세스로 돌립니다.
 
 대안으로 Next.js를 Vercel 같은 외부 호스팅에 올리고 `BACKEND_URL`만 EC2 도메인(`https://your-domain.com`)으로 맞출 수도 있습니다. 이 경우 `frontend` 컨테이너는 없어도 되고, Caddy는 FastAPI(8765)를 직접 바라보도록 되돌려야 합니다.
 
-CDN 엣지 배포로 프론트 응답이 빨라지는 이점이 있지만, 외부 계정을 새로 파야 해서 이 프로젝트에서는 택하지 않았습니다.
+현재 배포 방식(위 Render + Vercel 절)은 frontend를 Vercel에 두는 구성입니다.
 
 </details>
 
 ### RunPod 서버리스 설정
+
+(현재 사용하지 않음: 2026-10 이후 운영 모델은 전부 API)
 
 ```bash
 # 1. 핸들러 이미지 빌드 & 푸시
@@ -100,6 +142,8 @@ bash deploy/billing_alarm.sh   # 월 $10 초과 시 이메일 알람
 
 ### 월 운영비 (1인 기준)
 
+Render + Vercel: 호스팅 $0, API 사용료만(요청당 약 $0.01). 아래 표는 EC2 대안 기준입니다.
+
 | 항목 | 비용 |
 |---|---|
 | EC2 t3.medium | 약 $30 |
@@ -118,6 +162,7 @@ bash deploy/billing_alarm.sh   # 월 $10 초과 시 이메일 알람
 | 변수 | 설명 | 기본값 |
 |---|---|---|
 | `BUNPIL_API_KEY` | Next.js → FastAPI 서버 간 인증 키(양쪽에 동일한 긴 무작위 값 설정) | 필수 |
+| `PORT` | Render가 앱 포트를 찾는 데 쓰는 값(`render.yaml`에서 `8765`). 앱 코드는 읽지 않음 | — |
 | `BACKEND_URL` | 프론트엔드가 FastAPI를 찾아가는 주소(`frontend/app/api/*/route.ts`가 읽음). docker-compose에서는 `http://app:8765` | `http://localhost:8000` |
 | `LLM_BACKEND` | 생성 모델 백엔드 — `local`(Ollama) / `runpod` / `openai` / `openrouter`(뒤의 둘은 모델 비교 실험용) | `local` |
 | `OLLAMA_MODEL` | 로컬 개발 생성 모델명 | `qwen2.5:14b` |

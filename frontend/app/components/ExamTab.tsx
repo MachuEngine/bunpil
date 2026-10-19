@@ -8,6 +8,8 @@ import { buildText, downloadPdf, downloadPng, downloadText } from "@/lib/export"
 import ExamSheet from "./ExamSheet";
 
 const MAX_PASSAGE_LENGTH = 8000;
+// Vercel 함수 요청 본문 4.5MB 고정 제한보다 여유를 둔 값
+const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 
 // 해설 상태 — 교사용 다운로드·수정 반영 시에도 쓰므로 ExamTab이 item_id별로 들고 있다(2026-09)
 type ExplanationState = { status: "loading" } | { status: "done"; text: string } | { status: "error" };
@@ -189,6 +191,10 @@ export default function ExamTab() {
   const handleImageUpload = async (file: File) => {
     setExtractError("");
     setExtractPiiFound([]);
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setExtractError("이미지가 너무 큽니다(최대 4MB). 화면을 잘라서 다시 올려 주세요.");
+      return;
+    }
     setIsExtracting(true);
     try {
       const fd = new FormData();
