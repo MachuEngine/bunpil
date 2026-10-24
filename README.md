@@ -9,8 +9,8 @@
 ![LangChain](https://img.shields.io/badge/LangChain-1C3C3C?logo=langchain&logoColor=white)
 ![LangGraph](https://img.shields.io/badge/LangGraph-30363D?logo=langgraph&logoColor=white)
 ![Ollama](https://img.shields.io/badge/Ollama-2B2B2B?logo=ollama&logoColor=white)
-![RunPod](https://img.shields.io/badge/RunPod-5D29F0)
-![vLLM](https://img.shields.io/badge/vLLM-1B76C4?logo=vllm&logoColor=white)
+![Render](https://img.shields.io/badge/Render-000000?logo=render&logoColor=white)
+![Vercel](https://img.shields.io/badge/Vercel-000000?logo=vercel&logoColor=white)
 ![LangSmith](https://img.shields.io/badge/LangSmith-1B2733)
 
 [아키텍처](#아키텍처) · [핵심 지표](#핵심-지표) · [평가셋과 Judge 신뢰도](#평가셋과-judge-신뢰도) · [설계 결정](#설계-결정) · [개발하며 찾은 문제](#개발하며-찾은-문제) · [한계](#한계) · [빠른 시작](#빠른-시작) · [문서](#문서)
@@ -22,7 +22,9 @@
 예시 문제를 붙여넣으면 유형과 난이도 구성이 비슷한 새 문항 세트를 만드는 **LangGraph 평가-수정 루프 워크플로**입니다. 흐름은 코드가 고정하고 생성 단계만 도구 호출 루프로 두며, 통과 여부는 코드 게이트와 생성 모델과 분리된 Judge가 판단합니다.
 
 > [!NOTE]
-> 2026-10에 포트폴리오로 마무리한 프로젝트입니다. 지인 교사 1인이 실제 수업에 썼고, 지금은 서비스를 내린 상태입니다. 배포 구성은 [docs/DEPLOY.md](./docs/DEPLOY.md)의 절차로 다시 띄울 수 있습니다.
+> 포트폴리오 프로젝트이며, 2026-10-22부터 무료 플랜(Render + Vercel)으로 다시 운영하고 있습니다. 지인 교사 1인이 실제 수업에 쓴 이력이 있습니다. 운영 주소는 **https://bunpil-eight.vercel.app** 입니다.
+>
+> 한동안 아무도 쓰지 않으면 서버가 잠들어 첫 출제가 1~2분 걸립니다(2026-10-24 실측 104.9초). 깨어난 뒤의 요청은 대략 20~45초입니다. 실제 학생 정보는 넣지 마세요. 배포 구성과 실측은 [docs/DEPLOY.md](./docs/DEPLOY.md)에 있습니다.
 
 ## 아키텍처
 
@@ -55,7 +57,7 @@
 | PII 마스킹 누락률 | **0** | 골든셋 20건, 매 커밋 CI에서 검사 |
 
 - 생성 모델은 gemini-3.8-flash도 게이트를 100% 통과했습니다. 품질 차이는 대부분 판정 불가였고, 정답 오류와 사실 오류가 더 적고(통계적으로 유의하지는 않음) 비용이 6.6배 낮은 gpt-6-luna를 골랐습니다(세트당 $0.0034).
-- 재선정 결과는 평가 결론입니다. 운영 전환은 하지 않았고, 코드 기본값은 생성 Qwen2.5-14B, 런타임 Judge gpt-5.6-luna, VLM gpt-6-luna입니다.
+- 재선정 결과를 운영에 적용했습니다(2026-10-18 결정, `render.yaml`). 운영은 생성 gpt-6-luna, 런타임 Judge claude-sonnet-5.5, VLM gpt-6-luna이고, 코드 기본값은 로컬 개발용(Ollama Qwen2.5-14B)으로 남아 있습니다.
 - 비교 방법과 전체 수치는 [MODEL_SELECTION.md](./MODEL_SELECTION.md), 시간순 원본 기록은 [EVAL.md](./EVAL.md) 28~30절에 있습니다.
 
 ## 평가셋과 Judge 신뢰도
@@ -83,7 +85,8 @@
 | 〃 | 오답매력도 | 91 | **0.70** [0.60, 0.77] | 0.44 | +0.07 | 확정 |
 | 〃 | 근거성 | 91 | 0.56 [0.35, 0.73] | 0.56 | +0.17 | 미확정 |
 | gpt-5.6-luna (선정 때 비교한 후보) | 정답유일성 / 오답매력도 / 근거성 | 91 | 0.78 / 0.53 / 0.54 | 0.46 / 0.71 / 0.55 | +0.22 / +0.61 / +0.43 | 정답유일성, 오답매력도는 sonnet보다 유의하게 부정확 |
-| gpt-5.6-luna (런타임 구조 게이트) | 구조 유사도 | 45 | 해당 없음 | 0.63 [0.46, 0.84] | +0.23 | 난이도 일치 93% |
+| claude-sonnet-5.5 (런타임 구조 게이트, 2026-10-18~) | 구조 유사도 | 45 | 해당 없음 | 0.48 [0.32, 0.65] | −0.03 | 난이도 일치 91% |
+| gpt-5.6-luna (이전 런타임 구조 게이트, ~2026-10-18) | 구조 유사도 | 45 | 해당 없음 | 0.63 [0.46, 0.84] | +0.23 | 난이도 일치 93% |
 | gpt-5.6-luna (VLM 그림 서술) | 그림 서술 | 130 | **0.89** [0.82, 0.93] | 0.27 | +0.12 | 확정 |
 | claude-sonnet-5.5 (VLM 비교 후보) | 그림 서술 | 130 | 0.63 [0.48, 0.75] | 0.80 | −0.68 | luna보다 부정확 |
 
@@ -115,7 +118,7 @@
 - 근거성 Judge κ는 신뢰구간 하한이 기준 아래라 미확정입니다.
 - 요청 분석(문항 수, 형식 판정)과 해설은 생성 모델을 그대로 쓰고, 따로 고르거나 정확도를 재지 않았습니다.
 - VLM 평가 그림 중 75건은 합성 초안이라 사람 검수 전이고, 중간 품질 검증에 쓴 결함은 인공 주입입니다.
-- RunPod가 2026-07부터 크레딧 소진으로 멈춰, 그 뒤의 변경은 프로덕션 생성 경로에서 검증하지 못했습니다.
+- 2026-10-22·24에 운영 경로(Vercel → Render → API)에서 스모크 테스트와 소규모 부하 테스트로 동작을 확인했지만, 실사용 트래픽은 아직 없습니다.
 
 ## 빠른 시작
 

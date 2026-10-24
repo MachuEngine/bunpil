@@ -2,7 +2,7 @@
 
 > 포트폴리오 + 지인(고등학교 사회 교사) 실사용을 위한 LLM 서비스.
 > 본 문서는 Claude Code 빌드 브리프(`CLAUDE.md`)이자 설계 요약본으로 사용한다.
-> 2026-10-07부터 포트폴리오로 마무리하며 서비스는 내려 둔 상태다(운영 전환 미실시).
+> 2026-10-07에 포트폴리오로 마무리하며 서비스를 내렸으나 2026-10-18에 번복했고, 2026-10-22부터 Render + Vercel 무료 플랜으로 운영한다(docs/DEPLOY.md).
 
 ---
 
@@ -124,8 +124,8 @@ PII 마스킹(`app/common/privacy.py`)은 출제 경로가 계속 쓰므로 유�
 | 오케스트레이션 | LangGraph(출제 agent) |
 | 벡터스토어 | ChromaDB + Rerank (BGE-reranker) — **2026-10-07부터 생성 경로 미사용**, 검색 평가용 |
 | 임베딩 | BGE-M3 — 상동, 검색 평가용 |
-| LLM 서빙 | vLLM + Qwen2.5 (프로덕션) |
-| Judge(평가) 모델 | OpenAI gpt-5.6-luna(기본, `JUDGE_BACKEND=openai`) / Ollama 로컬(대안) — 2026-07-23부터 오프라인 eval뿐 아니라 런타임(`judge_node`)에도 적용, 생성 백엔드와 완전히 독립. 채택 근거는 MODEL_SELECTION.md |
+| LLM 서빙 | Ollama + Qwen2.5 (로컬 개발) / OpenRouter gpt-6-luna (운영, 2026-10-18~). 초기 설계는 vLLM + Qwen2.5 (프로덕션) |
+| Judge(평가) 모델 | OpenAI gpt-5.6-luna(`JUDGE_BACKEND=openai`) / Ollama 로컬(대안) — 2026-07-23부터 오프라인 eval뿐 아니라 런타임(`judge_node`)에도 적용, 생성 백엔드와 완전히 독립. 2026-10-18부터 운영 런타임 Judge는 claude-sonnet-5.5(`JUDGE_BACKEND=openrouter`, OpenRouter 경유)로 교체. 채택 근거는 MODEL_SELECTION.md |
 | 검증 | LLM as a Judge |
 | 프롬프트 | Few-shot / CoT |
 | 프론트엔드 | Next.js (frontend/) |
@@ -216,9 +216,11 @@ PII 마스킹(`app/common/privacy.py`)은 출제 경로가 계속 쓰므로 유�
 
 ---
 
-## 7. 배포 (확정: AWS EC2(앱) + RunPod 서버리스(GPU))
+## 7. 배포
 
-> 현재 상태: 서비스는 내려 둔 상태다(EC2 삭제, RunPod 크레딧 소진). 아래는 구성한 아키텍처 기록이다.
+현재 구성(2026-10-22~): 교사 브라우저 → Vercel(Next.js, `sin1`) → Render(FastAPI, singapore) → OpenRouter/OpenAI. 상세·실측은 docs/DEPLOY.md.
+
+> 아래는 초기 설계(EC2 + RunPod) 기록이다. 확정 당시 구성은 AWS EC2(앱) + RunPod 서버리스(GPU)였고, EC2 삭제와 RunPod 크레딧 소진으로 더 이상 쓰지 않는다.
 
 **구성: 앱은 AWS EC2 상시 가동, GPU 추론만 RunPod 서버리스**
 

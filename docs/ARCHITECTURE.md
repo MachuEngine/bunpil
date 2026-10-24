@@ -12,8 +12,8 @@
 | 평가 체계 (사람 라벨 골든셋 + LangSmith Experiments) | ✅ 완료 |
 | 궤적 평가 (트레이스 집계 — 도구 실패 분포·재시도 원인) | ✅ 완료 — 현재 아키텍처 6세션 재측정(2026-08-04) |
 | CI (GitHub Actions 경량 파이프라인) | ✅ 완료 |
-| 배포 구성 (EC2 + RunPod 서버리스 + Caddy HTTPS) | ✅ 구성 완료 · ⏸️ 현재 내려 둠(EC2 삭제, RunPod 크레딧 소진) — `deploy/` 절차로 다시 띄울 수 있음 |
-| 문항 품질 (오프라인 지표, 런타임 게이트 아님) | 🔄 사람 라벨 91건 기준 Judge κ(sonnet-5.5): 정답유일성 **0.86** 확정 · 오답매력도 **0.70** 확정 · 근거성 **0.56** 미확정 — 2026-10 생성 모델 재비교에서 gpt-6-luna를 평가 결론으로 선정(운영 전환은 하지 않음). 상세는 [품질 평가](EVAL_DETAILS.md#품질-평가) |
+| 배포 구성 | ✅ 현재 배포는 Render 무료(백엔드) + Vercel Hobby(프론트엔드), 2026-10-22부터 운영. EC2 + RunPod 서버리스 + Caddy HTTPS 구성은 대안/이전 구성으로 남겨 둠(EC2 삭제, RunPod 크레딧 소진) — `deploy/` 절차로 다시 띄울 수 있음 |
+| 문항 품질 (오프라인 지표, 런타임 게이트 아님) | 🔄 사람 라벨 91건 기준 Judge κ(sonnet-5.5): 정답유일성 **0.86** 확정 · 오답매력도 **0.70** 확정 · 근거성 **0.56** 미확정 — 2026-10 생성 모델 재비교에서 gpt-6-luna를 선정해 2026-10-18에 운영에 적용. 상세는 [품질 평가](EVAL_DETAILS.md#품질-평가) |
 | 검색 골든셋 난이도 | ⛔ 기존 22건이 Recall@5 1.000으로 천장 도달. 검색이 생성 경로에서 빠져(2026-10-07) 골든셋은 더 늘리지 않음 |
 | 코드 리뷰 전수 확인 | ✅ 종료(2026-10-10, 포트폴리오 마무리로 닫음) |
 
@@ -21,7 +21,7 @@
 
 프로젝트의 특징 세 가지:
 
-- **로컬 ↔ 프로덕션 전환 가능한 LLM 추상화** — 개발은 Ollama(로컬), 프로덕션은 RunPod 서버리스(vLLM). 환경변수 하나로 전환
+- **로컬 ↔ 프로덕션 전환 가능한 LLM 추상화** — 개발은 Ollama(로컬), 프로덕션은 OpenRouter/OpenAI API. 환경변수 하나로 전환
 - **"LLM이 판단하고, 코드가 결정한다"** — 품질과 유사도 판단은 LLM이 맡고, 통과 여부·재시도·개수·언어 검사는 결정론적 코드가 맡습니다 ([설계 원칙](#설계-원칙))
 - **평가 기반 개발** — 사람이 라벨링한 골든셋으로 검색·생성·마스킹 품질을 수치로 추적
 
@@ -66,10 +66,10 @@
 | 프론트엔드 | Next.js (`frontend/`) |
 | 에이전트 | LangGraph (평가-수정 루프 워크플로) |
 | 검색(RAG, 생성 경로 미사용) | ChromaDB + BGE-M3 임베딩 + **BM25 하이브리드** + BGE 리랭커 (모두 CPU). 의미 기반 검색과 단어 기반 검색을 따로 돌린 뒤, 두 순위표를 RRF라는 표준 기법으로 하나로 합칩니다. **2026-10-07부터 `agent` 노드가 이 검색을 쓰지 않습니다** — 검색 평가(Recall@5·MRR)용으로만 유지합니다 |
-| 생성 LLM 서빙 | Ollama (개발) / RunPod 서버리스 vLLM (프로덕션) |
-| Judge LLM | 런타임 구조 게이트: OpenAI gpt-5.6-luna(기본) / Ollama(대안). claude-sonnet-5.5 교체는 2026-10 재선정 결론으로만 남기고 운영 전환은 하지 않음. 오프라인 정기 평가(2026-10부터): anthropic/claude-sonnet-5.5 — 모두 생성 백엔드와 독립 |
+| 생성 LLM 서빙 | Ollama (개발) / OpenRouter gpt-6-luna (운영, 2026-10-18~) |
+| Judge LLM | 런타임 구조 게이트: claude-sonnet-5.5(OpenRouter 경유, 2026-10-18~, 이전에는 OpenAI gpt-5.6-luna) / 로컬 개발은 Ollama. 오프라인 정기 평가(2026-10부터): anthropic/claude-sonnet-5.5 — 모두 생성 백엔드와 독립 |
 | 트레이싱 | LangSmith. 2026-07-24부터 PII 마스킹을 거친 뒤에 한해, 프로덕션 API 서버 기록도 켤 수 있게 열어 뒀습니다([하드룰 3](#설계-원칙) "사용자 입력 비저장"의 예외) |
-| 배포 | AWS EC2 t3.medium + EBS + RunPod 서버리스 + Caddy HTTPS |
+| 배포 | Render 무료(백엔드) + Vercel Hobby(프론트엔드), 2026-10-22~. 대안: AWS EC2 t3.medium + EBS + Caddy HTTPS |
 
 ### 출제 모듈 — 평가-수정 루프 워크플로 + 분리된 Judge
 
@@ -204,6 +204,8 @@ data: {"status": "error",     "msg": "요청을 처리하지 못했습니다."} 
 
 ### LLM 백엔드 — ChatRunPod ↔ RunPodBackend
 
+(현재 운영에 쓰지 않음: 2026-10 이후 운영 모델은 전부 API. 구조 설명으로 남겨 둠)
+
 LangGraph 에이전트는 BaseChatModel 인터페이스만 알면 되고, RunPod과의 실제 HTTP 통신은 별도 레이어가 전담합니다. (Judge 백엔드는 이 경로를 타지 않는 별개 인터페이스 — `LLMBackend.generate()`, `app/common/llm/base.py`.)
 
 <picture>
@@ -295,7 +297,7 @@ LLM의 자기 채점은 "기록"까지만 쓰입니다. 그 값으로 무엇을 
 bunpil/
 ├── app/
 │   ├── common/
-│   │   ├── llm/          # LLM 추상화 (OllamaBackend / RunPodBackend / OpenAIBackend / ChatRunPod / OpenAIVLMBackend)
+│   │   ├── llm/          # LLM 추상화 (OllamaBackend / RunPodBackend / OpenAIBackend / OpenRouterBackend / ChatRunPod / ChatOpenRouterBackend / OpenAIVLMBackend)
 │   │   └── rag/          # PDF 파싱, 임베딩, 리랭킹, ChromaDB
 │   ├── modules/
 │   │   ├── exam/         # 출제 모듈 — graph.py(LangGraph) / tools.py(도구 4개) / judge.py(Judge 채점 함수)

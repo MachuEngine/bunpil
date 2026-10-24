@@ -6,7 +6,7 @@
 
 ## 프로젝트 한 줄
 
-고등학교 사회 교사용 AI **문항 출제** 어시스턴트(LangGraph 평가-수정 루프 워크플로). 포트폴리오(2026-10 마무리, 서비스 내림). 지인 교사 1인 실사용 이력 있음.
+고등학교 사회 교사용 AI **문항 출제** 어시스턴트(LangGraph 평가-수정 루프 워크플로). 포트폴리오 프로젝트이며 2026-10-22부터 무료 플랜(Render + Vercel)으로 다시 운영 중. 지인 교사 1인 실사용 이력 있음.
 > 생기부 윤문 모듈은 2026-08-03 제거됨 — 검증 규칙의 규정 근거를 추적한 결과 인덱싱된
 > 교육부 기재요령에 해당 조항이 없었고(EVAL.md 14절), 하드룰 1 때문에 실제 데이터로
 > 검증할 수도 없어 출제 단일 모듈로 범위를 좁혔다. 코드는 git 이력에 남아있다.
@@ -16,14 +16,14 @@
 - Python / FastAPI (비동기)
 - LangGraph(출제 agent)
 - ChromaDB + BGE-reranker, 임베딩 BGE-M3 — **임베딩·리랭킹은 CPU**(2026-10부터 생성 경로 미사용, 검색 평가용)
-- LLM: 생성 Qwen2.5 14B(RunPod은 AWQ 양자화, vLLM 배포) / Judge gpt-5.6-luna(OpenAI, 기본) — 생성 모델과 완전히 분리된 별도 백엔드(judge 노드). 근거는 MODEL_SELECTION.md
+- LLM: 운영은 생성 gpt-6-luna / 런타임 Judge claude-sonnet-5.5(둘 다 OpenRouter 경유), VLM gpt-6-luna(OpenAI). 로컬 개발은 Ollama Qwen2.5 14B(코드 기본값). Judge는 생성 모델과 완전히 분리된 별도 백엔드(judge 노드). 근거는 MODEL_SELECTION.md
 - UI: Next.js (frontend/)
-- 배포: AWS EC2(앱) + RunPod 서버리스(GPU), Caddy HTTPS (현재 내려 둠)
+- 배포: Render 무료(백엔드, `render.yaml`) + Vercel Hobby(프론트엔드). EC2 + Caddy 구성은 대안(docs/DEPLOY.md)
 
 ## 핵심 컨벤션
 
 - 모듈 분리: `common/rag`, `common/llm`, `modules/exam`
-- LLM 호출은 **추상화 레이어 경유** (백엔드 env로 전환: 로컬 ↔ RunPod)
+- LLM 호출은 **추상화 레이어 경유** (백엔드 env로 전환: 로컬 ↔ OpenRouter/OpenAI)
 - RAG: 영구 컬렉션 = 공개 자료(성취기준·규정)만. 출제 예시 문제(`passage_text`)는 ChromaDB 미적재, 프롬프트에만 사용 후 폐기
 - 시크릿은 `.env`(.gitignore), 커밋 금지. `.env.example` 유지
 
@@ -83,4 +83,4 @@
 
 - **exam 모듈**: LangGraph 노드 순서 변경 시 반드시 설계 단계 승인 받을 것
 - **chroma_db**: `RAGStore`에 임시 컬렉션 생성/폐기 메서드 없음(2026.07 리디자인으로 완전 제거됨 — `passage_text`는 ChromaDB 미적재). 되살리는 경우 반드시 `try/finally`로 폐기할 것
-- **runpod_handler**: 변경 시 로컬 Ollama로 먼저 검증 후 RunPod 적용
+- **runpod_handler**: 현재 미사용(2026-10~, 운영 모델 전부 API). 변경 시 로컬 Ollama로 먼저 검증 후 RunPod 적용

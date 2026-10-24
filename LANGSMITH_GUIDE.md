@@ -9,7 +9,7 @@
 실존 인물 정보가 아니고 PII 마스킹(하드룰 2)도 LLM 호출 전에 이미 거치므로, 관측성 확보를
 위해 사용자 승인 하에 하드룰 3의 예외로 지정됐다(CLAUDE.md 참고). `.env`에
 `LANGCHAIN_TRACING_V2=true`를 켜두면 `app/main.py`가 `init_langsmith_project()`를 호출해
-실제 API 서버(`agent_node`의 ChatOllama/ChatRunPod, `judge_node`)도 트레이싱된다. 기본값은
+실제 API 서버(`agent_node`의 ChatOllama/ChatRunPod/ChatOpenRouterBackend(운영 경로), `judge_node`)도 트레이싱된다. 기본값은
 `false`(옵트인) — 켜려면 `LANGCHAIN_API_KEY`도 `.env`에 필요.
 
 **2026-09-24 추가**: 해설(`explain_item`)도 `@traceable`로 트레이싱된다. `app/main.py`가 문항을

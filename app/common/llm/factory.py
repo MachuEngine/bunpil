@@ -18,7 +18,7 @@ def get_llm_backend() -> LLMBackend:
     if backend == "openai":
         return OpenAIBackend()
     if backend == "openrouter":
-        return OpenRouterBackend()  # 평가(모델 비교) 전용 — gemini-3.8-flash 등
+        return OpenRouterBackend()  # 운영 생성 경로(2026-10-18~)·평가(모델 비교) 겸용
     if backend != "local":
         raise ValueError(
             f"LLM_BACKEND={backend!r}은 지원하지 않는 값입니다 (local|runpod|openai|openrouter)."
@@ -48,7 +48,7 @@ def get_judge_backend() -> LLMBackend:
                 "JUDGE_BACKEND=openrouter에서 생성 모델(OPENROUTER_MODEL)로 조용히 "
                 "폴백하지 않도록 명시값이 필요합니다(생성·Judge 모델 분리 원칙)."
             )
-        return OpenRouterBackend(model=judge_model)  # 평가(모델 비교) 전용 — Claude/gemini Judge
+        return OpenRouterBackend(model=judge_model)  # 운영 런타임 Judge(2026-10-18~)·평가 겸용 — Claude/gemini Judge
     if judge_backend != "local":
         raise ValueError(
             f"JUDGE_BACKEND={judge_backend!r}은 지원하지 않는 값입니다 (local|openai|openrouter)."

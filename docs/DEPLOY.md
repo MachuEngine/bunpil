@@ -35,14 +35,31 @@ LangSmith 트레이싱을 켜려면 대시보드에서 `LANGCHAIN_TRACING_V2=tru
 3. Fluid compute가 켜져 있는지 확인합니다. Hobby 함수는 최대 300초이고, 출제 SSE가 이 안에 끝나야 합니다.
 4. 함수 리전을 `icn1`(서울) 또는 `sin1`로 지정합니다.
 
+리전을 `iad1`에서 `sin1`로 바꾸자 Vercel→Render 왕복(백엔드가 즉시 400을 주는 요청)이 1.22초에서 0.23~0.57초로 줄었습니다(2026-10-24). 리전 변경은 새 배포부터 적용되므로 Redeploy가 필요합니다.
+
 ### 제약
 
 | 항목 | 내용 | 영향 |
 |---|---|---|
-| Render 무료 플랜 절전 | 15분 동안 요청이 없으면 정지하고, 깨우는 데 약 1분이 걸립니다 | 정지 뒤 첫 요청은 1분 30초~2분 걸릴 것으로 예상합니다(측정이 아니라 추정) |
+| Render 무료 플랜 절전 | 15분 동안 요청이 없으면 정지하고, 깨우는 데 약 1분이 걸립니다 | 이틀 미사용 뒤 첫 출제는 전체 104.9초, 첫 응답은 82.5초였습니다(2026-10-24 실측). 깨어 있을 때는 31.2초, 첫 응답 4.4초입니다. 출제 후 10초 안에 응답이 없으면 화면에 "서버를 깨우는 중입니다. 오랜만에 쓰면 1~2분 걸릴 수 있습니다."를 표시합니다 |
 | 메모리 512MB, CPU 0.1 | 로컬에서 같은 제한을 건 컨테이너로 측정하면 대기 254MB, 최고 289MB, 기동 52초였습니다 | `<보기>` 출제 요청은 첫 요청 39초, 두 번째 25초였습니다(2026-10-19, arm64 맥에서 측정해 Render x86과 다를 수 있음) |
 | Vercel 요청 본문 4.5MB 고정 | 이미지 업로드 요청이 이 크기를 넘으면 Vercel이 거부합니다 | 프론트엔드가 4MB를 넘는 이미지를 업로드 전에 막습니다 |
 | Vercel Hobby | 비상업용 플랜입니다 | 상업적 용도로는 쓸 수 없습니다 |
+
+### 부하 테스트와 운영 점검 결과
+
+| 날짜 | 조건 | 결과 |
+|---|---|---|
+| 2026-10-18 | 로컬 부하 테스트. 운영 모델 설정, Next.js 프록시 경유, 45건 | 성공 27, 의도된 429 18, 오류 0. 기본 4지 p50 20.6초/p95 26.8초, `<보기>` 5지 p50 38.8초/p95 45.6초, 첫 응답 p50 2.8초. 429 응답은 최대 70ms. 요청당 약 $0.0104, FastAPI 메모리 약 300MB |
+| 2026-10-19 | 무료 플랜 조건 재현(512MB, CPU 0.1 컨테이너, arm64 맥) | 대기 254MB, 최고 289MB, 기동 52초 |
+| 2026-10-22 | 운영 경로(Vercel 경유) 9건(동시 1건 x 3, 2건 x 3) | 모두 200, validation 통과. 기본 p50 24.4초, `<보기>` p50 37.8초, 요청당 약 $0.0096. 이미지 추출 5.6초. 4.7MB 업로드는 Vercel이 413 반환 |
+
+동시 처리 2건 제한(`Semaphore(2)`)은 그대로 둡니다(교사 1인 규모). 로컬 부하 테스트에서 동시 2건을 처리하는 동안 오류가 없었고, 운영 경로(512MB, CPU 0.1)에서도 동시 2건 요청 6건이 모두 성공했습니다. 다만 512MB 환경에서 동시 2건일 때의 메모리는 따로 측정하지 않았습니다.
+
+### 알려진 문제
+
+- **첫 요청 502(2026-10-22)**: Render가 "service unavailable" 502를 반환했고, 재시도부터 정상이었습니다. Render 로그에 uvicorn 정상 종료(`Shutting down`) 기록이 있어 인스턴스 교체 시점과 겹친 것으로 추정하지만, 시각을 확인하지 못해 원인은 확정하지 못했습니다. 메모리 부족 기록은 없었습니다. 대응은 재시도입니다.
+- **프론트엔드만 바뀐 커밋에도 백엔드가 재시작됩니다**: `render.yaml`이 `main`의 모든 커밋을 배포하기 때문입니다. 경로 필터 `buildFilter`로 줄일 수 있지만 아직 적용하지 않았습니다.
 
 ---
 
@@ -50,7 +67,7 @@ LangSmith 트레이싱을 켜려면 대시보드에서 `LANGCHAIN_TRACING_V2=tru
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/deploy-architecture-dark.svg">
-  <img src="../assets/deploy-architecture-light.svg" alt="배포 구성(현재 내려 둠). 교사 브라우저가 HTTPS로 EC2의 Caddy에 접속하고, Caddy는 호스트 내부 포트의 Next.js 컨테이너로, Next.js는 BACKEND_URL로 FastAPI 컨테이너로 전달한다. FastAPI는 생성에 RunPod 서버리스를, Judge와 VLM에 OpenAI API를 호출한다.">
+  <img src="../assets/deploy-architecture-light.svg" alt="EC2 대안 배포 구성. 교사 브라우저가 HTTPS로 EC2의 Caddy에 접속하고, Caddy는 호스트 내부 포트의 Next.js 컨테이너로, Next.js는 BACKEND_URL로 FastAPI 컨테이너로 전달한다. FastAPI는 생성에 RunPod 서버리스를, Judge와 VLM에 OpenAI API를 호출한다.">
 </picture>
 
 > **프론트엔드 배포**: `docker-compose.yml`의 `frontend` 서비스가 3000 포트로 UI를 서빙합니다
@@ -164,21 +181,21 @@ Render + Vercel: 호스팅 $0, API 사용료만(요청당 약 $0.01). 아래 표
 | `BUNPIL_API_KEY` | Next.js → FastAPI 서버 간 인증 키(양쪽에 동일한 긴 무작위 값 설정) | 필수 |
 | `PORT` | Render가 앱 포트를 찾는 데 쓰는 값(`render.yaml`에서 `8765`). 앱 코드는 읽지 않음 | — |
 | `BACKEND_URL` | 프론트엔드가 FastAPI를 찾아가는 주소(`frontend/app/api/*/route.ts`가 읽음). docker-compose에서는 `http://app:8765` | `http://localhost:8000` |
-| `LLM_BACKEND` | 생성 모델 백엔드 — `local`(Ollama) / `runpod` / `openai` / `openrouter`(뒤의 둘은 모델 비교 실험용) | `local` |
+| `LLM_BACKEND` | 생성 모델 백엔드 — `local`(Ollama) / `runpod` / `openai` / `openrouter`(openrouter는 운영 경로로 2026-10-18부터 사용, openai는 모델 비교 실험용) | `local` |
 | `OLLAMA_MODEL` | 로컬 개발 생성 모델명 | `qwen2.5:14b` |
 | `OLLAMA_BASE_URL` | 로컬 Ollama 서버 주소 | `http://localhost:11434` |
 | `RUNPOD_API_KEY` | RunPod API 키 | — |
 | `RUNPOD_ENDPOINT_ID` | RunPod 엔드포인트 ID | — |
-| `JUDGE_BACKEND` | 런타임 구조 게이트(`judge` 노드) Judge 백엔드 — `local`(Ollama) / `openai` / `openrouter`(평가 전용). 정기 평가(`evals/eval_exam.py`, `evals/eval_item_quality_runs.py`)는 2026-10부터 아래 `OFFLINE_JUDGE_MODEL`을 쓴다(`eval_ragas.py`·`eval_vlm.py`는 아직 이 값). 키가 없거나 호출 실패 시 fail-fast | `openai` |
+| `JUDGE_BACKEND` | 런타임 구조 게이트(`judge` 노드) Judge 백엔드 — `local`(Ollama) / `openai` / `openrouter`(운영 런타임 게이트에도 사용). 정기 평가(`evals/eval_exam.py`, `evals/eval_item_quality_runs.py`)는 2026-10부터 아래 `OFFLINE_JUDGE_MODEL`을 쓴다(`eval_ragas.py`·`eval_vlm.py`는 아직 이 값). 키가 없거나 호출 실패 시 fail-fast | `openai` |
 | `OLLAMA_JUDGE_MODEL` | `JUDGE_BACKEND=local`일 때 쓰는 로컬 Judge 모델명(미설정 시 `OLLAMA_MODEL` 폴백) | `qwen2.5:14b` |
 | `OPENAI_API_KEY` | `LLM_BACKEND=openai` 또는 `JUDGE_BACKEND=openai`일 때 필요 | — |
 | `OPENAI_MODEL` | 생성 모델 비교 실험용(`LLM_BACKEND=openai`일 때만) | `gpt-4o-mini` |
 | `OPENAI_JUDGE_MODEL` | Judge 기본 모델(`JUDGE_BACKEND=openai`). 채택 근거는 [MODEL_SELECTION.md](../MODEL_SELECTION.md) | `gpt-5.6-luna` |
 | `OPENROUTER_API_KEY` | `LLM_BACKEND=openrouter`, `JUDGE_BACKEND=openrouter`, 오프라인 평가 Judge 호출에 필요 | — |
-| `OPENROUTER_MODEL` | `LLM_BACKEND=openrouter`일 때 생성 모델(평가 전용, 기본값 없음) | — |
-| `OPENROUTER_JUDGE_MODEL` | `JUDGE_BACKEND=openrouter`일 때 Judge 모델. 비어 있으면 생성 모델로 폴백하지 않고 실패(자기채점 방지) | — |
+| `OPENROUTER_MODEL` | `LLM_BACKEND=openrouter`일 때 생성 모델(기본값 없음, 운영 값은 `render.yaml` 참고) | — |
+| `OPENROUTER_JUDGE_MODEL` | `JUDGE_BACKEND=openrouter`일 때 Judge 모델(운영 값은 `render.yaml` 참고). 비어 있으면 생성 모델로 폴백하지 않고 실패(자기채점 방지) | — |
 | `OFFLINE_JUDGE_MODEL` | 오프라인 평가 Judge(OpenRouter 경유, 런타임 게이트와 분리). 채택 근거는 [MODEL_SELECTION.md](../MODEL_SELECTION.md) | `anthropic/claude-sonnet-5.5` |
-| `VLM_BACKEND` | 이미지→텍스트 추출 백엔드(`/exam/extract`). 생성/Judge와 완전히 독립. 현재 `openai`만 지원 | `openai` |
+| `VLM_BACKEND` | 이미지→텍스트 추출 백엔드(`/exam/extract`). 생성/Judge와 완전히 독립. `openai`(운영 기본) / `openrouter`·`local`(2026-10 VLM 비교 평가 전용) | `openai` |
 | `OPENAI_VLM_MODEL` | 이미지 추출용 OpenAI Vision 모델명 | `gpt-6-luna` |
 | `CHROMA_PERSIST_DIR` | ChromaDB 저장 경로 | `/data/chroma_db` (EC2) / `./chroma_db` (로컬) |
 | `BGE_EMBED_MODEL` | 임베딩 모델명 | `BAAI/bge-m3` |

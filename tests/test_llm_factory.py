@@ -129,7 +129,7 @@ def test_get_vlm_backend_local_without_model_fails(monkeypatch):
         get_vlm_backend()
 
 
-# ── 2026-10: get_langchain_model() LLM_BACKEND=openrouter 분기 (평가 전용) ──────
+# ── 2026-10: get_langchain_model() LLM_BACKEND=openrouter 분기 (운영 생성 경로·평가 겸용, 2026-10-18~) ──────
 
 
 def test_get_langchain_model_openrouter_returns_chat_openrouter_backend(monkeypatch):
