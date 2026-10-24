@@ -10,6 +10,8 @@ import ExamSheet from "./ExamSheet";
 const MAX_PASSAGE_LENGTH = 8000;
 // Vercel 함수 요청 본문 4.5MB 고정 제한보다 여유를 둔 값
 const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+// Render 무료 플랜이 절전에서 깨어나는 동안 응답이 없어 안내로 바꾸는 대기 시간
+const WAKE_NOTICE_MS = 10_000;
 
 // 해설 상태 — 교사용 다운로드·수정 반영 시에도 쓰므로 ExamTab이 item_id별로 들고 있다(2026-09)
 type ExplanationState = { status: "loading" } | { status: "done"; text: string } | { status: "error" };
@@ -239,6 +241,10 @@ export default function ExamTab() {
     setFormatNotice("");
     setIsLoading(true);
     setStepMsg("준비 중...");
+    const wakeTimer: ReturnType<typeof setTimeout> = setTimeout(
+      () => setStepMsg("서버를 깨우는 중입니다. 오랜만에 쓰면 1~2분 걸릴 수 있습니다."),
+      WAKE_NOTICE_MS,
+    );
 
     try {
       const fd = new FormData();
@@ -281,6 +287,7 @@ export default function ExamTab() {
           } catch {
             continue; // 프레임 하나가 깨져도 이미 표시된 진행 상황은 유지
           }
+          clearTimeout(wakeTimer);
 
           if (data.status === "progress") {
             setStepMsg(data.msg ?? "");
@@ -303,6 +310,7 @@ export default function ExamTab() {
     } catch {
       setError("서버 연결 오류가 발생했습니다.");
     } finally {
+      clearTimeout(wakeTimer);
       setIsLoading(false);
     }
   };
